@@ -32,3 +32,4 @@ ST-030,df0f5ea6b4bdd654d8ce39bdb5511ca48e6bfc05,,,,forward-change,v1.0.0,release
 ST-031,v1.0.0,,,,controlled-record,v1.0.0,self-identifying provenance and release record; immutable tag resolves the commit because a commit cannot contain its own SHA
 ST-032,v1.0.1,,,,forward-change,v1.0.1,accept only GitHub-verified Dependabot commits as structured-history exceptions and adopt current official actions
 ST-033,v1.0.2,,,,controlled-record,v1.0.2,record verified public-repository production cutover and close the legacy retirement gate
+ST-034,v1.1.0,,,,forward-change,v1.1.0,governance-first public information architecture with standard-specific implementation pages and live evidence index

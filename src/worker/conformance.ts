@@ -50,7 +50,7 @@ const ev = (label: string, href?: string, auth?: boolean): Evidence => ({ label,
    routing table in index.ts; a dead evidence link is a finding in its own right. */
 const E = {
   register: ev("This register", "/audit/"),
-  trust: ev("Trust and operations overview", "/trust/"),
+  trust: ev("Governance overview", "/trust/"),
   policies: ev("Policy set", "/policies/"),
   policiesJson: ev("Policy set (JSON)", "/policies.json"),
   docContext: ev("Context, scope and interested parties", "/policies/context/"),
@@ -625,7 +625,7 @@ export interface EvidenceRoute {
 }
 
 export const EVIDENCE_INDEX: readonly EvidenceRoute[] = [
-  { route: "/trust/", access: "public", proves: "The entry point to this estate: availability, incidents, metered spend, conformance readiness, the last deployment and the receipt chain verdict, each linking to the page that owns the figure and none of them stored a second time.", controls: "7.4, 9.1, 42001 7.4" },
+  { route: "/ and /trust/", access: "public", proves: "The management-system overview: the governed workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, and a live operational snapshot whose figures link to the routes that own them.", controls: "7.4, 9.1, 42001 7.4" },
   { route: "/status/#delivery", access: "public", proves: "Every production change with an identifier, a classification, a deployment grouping, its evidence and the report or incident it answers.", controls: "8.1, 8.3, A.8.32, A.5.27" },
   { route: "/roadmap.json", access: "public", proves: "The same change record as machine-readable data, including delivery velocity and post-delivery hotfixes kept separate from the delivery metrics.", controls: "8.1, A.8.32" },
   { route: "/status/#incidents", access: "public", proves: "Every incident with cause, start, duration and resolution, charted by cause, with the append-only control receipt chain and its verification verdict at /status/#control-history on the same page.", controls: "A.5.24, A.5.26, A.5.28, 10.2" },

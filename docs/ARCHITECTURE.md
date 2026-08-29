@@ -13,7 +13,7 @@ browser ── HTTPS ──> Worker router ──> Lobby Durable Object
                         └───────────> R2 state copies
 ```
 
-The Worker serves the game under `/play/`, public APIs under `/api/`, public assurance surfaces under `/trust/`, `/status/`, `/spend/`, `/logs/`, `/audit/`, and `/policies/`, and authenticated operations under `/admin/`. WebSockets at `/room/:id/ws` terminate in a room object. The Lobby object is addressed by the stable name `global`; room objects use stable room identifiers.
+The Worker serves the governance overview at `/`, standard-specific explanations at `/iso-27001/` and `/iso-42001/`, the live evidence index at `/evidence/`, and the governed workload at `/play/`. Supporting assurance surfaces remain available at `/status/`, `/spend/`, `/logs/`, `/audit/`, and `/policies/`; public APIs live under `/api/`, and authenticated operations under `/admin/`. WebSockets at `/room/:id/ws` terminate in a room object. The Lobby object is addressed by the stable name `global`; room objects use stable room identifiers.
 
 `vendor/ModuleReact3Fiber` is first-party source, not a downloaded or private git dependency. Both the Worker and client import its deterministic engine and protocol. `packages/php-runtime` independently reproduces the seed and replay contract as an optional cross-language proof.
 

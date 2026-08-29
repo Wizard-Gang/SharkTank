@@ -401,6 +401,9 @@ function maintenanceBypass(path: string, method: string): boolean {
     path === "/inquiry" || path.startsWith("/inquiry/") || path === "/inquiry.json" ||
     path === "/spend" || path.startsWith("/spend/") || path === "/spend.json" ||
     path === "/trust" || path.startsWith("/trust/") ||
+    path === "/iso-27001" || path.startsWith("/iso-27001/") ||
+    path === "/iso-42001" || path.startsWith("/iso-42001/") ||
+    path === "/evidence" || path.startsWith("/evidence/") ||
     path === "/policies" || path.startsWith("/policies/") || path === "/policies.json" ||
     path === "/roadmap" || path.startsWith("/roadmap/") || path === "/roadmap.json" ||
     path === "/logs" || path.startsWith("/logs/") || path === "/logs.json" ||
@@ -1187,6 +1190,52 @@ const PAGE_CSS = `
   .trust-what dt{font-weight:800}.trust-what dd{margin:0;color:var(--muted)}
   .page-intro dfn{font-style:normal;font-weight:800;color:var(--text);border-bottom:1px dotted var(--strong)}
   .action-links{display:flex;flex-wrap:wrap;gap:14px;margin:0}
+  /* ── Governance case-study IA ── */
+  .governance-hero,.standard-hero{max-width:980px;padding:clamp(54px,10vw,112px) 0 clamp(36px,7vw,72px)}
+  .governance-hero h1,.standard-hero h1{max-width:16ch;margin:12px 0 20px;font-size:clamp(3rem,8vw,7rem);line-height:.9;letter-spacing:-.065em}
+  .standard-hero h1{max-width:18ch;font-size:clamp(2.8rem,7vw,6rem)}
+  .governance-hero>p,.standard-hero>p{max-width:760px;margin:0 0 24px;color:var(--muted);font-size:clamp(1.05rem,2vw,1.35rem)}
+  .governance-flow{display:grid;align-items:center;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:10px;margin:0 0 clamp(50px,9vw,94px)}
+  .governance-flow>div{min-height:150px;padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface-1)}
+  .governance-flow strong{display:block;margin-bottom:28px;color:var(--cyan);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase}
+  .governance-flow span{color:var(--muted);font-size:.84rem}
+  .governance-flow>i{color:var(--faint);font-style:normal;transform:rotate(-90deg)}
+  .standard-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 clamp(50px,9vw,94px)}
+  .standard-card{display:flex;min-height:360px;padding:clamp(24px,4vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(145deg,rgba(34,230,255,.08),var(--surface-1));color:var(--text);text-decoration:none;flex-direction:column}
+  .standard-card:nth-child(2){background:linear-gradient(145deg,rgba(143,123,255,.12),var(--surface-1))}
+  .standard-card>span,.ai-definition article>span{color:var(--cyan);font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .standard-card:nth-child(2)>span{color:#b6a9ff}
+  .standard-card h2{max-width:15ch;margin:auto 0 14px;font-size:clamp(2rem,4vw,3.5rem);line-height:.95;letter-spacing:-.045em}
+  .standard-card p{margin:0 0 24px;color:var(--muted)}
+  .standard-card>strong{color:var(--text)}
+  .case-principle,.register-cta,.workload-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.7fr);gap:clamp(28px,7vw,90px);align-items:end;margin:0 0 clamp(50px,9vw,94px);padding:clamp(30px,6vw,58px) 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .case-principle h2,.register-cta h2,.workload-card h2,.section-head h2{max-width:18ch;margin:8px 0 0;font-size:clamp(2rem,4.5vw,4rem);line-height:.96;letter-spacing:-.05em}
+  .case-principle>p,.register-cta p,.workload-card p{margin:0;color:var(--muted);font-size:1.03rem}
+  .section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:0 0 20px}
+  .workload-card>div:last-child{display:grid;justify-items:center;gap:18px}
+  .workload-card svg{width:min(220px,70%);filter:drop-shadow(0 16px 34px rgba(34,230,255,.16))}
+  .governance-topics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 clamp(50px,9vw,94px);border:1px solid var(--border);background:var(--border)}
+  .governance-topics article{min-width:0;padding:clamp(22px,4vw,38px);background:var(--bg)}
+  .governance-topics article>span{display:block;margin-bottom:42px;color:var(--cyan);font-size:.7rem;font-weight:900}
+  .governance-topics h2{margin:0 0 10px;font-size:clamp(1.6rem,3vw,2.4rem)}
+  .governance-topics p{margin:0 0 20px;color:var(--muted)}
+  .control-example{display:grid;grid-template-columns:minmax(220px,.65fr) minmax(0,1fr);gap:clamp(26px,7vw,90px);margin:0 0 clamp(50px,9vw,94px);padding:clamp(24px,5vw,48px);border:1px solid var(--border);border-radius:18px;background:var(--surface-1)}
+  .control-example h2{margin:8px 0 18px;font-size:clamp(2rem,5vw,4rem);line-height:.92}
+  .control-example dl{display:grid;grid-template-columns:9rem minmax(0,1fr);gap:14px 20px;margin:0}
+  .control-example dt{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .control-example dd{margin:0;color:var(--muted)}
+  .register-cta .button{margin-top:18px}
+  .ai-definition{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 clamp(50px,9vw,94px)}
+  .ai-definition article{min-height:250px;padding:24px;border:1px solid var(--border);border-radius:14px;background:var(--surface-1)}
+  .ai-definition h2{margin:54px 0 10px;font-size:1.35rem;line-height:1.05}
+  .ai-definition p{margin:0;color:var(--muted);font-size:.88rem}
+  .evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 clamp(50px,9vw,94px)}
+  .evidence-grid>a{display:flex;min-height:290px;padding:24px;border:1px solid var(--border);border-radius:14px;background:var(--surface-1);color:var(--text);text-decoration:none;flex-direction:column}
+  .evidence-grid>a>span{color:var(--cyan);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .evidence-grid h2{margin:auto 0 10px;font-size:1.7rem;line-height:1}
+  .evidence-grid p{margin:0 0 20px;color:var(--muted);font-size:.88rem}
+  @media(max-width:900px){.governance-flow{grid-template-columns:1fr}.governance-flow>i{justify-self:center;transform:none}.standard-pair,.ai-definition,.evidence-grid{grid-template-columns:1fr 1fr}.ai-definition article:last-child{grid-column:1/-1}}
+  @media(max-width:700px){.standard-pair,.case-principle,.register-cta,.workload-card,.governance-topics,.control-example,.ai-definition,.evidence-grid{grid-template-columns:1fr}.standard-card{min-height:300px}.control-example dl{grid-template-columns:1fr;gap:4px}.control-example dd{margin-bottom:14px}.ai-definition article:last-child{grid-column:auto}.section-head{align-items:flex-start;flex-direction:column}}
 
   /* ── Policy index and documents ── */
   .gov-breadcrumb{margin:0 0 8px;color:var(--muted);font-size:.8rem;font-weight:700}
@@ -1311,11 +1360,11 @@ const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy 
  * estate keeps its own five-item table of contents.
  */
 const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
-  ["/trust/", "Overview"],
-  ["/audit/", "Register"],
-  ["/policies/", "Policies"],
-  ["/status/", "Operations"],
-  ["/logs/", "Evidence"],
+  ["/", "Overview"],
+  ["/iso-27001/", "ISO 27001"],
+  ["/iso-42001/", "ISO 42001"],
+  ["/evidence/", "Evidence"],
+  ["/play/", "Workload"],
 ];
 /**
  * The game's single link out is not emitted here — the game is not served by this
@@ -1340,9 +1389,9 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
  * the index cannot be complete on some pages and missing on others.
  */
 const ESTATE_FOOTER: ReadonlyArray<readonly [string, ReadonlyArray<readonly [string, string]>]> = [
-  ["Trust", [["/trust/", "Overview"], ["/audit/", "Register"], ["/policies/", "Policies"]]],
-  ["Operations", [["/status/", "Operations"], ["/spend/", "Spend"], ["/logs/", "Evidence"]]],
-  ["Interfaces", [["/docs/", "API"], ["/admin/", "Admin"], ["/play/", "Game"]]],
+  ["Management system", [["/", "Overview"], ["/iso-27001/", "ISO 27001"], ["/iso-42001/", "ISO 42001"], ["/evidence/", "Evidence"]]],
+  ["Operational evidence", [["/status/", "Status, incidents & recovery"], ["/logs/", "Logs"], ["/spend/", "Resource use"]]],
+  ["Appendix", [["/audit/", "Control register"], ["/policies/", "Policy set"], ["/docs/", "API"], ["/admin/", "Admin"]]],
 ];
 
 function footerHtml(): string {
@@ -1350,13 +1399,13 @@ function footerHtml(): string {
     ESTATE_FOOTER.map(([head, links]) => `<div class="footer-col"><span class="footer-head">${head}</span><ul>${
       links.map(([href, label]) => `<li><a href="${href}">${label}</a></li>`).join("")
     }</ul></div>`).join("")
-  }</nav><p class="footer-note">Every page here is public except the operations console, which answers 401 to an unauthenticated request. The register links each control to the route that demonstrates it.</p></div></footer>`;
+  }</nav><p class="footer-note">The game is the workload. The management system around it is the case study. Every control position links to inspectable implementation or evidence.</p></div></footer>`;
 }
 
 function navHtml(): string {
   return `<nav aria-label="Trust and operations">${
     TRUST_NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
-  }<a href="/admin/">Admin</a></nav>`;
+  }</nav>`;
 }
 
 /**
@@ -1366,7 +1415,7 @@ function navHtml(): string {
  */
 function shell(title: string, inner: string, description = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="https://wizardgang.ai/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>SharkTank</strong><small>Governance system</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
@@ -2487,40 +2536,77 @@ interface TrustInput {
   lastDeployment: { id: string; title: string } | null;
 }
 function trustHtml(input: TrustInput): string {
-  const { portal, tank, incidents, integrity, spendUsd, hardLimitUsd, readiness, lastDeployment } = input;
+  const { portal, incidents, integrity, spendUsd, hardLimitUsd, lastDeployment } = input;
   const unscheduled = incidents.filter((incident) => incident.cause !== "Test alert" && !SCHEDULED_INCIDENT_CAUSES.has(incident.cause)).length;
   const chainOk = integrity.chainStatus === "verified";
   const tile = (href: string, label: string, value: string, detail: string, tone: string) =>
     `<a class="trust-tile ${tone}" href="${href}"><span class="trust-tile__label">${esc(label)}</span><span class="trust-tile__value">${value}</span><span class="trust-tile__detail">${esc(detail)}</span><span class="trust-tile__go" aria-hidden="true">→</span></a>`;
-  return `<section class="page-intro">
-    <div class="eyebrow">Trust · operations and conformance</div>
-    <h1>Trust &amp; operations</h1>
-    <p class="sub">Wizard Gang Shark Tank is a browser game. A <dfn id="tank">tank</dfn> is one of its four game rooms — a single running world with its own players, its own leaderboard and its own log; the word is used that way everywhere on this site. These pages are the evidence behind the service that runs them: what it is doing right now, what it has done, what it costs, and where it falls short.</p>
-    <p class="sub">Everything published here is read from the running service at the moment the page is built. Each figure below links to the page that owns it — none of them is stored twice.</p>
+  return `<section class="governance-hero">
+    <div class="eyebrow">SharkTank · technical governance case study</div>
+    <h1>Governance implemented against a running software system.</h1>
+    <p>SharkTank explores how ISO/IEC 27001:2022 and ISO/IEC 42001:2023 requirements can map to controls, operational behavior, and evidence that can be inspected in the live service.</p>
+    <div class="action-links"><a class="button" href="/iso-27001/">Explore ISO 27001 →</a><a class="button secondary" href="/iso-42001/">Explore ISO 42001 →</a></div>
   </section>
-  <div class="trust-grid">
-    ${tile("/status/", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
-    ${tile("/status/#incidents", "Incidents", String(incidents.length), `${unscheduled} unscheduled`, unscheduled ? "tone-violet" : "tone-green")}
-    ${tile("/spend/", "Metered spend", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
-    ${tile("/audit/", "Conformance readiness", `${readiness.percent}%`, `${readiness.met} met and ${readiness.partial} partial of ${readiness.total} applicable`, "tone-violet")}
-    ${tile("/status/#delivery", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
-    ${tile("/status/#control-history", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
-  </div>
-  <section class="card">
-    <h2 style="margin-top:0;font-size:1.1rem">What is on each page</h2>
-    <dl class="trust-what">
-      <dt><a href="/audit/">Register</a></dt><dd>Every ISO/IEC 27001 and 42001 control, what this service does about it, and the live route that proves it. A control may only be marked met when a reader can open that route.</dd>
-      <dt><a href="/policies/">Policies</a></dt><dd>The written record the two standards ask for — context and scope, risk method and assessment, the Statement of Applicability, and the rest — published as pages rather than filed as documents nobody can check.</dd>
-      <dt><a href="/status/">Operations</a></dt><dd>Live availability, the incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record.</dd>
-      <dt><a href="/logs/">Evidence</a></dt><dd>The 90-day service action log and the 24-hour per-tank capture logs, searchable and downloadable.</dd>
-      <dt><a href="/spend/">Spend</a></dt><dd>What the service consumes against each free allowance and against the hard limit that closes the game rather than billing.</dd>
-      <dt><a href="/docs/">API</a></dt><dd>Every route this Worker serves, including the unauthenticated ones and the limits on them.</dd>
-    </dl>
+  <section class="governance-flow" aria-label="SharkTank governance evidence model"><div><strong>Running system</strong><span>Realtime software with users, agents, state, change, and failure modes.</span></div><i aria-hidden="true">↓</i><div><strong>Operational evidence</strong><span>Status, incidents, logs, receipts, backups, recovery, and resource use.</span></div><i aria-hidden="true">↓</i><div><strong>Controls</strong><span>Technical and operational responses tied to requirements.</span></div><i aria-hidden="true">↓</i><div><strong>Management system</strong><span>Scope, risk, policy, objectives, review, and continuous improvement.</span></div></section>
+  <section class="standard-pair" aria-label="Implemented management systems">
+    <a class="standard-card" href="/iso-27001/"><span>ISO/IEC 27001:2022</span><h2>Information Security Management</h2><p>Scope, risk treatment, Annex A applicability, secure development, operations, recovery, and improvement.</p><strong>Inspect implementation →</strong></a>
+    <a class="standard-card" href="/iso-42001/"><span>ISO/IEC 42001:2023</span><h2>AI Management System</h2><p>Purpose, intended use, impact, human authority, monitoring, transparency, change, and known limitations.</p><strong>Inspect implementation →</strong></a>
   </section>
-  <section class="card">
-    <h2 style="margin-top:0;font-size:1.1rem">The rule these pages are held to</h2>
-    <p class="sub" style="margin:0">A row marked met must name a live route that demonstrates it. Implemented but unrecorded is partial; nothing is silently a gap. An overstated register fails an audit faster than an honest one with open gaps, and it makes every other row suspect — so where this service is weaker than it would like to be, the page says so.</p>
-  </section>`;
+  <section class="case-principle"><div><div class="eyebrow">Evidence rule</div><h2>Requirement → meaning → implementation → proof.</h2></div><p>A control is not treated as evidenced merely because it is described. Each supported position resolves to a live route or operational record. Partial implementations and gaps stay visible rather than being flattened into a compliance score.</p></section>
+  <section aria-labelledby="live-snapshot"><div class="section-head"><div><div class="eyebrow">Live system snapshot</div><h2 id="live-snapshot">Current operational evidence.</h2></div><a class="action-link" href="/evidence/">Open the evidence index →</a></div>
+    <div class="trust-grid">
+      ${tile("/status/", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
+      ${tile("/status/#incidents", "Incident record", String(incidents.length), `${unscheduled} unscheduled`, unscheduled ? "tone-violet" : "tone-green")}
+      ${tile("/spend/", "Metered resource cost", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
+      ${tile("/status/#delivery", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
+      ${tile("/status/#control-history", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
+    </div>
+  </section>
+  <section class="workload-card"><div><div class="eyebrow">Running workload</div><h2>The game gives the controls something real to govern.</h2><p>Authentication, authorization, availability, application state, secure development, change control, monitoring, incidents, recovery, operational logging, resource consumption, and AI-system governance are exercised against a live realtime application.</p></div><div>${SHARK_MARK_SVG}<a class="button" href="/play/">Launch workload →</a></div></section>`;
+}
+
+function iso27001Html(): string {
+  return `<section class="standard-hero"><div class="eyebrow">ISO/IEC 27001:2022</div><h1>Information Security Management System</h1><p>The implementation starts with the governed system and its risks, then maps requirements to controls and evidence. The register is available, but it is not the first explanation.</p><div class="action-links"><a class="button" href="/audit/#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="/policies/statement-of-applicability/">Statement of Applicability →</a></div></section>
+  <section class="governance-topics">
+    <article id="scope"><span>01</span><h2>Scope</h2><p>The governed system is the SharkTank production service: its Worker routes, realtime tank state, Durable Objects, stored copies, operational interfaces, and computer-controlled actors. Provider infrastructure remains a supplier boundary.</p><a href="/policies/context/">Scope and context →</a></article>
+    <article id="risk-management"><span>02</span><h2>Risk management</h2><p>Risks are identified, scored, treated, accepted, and revisited on a defined interval and when material system changes occur. Open positions remain explicit.</p><a href="/policies/risk-assessment/">Risk assessment →</a></article>
+    <article id="applicability"><span>03</span><h2>Statement of Applicability</h2><p>Every Annex A control carries an applicability decision and justification. Supplier-inherited, partial, excluded, and gap states are preserved instead of converted into a badge.</p><a href="/policies/statement-of-applicability/">Inspect applicability →</a></article>
+    <article id="secure-development"><span>04</span><h2>Secure development</h2><p>Changes are classified, reviewed, tested, version-controlled, released through an authenticated path, and tied to a visible change and evidence record.</p><a href="/policies/secure-development/">Secure development process →</a></article>
+    <article id="operations-recovery"><span>05</span><h2>Operations &amp; recovery</h2><p>Availability, incidents, state copies, restore drills, resource ceilings, and append-only receipts are recorded by the service they describe.</p><a href="/status/">Operational record →</a></article>
+    <article id="improvement"><span>06</span><h2>Continuous improvement</h2><p>Findings, nonconformities, corrective action, management review, and system evolution remain part of the public record, including known limits in independent assurance.</p><a href="/policies/audit-and-review/">Audit and review →</a></article>
+  </section>
+  <section class="control-example"><div><div class="eyebrow">Example control</div><h2>A.8.32<br>Change management</h2><span class="iso-pill is-met">Evidenced</span></div><dl><dt>Purpose</dt><dd>Production changes are assessed, authorized, tested, and recorded.</dd><dt>Implementation</dt><dd>Git-based controlled change workflow, required verification, an authenticated deployment path, and append-only operational receipts.</dd><dt>Evidence</dt><dd><a href="/status/#delivery">Deployment record</a> · <a href="/status/#control-history">Control receipts</a> · <a href="/policies/secure-development/">Secure development procedure</a></dd><dt>Current gaps</dt><dd>Independent assurance remains outside the project’s current boundary; the public register does not claim certification.</dd></dl></section>
+  <section class="register-cta"><div><div class="eyebrow">Control mapping</div><h2>Inspect the full ISO 27001 position.</h2></div><div><p>Search the clauses and all 93 Annex A controls only when you need row-level detail.</p><a class="button" href="/audit/#iso27001-clauses">Open searchable register →</a></div></section>`;
+}
+
+function iso42001Html(): string {
+  return `<section class="standard-hero"><div class="eyebrow">ISO/IEC 42001:2023</div><h1>AI Management System</h1><p>The AI-system definition comes before the control mapping. SharkTank governs a deliberately bounded, low-impact system whose behavior is inspectable and reproducible.</p><div class="action-links"><a class="button" href="/audit/#iso42001-clauses">Open 42001 register →</a><a class="button secondary" href="/policies/ai-policy/">AI policy &amp; impact →</a></div></section>
+  <section class="ai-definition" aria-label="SharkTank AI system definition">
+    <article><span>System purpose</span><h2>Computer-controlled actors operate inside the game.</h2><p>The system creates autonomous sharks that steer, select targets, move, and interact inside the same realtime simulation as human players.</p></article>
+    <article><span>Intended use</span><h2>Gameplay simulation only.</h2><p>The actors provide a populated, dynamic workload for play and for exercising system governance.</p></article>
+    <article><span>Model dependency</span><h2>Deterministic rules, not machine learning.</h2><p>Behavior uses fixed rule-based logic. There is no trained model, external inference service, training dataset, or probabilistic model dependency.</p></article>
+    <article><span>Impact</span><h2>Gameplay effects only.</h2><p>No employment, credit, health, education, legal-status, eligibility, or other consequential decision about a person is made.</p></article>
+    <article><span>Human authority</span><h2>Operators retain control.</h2><p>Authorized operators control deployment, configuration, availability, incident response, and the system’s operating boundary.</p></article>
+    <article><span>Monitoring</span><h2>State is inspectable and reproducible.</h2><p>Behavior is visible in tank state and retained action records; deterministic replay can reconstruct authoritative state at a retained tick.</p></article>
+    <article><span>Transparency</span><h2>Purpose and limits are public.</h2><p>The implementation, intended use, impact boundary, supplier position, life cycle, and control mapping are documented.</p></article>
+    <article><span>Change management</span><h2>Behavior changes are auditable.</h2><p>Changes are version-controlled, verified, deployed through the controlled path, and recorded with their evidence.</p></article>
+    <article><span>Known limitations</span><h2>No claim beyond the evidence.</h2><p>The project has no independent audit objectivity, no certification, and no claim that low-impact deterministic agents represent every AI risk profile.</p></article>
+  </section>
+  <section class="register-cta"><div><div class="eyebrow">Control mapping</div><h2>Inspect the ISO 42001 implementation.</h2></div><div><p>The searchable register covers management-system clauses and all 38 Annex A controls, including partial and excluded positions.</p><a class="button" href="/audit/#iso42001-clauses">Open searchable register →</a></div></section>`;
+}
+
+function evidenceOverviewHtml(): string {
+  const cards: ReadonlyArray<readonly [string, string, string]> = [
+    ["/status/", "Operations & recovery", "Availability, incidents, backups, restore drills, the change record, and the verified receipt chain."],
+    ["/logs/", "Operational logs", "Reason-coded service activity and per-tank captures with defined retention and downloads."],
+    ["/spend/", "Resource controls", "Measured platform usage and the hard cost gate that closes the workload before variable spend exceeds its limit."],
+    ["/audit/", "Control register", "Every clause and control across both standards with its status, implementation position, and evidence links."],
+    ["/policies/", "Management-system documents", "Scope, risk, applicability, objectives, AI impact, secure development, continuity, audit, review, and records."],
+    ["/docs/", "Developer appendix", "The public and protected interfaces, request limits, response contracts, and operational endpoints."],
+  ];
+  return `<section class="standard-hero"><div class="eyebrow">Live evidence</div><h1>Proof from the running system.</h1><p>This index exposes the records behind the control positions. Dense operational surfaces remain available here without competing with the management-system explanation.</p></section>
+  <section class="evidence-grid">${cards.map(([href, title, copy]) => `<a href="${href}"><span>Inspect</span><h2>${title}</h2><p>${copy}</p><strong>Open evidence →</strong></a>`).join("")}</section>
+  <section class="case-principle"><div><div class="eyebrow">Evidence path</div><h2>The claim and the proof share a route.</h2></div><p>Control rows link here or directly to a specific record. Machine-readable JSON remains available alongside the human pages for independent inspection and automated checks.</p></section>`;
 }
 
 
@@ -2943,13 +3029,12 @@ export default {
       if (path === PAGE_CSS_PATH) return pageCssResponse();
       if (path.startsWith("/styles/")) return new Response("Not found", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS } });
 
-      if (path === "/") return movedTo(url, "/play/");
       if (path === "/play") return movedTo(url, "/play/");
       if (/^\/(?:arena|uno|x4|21|game|checkers|battleship|3d|shark-?run)(?:\/.*)?$/i.test(path)) return movedTo(url, "/play/");
       if (path === "/favicon.ico") return new Response(null, { status: 404, headers: { "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
       if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: https://sharktank.wizardgang.ai/sitemap.xml\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
       if (path === "/sitemap.xml") {
-        const routes = ["/play/", "/docs/", "/trust/", "/status/", "/spend/", "/logs/", "/audit/", "/policies/"];
+        const routes = ["/", "/iso-27001/", "/iso-42001/", "/evidence/", "/play/", "/audit/", "/policies/", "/status/", "/logs/", "/spend/", "/docs/"];
         const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map((route) => `<url><loc>https://sharktank.wizardgang.ai${route}</loc></url>`).join("")}</urlset>`;
         return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
       }
@@ -3189,7 +3274,7 @@ export default {
       // Six figures, six links. Each one is computed here from the same source the owning
       // page computes it from, so this page cannot state a number the owning page
       // contradicts — there is no second copy to fall out of step.
-      if (path === "/trust" || path === "/trust/") {
+      if (path === "/" || path === "/trust" || path === "/trust/") {
         const [statusRes, { incidents, historyIntegrity }] = await Promise.all([
           lobbyStub(env).fetch("https://lobby/status"),
           incidentData(env),
@@ -3198,7 +3283,7 @@ export default {
         const billing = publicBillingWindow(data.billingWindow ?? {});
         const summary = summarise(ALL_CONTROLS);
         const lastEntry = [...ROADMAP_MANIFEST, ...POST_DELIVERY_ENTRIES].at(-1) ?? null;
-        return html(shell("Shark — Trust and operations", trustHtml({
+        return html(shell("SharkTank — Governance implemented against a running system", trustHtml({
           portal: incidentSummary([]),
           tank: incidentSummary(incidents),
           incidents,
@@ -3207,8 +3292,15 @@ export default {
           hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
           readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
           lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
-        }), "Availability, incidents, spend, conformance readiness and the control receipt chain for sharktank.wizardgang.ai — each figure linking to the page that owns it."));
+        }), "A technical case study showing how ISO/IEC 27001 and ISO/IEC 42001 governance maps to controls, operational behavior, and evidence from a running software system."));
       }
+
+      if (path === "/iso-27001") return movedTo(url, "/iso-27001/");
+      if (path === "/iso-27001/") return html(shell("SharkTank — ISO/IEC 27001 implementation", iso27001Html(), "How SharkTank implements information-security scope, risk management, control applicability, secure development, operations, recovery, and continuous improvement."));
+      if (path === "/iso-42001") return movedTo(url, "/iso-42001/");
+      if (path === "/iso-42001/") return html(shell("SharkTank — ISO/IEC 42001 implementation", iso42001Html(), "The governed AI system, intended use, model boundary, impact, human authority, monitoring, transparency, change management, and limitations."));
+      if (path === "/evidence") return movedTo(url, "/evidence/");
+      if (path === "/evidence/") return html(shell("SharkTank — Live governance evidence", evidenceOverviewHtml(), "An index of live operational evidence, control mappings, management-system documents, logs, recovery records, resource controls, and developer interfaces."));
 
       // Public conformance register. Fixed content, no binding read: the evidence is the
       // routes it links to, so the page has nothing to fetch and nothing to get wrong.
