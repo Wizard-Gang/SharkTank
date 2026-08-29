@@ -2,7 +2,7 @@
 
 ## Routine signals
 
-The public `/trust/` page links to the owner of each operational figure. `/status/` carries availability, incidents, room capacity, backup results, control-history integrity, and delivery records. `/spend/` owns the metered ceiling. `/logs/` owns retained service and game capture records. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
+The public `/` governance overview and `/evidence/` index link to the owner of each operational figure. `/trust/` remains a compatibility route for existing evidence references. `/status/` carries availability, incidents, room capacity, backup results, control-history integrity, and delivery records. `/spend/` owns the metered ceiling. `/logs/` owns retained service and game capture records. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
 
 ## Operator boundary
 

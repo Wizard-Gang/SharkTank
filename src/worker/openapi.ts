@@ -113,12 +113,44 @@ export const OPENAPI = {
         responses: { "200": jsonResponse("OpenAPI 3.0 document") },
       },
     },
+    "/": {
+      get: {
+        tags: ["ops"],
+        summary: "Governance overview",
+        description: "The public front door to the SharkTank management system: the running workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, and live operational snapshot.",
+        responses: { "200": htmlResponse("Governance overview") },
+      },
+    },
+    "/iso-27001/": {
+      get: {
+        tags: ["ops"],
+        summary: "ISO/IEC 27001 implementation",
+        description: "Explains scope, risk management, the Statement of Applicability, secure development, operations and recovery, and continuous improvement before linking to the searchable control register.",
+        responses: { "200": htmlResponse("ISO/IEC 27001 implementation") },
+      },
+    },
+    "/iso-42001/": {
+      get: {
+        tags: ["ops"],
+        summary: "ISO/IEC 42001 implementation",
+        description: "Defines the governed AI system, its intended use, deterministic rule dependency, impact boundary, human authority, monitoring, transparency, change process, and limitations.",
+        responses: { "200": htmlResponse("ISO/IEC 42001 implementation") },
+      },
+    },
+    "/evidence/": {
+      get: {
+        tags: ["ops"],
+        summary: "Live evidence index",
+        description: "Routes to operations, recovery, logs, resource controls, the control register, management-system documents, and the developer appendix.",
+        responses: { "200": htmlResponse("Live evidence index") },
+      },
+    },
     "/trust/": {
       get: {
         tags: ["ops"],
-        summary: "Trust and operations overview",
-        description: "The entry point to the published evidence: availability, incidents, metered spend, conformance readiness, the last deployment and the receipt chain verdict. Every figure is computed from the same source the owning page uses and links to it; none is stored a second time.",
-        responses: { "200": htmlResponse("Trust overview") },
+        summary: "Governance overview compatibility route",
+        description: "Serves the same governance overview as `/` so existing evidence references remain valid.",
+        responses: { "200": htmlResponse("Governance overview") },
       },
     },
     "/roadmap/": {
