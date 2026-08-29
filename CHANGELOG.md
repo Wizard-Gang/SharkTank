@@ -2,6 +2,12 @@
 
 All notable reconstructed phases and forward public-repository changes are recorded here. Dates in source provenance are historical; public commits retain their real reconstruction timestamps.
 
+## v1.0.1 — 2026-08-28
+
+- Accepted GitHub-verified Dependabot dependency bumps as the sole automated exception to the human ST commit template.
+- Updated `actions/checkout` and `actions/setup-node` to their current v7 major releases.
+- Generalized provenance sequence validation for forward patch releases.
+
 ## v1.0.0 — 2026-08-28
 
 - Added public contribution, security, CI, testing, dependency, release, and deployment controls.

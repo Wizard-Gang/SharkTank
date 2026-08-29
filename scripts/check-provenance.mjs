@@ -22,7 +22,7 @@ for (const row of changeRows) {
   if (sourceDate && !/^\d{4}-\d{2}-\d{2}$/.test(sourceDate)) failures.push(`${id}: invalid source date ${sourceDate}`);
 }
 
-for (let number = 1; number <= 31; number += 1) {
+for (let number = 1; number <= changeRows.length; number += 1) {
   const id = `ST-${String(number).padStart(3, "0")}`;
   if (!byId.has(id)) failures.push(`missing ${id}`);
 }
@@ -34,8 +34,14 @@ for (const line of log) {
   if (!id) continue;
   const mapped = byId.get(id);
   if (!mapped) { failures.push(`${id}: commit exists without a map row`); continue; }
-  if (id === "ST-031") {
-    if (mapped.commit !== "v1.0.0") failures.push("ST-031: self-identifying record must resolve through v1.0.0");
+  if (mapped.commit === mapped.release) {
+    try {
+      const tagged = execFileSync("git", ["rev-parse", `${mapped.release}^{}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      if (tagged !== sha) failures.push(`${id}: ${mapped.release} resolves to ${tagged}, history has ${sha}`);
+    } catch {
+      // A pull request validates before its release tag can exist. The protected release
+      // workflow and the next validation bind the immutable tag to this commit.
+    }
     continue;
   }
   if (mapped.commit !== sha) failures.push(`${id}: map has ${mapped.commit}, history has ${sha}`);

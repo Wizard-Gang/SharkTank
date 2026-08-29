@@ -11,3 +11,4 @@ These records describe reconstructed product phases and their known limitations.
 - [v0.7.0](v0.7.0.md)
 - [v0.8.0](v0.8.0.md)
 - [v1.0.0](v1.0.0.md)
+- [v1.0.1](v1.0.1.md)
