@@ -2419,6 +2419,9 @@ async function runBackup(env: Env): Promise<Record<string, unknown>> {
  * digest means the restore reproduced the original exactly, not merely something like it.
  * Live state is never written to, so this is safe to run against production.
  */
+/** The drill detail is rendered on the public status panel, so it has to read as English. */
+const countOf = (n: number, one: string, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+
 async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
   const started = Date.now();
   // One fixed scratch name, not one per run: a per-run name would leave a new object
@@ -2438,7 +2441,7 @@ async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
     // exports of the same data hash the same however far apart they were taken.
     const match = Boolean(source.digest) && source.digest === copy.digest;
     const detail = match
-      ? `digest ${String(source.digest).slice(0, 16)}…; ${source.counts?.kv ?? 0} keys, ${source.counts?.controlHistory ?? 0} receipts, ${source.counts?.audit ?? 0} log rows`
+      ? `digest ${String(source.digest).slice(0, 16)}…; ${countOf(source.counts?.kv ?? 0, "key")}, ${countOf(source.counts?.controlHistory ?? 0, "receipt")}, ${countOf(source.counts?.audit ?? 0, "log row")}`
       : `source ${String(source.digest).slice(0, 16)}… vs restored ${String(copy.digest).slice(0, 16)}…`;
     await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: match, detail }), headers: { "content-type": "application/json" } }));
     return { ok: match, detail, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
