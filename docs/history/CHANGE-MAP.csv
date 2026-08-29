@@ -30,3 +30,4 @@ ST-028,1c79aa9feecc64af5b097a2405b2060e30f87a43,WizardGangLocal,3b89ed7,2026-08-
 ST-029,a7cde04eca95ceb7e4d37fb0e00f581e717f1c69,,,,forward-change,v1.0.0,public repository governance CI and tests
 ST-030,df0f5ea6b4bdd654d8ce39bdb5511ca48e6bfc05,,,,forward-change,v1.0.0,release-tag deployment identity and canonical documentation
 ST-031,v1.0.0,,,,controlled-record,v1.0.0,self-identifying provenance and release record; immutable tag resolves the commit because a commit cannot contain its own SHA
+ST-032,v1.0.1,,,,forward-change,v1.0.1,accept only GitHub-verified Dependabot commits as structured-history exceptions and adopt current official actions
