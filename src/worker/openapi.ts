@@ -22,6 +22,14 @@ export const OPENAPI = {
     { name: "ops", description: "Public status, incidents, billing inquiry, logs, the public ISO 27001 / ISO 42001 conformance register, and the authenticated Admin controls" },
   ],
   paths: {
+    "/version.json": {
+      get: {
+        tags: ["system"],
+        summary: "Public release identity",
+        description: "Returns the semantic release tag injected by the exact-tag deployment workflow and the non-sensitive runtime environment name.",
+        responses: { "200": jsonResponse("Release identity") },
+      },
+    },
     "/api/health": {
       get: {
         tags: ["system"],

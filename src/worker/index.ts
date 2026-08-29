@@ -19,6 +19,7 @@ interface Env {
   ROOM: DurableObjectNamespace;
   LOBBY: DurableObjectNamespace;
   ENVIRONMENT?: string;
+  SHARKTANK_RELEASE?: string;
   OPS_USERNAME?: string;
   OPS_TOKEN?: string;
   AUDIT_GENERATION?: string;
@@ -2994,7 +2995,11 @@ export default {
 
       // ── HTTP API ───────────────────────────────────────────────────────────
       if (path === API.health) {
-        return json({ ok: true, module: "module-react3fiber", time: new Date().toISOString() });
+        return json({ ok: true, module: "module-react3fiber", release: env.SHARKTANK_RELEASE ?? "unknown", time: new Date().toISOString() });
+      }
+
+      if (path === "/version.json") {
+        return json({ product: "SharkTank", release: env.SHARKTANK_RELEASE ?? "unknown", environment: env.ENVIRONMENT ?? "unknown" });
       }
 
       if (path === API.tank || path === "/api/lobby") {

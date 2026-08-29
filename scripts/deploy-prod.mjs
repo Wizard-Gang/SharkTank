@@ -37,6 +37,14 @@ function run(command, args, capture = false) {
   return result.stdout ?? "";
 }
 
+const release = (process.env.SHARKTANK_RELEASE ?? "").trim();
+const releasePattern = /^v\d+\.\d+\.\d+$/;
+const tagsAtHead = run("git", ["tag", "--points-at", "HEAD"], true).split(/\s+/).filter(Boolean);
+if (!releasePattern.test(release) || !tagsAtHead.includes(release)) {
+  console.error("Refusing production deploy: SHARKTANK_RELEASE must be a semantic vX.Y.Z tag pointing at HEAD.");
+  process.exit(1);
+}
+
 if (!process.env.CLOUDFLARE_ACCOUNT_ID) {
   console.error("Refusing production deploy: CLOUDFLARE_ACCOUNT_ID is not set. It lives in .env (gitignored), not in wrangler.jsonc.");
   process.exit(1);
@@ -51,4 +59,4 @@ if (!dryRun) {
     process.exit(1);
   }
 }
-run("npx", ["wrangler", "deploy", ...(dryRun ? ["--dry-run"] : []), "--env", env]);
+run("npx", ["wrangler", "deploy", ...(dryRun ? ["--dry-run"] : []), "--env", env, "--var", `SHARKTANK_RELEASE:${release}`]);
