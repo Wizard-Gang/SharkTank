@@ -298,6 +298,54 @@ interface BillingWindow {
   rooms: Record<string, BillingRoomBaseline>;
 }
 
+/**
+ * A.8.13 asks for backups that are taken, retained, and demonstrably restorable.
+ * Everything this object holds sits in two places at once: Durable Object KV keys, and
+ * two SQLite tables — the 90-day action log and the tamper-evident receipt chain. An
+ * export covering only one of them would restore to a service that looked intact and had
+ * quietly lost its evidence, so both are read in a single pass and digested together.
+ *
+ * The digest is taken over a canonical form (KV keys sorted, rows in primary-key order)
+ * so that exporting the same state twice produces the same hash. That is what makes a
+ * restore drill meaningful: restore into a scratch instance, export it, and compare the
+ * two digests. Equal digests mean the copy is the original, not merely similar to it.
+ */
+const BACKUP_FORMAT = "wizardgang-state-export";
+const BACKUP_VERSION = 1;
+/** Ceiling on export paging, so a runaway key space cannot make an export unbounded. */
+const BACKUP_MAX_PAGES = 200;
+interface StateExport {
+  format: string;
+  version: number;
+  takenAt: number;
+  generation: string;
+  kv: Record<string, unknown>;
+  audit: Array<Record<string, unknown>>;
+  controlHistory: Array<Record<string, unknown>>;
+  counts: { kv: number; profiles: number; audit: number; controlHistory: number };
+  /** Present on a completed export; absent from the body the digest is computed over. */
+  digest?: string;
+  truncated?: boolean;
+}
+/** What the public status panel is allowed to say about backups. No content, only shape. */
+export interface BackupState {
+  lastBackupAt: number;
+  lastBackupKey: string;
+  lastBackupBytes: number;
+  lastBackupDigest: string;
+  lastBackupCounts: { kv: number; profiles: number; audit: number; controlHistory: number } | null;
+  lastBackupError: string;
+  retainedCopies: number;
+  lastDrillAt: number;
+  lastDrillOk: boolean;
+  lastDrillDetail: string;
+}
+const EMPTY_BACKUP_STATE: BackupState = {
+  lastBackupAt: 0, lastBackupKey: "", lastBackupBytes: 0, lastBackupDigest: "",
+  lastBackupCounts: null, lastBackupError: "", retainedCopies: 0,
+  lastDrillAt: 0, lastDrillOk: false, lastDrillDetail: "",
+};
+
 export class Lobby implements DurableObject {
   private readonly reports = new Map<string, Report>();
   private readonly rates = new Map<string, RateBucket>();
@@ -360,6 +408,8 @@ export class Lobby implements DurableObject {
   /** Row count for `profile:*`. Null until the first count; see `profileStatsNow`. */
   private profileStats: ProfileStats | null = null;
   private lastProfileRefusalAuditAt = 0;
+  /** Mirrors the `backupState` key. Loaded on first use, written on every backup event. */
+  private backupState: BackupState | null = null;
 
   constructor(
     private readonly ctx: DurableObjectState,
@@ -1062,6 +1112,40 @@ export class Lobby implements DurableObject {
         incidents: this.maintenanceIncidents,
         ...(await this.controlHistory(100)),
       });
+    // Full state export. The Worker gates this behind operations authentication; it is
+    // every profile and every receipt in one body and must never answer a public request.
+    if (path.endsWith("/backup") && request.method === "GET")
+      return json({ ok: true, export: await this.exportState() });
+    // What the public status panel reads: when the last copy was taken and whether the
+    // last restore drill passed. Shape and timing only — no exported content.
+    if (path.endsWith("/backup/state"))
+      return json({ ok: true, backup: await this.loadBackupState() });
+    // Record the outcome of a copy the Worker has just written to object storage.
+    if (path.endsWith("/backup/record") && request.method === "POST") {
+      const body = await safeJson<Partial<BackupState> & { ok?: boolean }>(request);
+      if (!body) return json({ ok: false, error: "body must be JSON" }, 400);
+      return json({ ok: true, backup: await this.recordBackup(body) });
+    }
+    // Record the outcome of a restore drill the Worker has just run.
+    if (path.endsWith("/backup/drill-result") && request.method === "POST") {
+      const body = await safeJson<{ ok?: boolean; detail?: string }>(request);
+      if (!body) return json({ ok: false, error: "body must be JSON" }, 400);
+      return json({ ok: true, backup: await this.recordDrill(Boolean(body.ok), clean(body.detail, 240) ?? "") });
+    }
+    // Wipe. Used to leave nothing behind in the scratch instance a restore drill restores
+    // into: that instance holds a full copy of every player profile, and an orphaned copy
+    // of personal data is not made acceptable by having been created to test a backup.
+    if (path.endsWith("/wipe") && request.method === "POST") {
+      const cleared = await this.wipeState();
+      return json({ ok: true, cleared });
+    }
+    // Restore. Destructive and operator-only: it replaces every key and both tables.
+    if (path.endsWith("/restore") && request.method === "POST") {
+      let payload: unknown;
+      try { payload = await request.json(); } catch { return json({ ok: false, error: "body must be JSON" }, 400); }
+      const result = await this.importState(payload);
+      return json(result, result.ok ? 200 : 400);
+    }
     if (path.endsWith("/status"))
       return json({ ok: true, ...(await this.status()) });
     return json({ ok: true, rooms: this.list() });
@@ -1373,6 +1457,9 @@ export class Lobby implements DurableObject {
         publicWindowCount: this.rates.get("public:all")?.count ?? 0,
       },
       billingWindow,
+      // Shape and timing of the last state copy. Public: it is the only way a reader can
+      // check that A.8.13 is operated rather than merely written down.
+      backup: await this.loadBackupState(),
       ...(await this.controlHistory(50)),
       rooms,
       global: this.global.slice(0, GLOBAL_TOP),
@@ -2286,6 +2373,220 @@ export class Lobby implements DurableObject {
       usage: this.usage,
     });
   }
+
+  /* ── State export and restore (A.8.13) ────────────────────────────────────── */
+
+  /**
+   * Read every key and both tables into one self-describing object. Keys are sorted and
+   * rows come back in primary-key order, so two exports of unchanged state are
+   * byte-identical and therefore hash-identical.
+   */
+  private async exportState(): Promise<StateExport> {
+    const kv: Record<string, unknown> = {};
+    let startAfter: string | undefined,
+      pages = 0,
+      truncated = false;
+    for (;;) {
+      const batch = await this.ctx.storage.list<unknown>({ limit: 1000, ...(startAfter ? { startAfter } : {}) });
+      if (batch.size === 0) break;
+      for (const [key, value] of batch) { kv[key] = value; startAfter = key; }
+      this.usage.storageRowsRead += batch.size;
+      pages += 1;
+      if (batch.size < 1000) break;
+      if (pages >= BACKUP_MAX_PAGES) { truncated = true; break; }
+    }
+    const auditCursor = this.ctx.storage.sql.exec<Record<string, string | number | null>>(
+      "SELECT id,ts,type,room,subject,detail FROM audit ORDER BY id ASC",
+    );
+    const audit = auditCursor.toArray();
+    this.usage.storageRowsRead += auditCursor.rowsRead;
+    const historyCursor = this.ctx.storage.sql.exec<Record<string, string | number | null>>(
+      "SELECT sequence,ts,code,actor,title,summary,reference,detail,previous_hash,hash FROM control_history ORDER BY sequence ASC",
+    );
+    const controlHistory = historyCursor.toArray();
+    this.usage.storageRowsRead += historyCursor.rowsRead;
+    const sortedKv: Record<string, unknown> = {};
+    for (const key of Object.keys(kv).sort()) sortedKv[key] = kv[key];
+    const body: StateExport = {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      takenAt: Date.now(),
+      generation: this.env.AUDIT_GENERATION ?? "local",
+      kv: sortedKv,
+      audit,
+      controlHistory,
+      counts: {
+        kv: Object.keys(sortedKv).length,
+        profiles: Object.keys(sortedKv).filter((key) => key.startsWith("profile:")).length,
+        audit: audit.length,
+        controlHistory: controlHistory.length,
+      },
+      ...(truncated ? { truncated: true } : {}),
+    };
+    return { ...body, digest: await backupDigest(body) };
+  }
+
+  /**
+   * Replace every key and both tables with the contents of an export. Refuses anything
+   * whose digest does not match its body, because restoring a mutated copy would put
+   * unverifiable rows into a chain the site advertises as tamper-evident.
+   */
+  private async importState(payload: unknown): Promise<{ ok: boolean; error?: string; restored?: StateExport["counts"]; digest?: string }> {
+    const candidate = payload as { export?: StateExport } | StateExport | null;
+    const data = (candidate && typeof candidate === "object" && "export" in candidate ? candidate.export : candidate) as StateExport | null;
+    if (!data || typeof data !== "object") return { ok: false, error: "no export in body" };
+    if (data.format !== BACKUP_FORMAT) return { ok: false, error: "unrecognised export format" };
+    if (data.version !== BACKUP_VERSION) return { ok: false, error: `unsupported export version ${String(data.version)}` };
+    if (!data.kv || typeof data.kv !== "object" || !Array.isArray(data.audit) || !Array.isArray(data.controlHistory))
+      return { ok: false, error: "export is missing one of kv, audit or controlHistory" };
+    const { digest, ...body } = data;
+    const recomputed = await backupDigest(body as StateExport);
+    if (digest && digest !== recomputed) return { ok: false, error: "export digest does not match its contents" };
+
+    // Clear first, in one pass each, so a key present in the live object but absent from
+    // the export does not survive the restore and make the copy look incomplete.
+    let startAfter: string | undefined, pages = 0;
+    const doomed: string[] = [];
+    for (;;) {
+      const batch = await this.ctx.storage.list<unknown>({ limit: 1000, ...(startAfter ? { startAfter } : {}) });
+      if (batch.size === 0) break;
+      for (const key of batch.keys()) { doomed.push(key); startAfter = key; }
+      pages += 1;
+      if (batch.size < 1000 || pages >= BACKUP_MAX_PAGES) break;
+    }
+    for (let i = 0; i < doomed.length; i += 128) await this.ctx.storage.delete(doomed.slice(i, i + 128));
+    this.trackSql("DELETE FROM audit");
+    this.trackSql("DELETE FROM control_history");
+
+    const entries = Object.entries(data.kv);
+    for (let i = 0; i < entries.length; i += 128)
+      await this.ctx.storage.put(Object.fromEntries(entries.slice(i, i + 128)));
+    for (const row of data.audit)
+      this.ctx.storage.sql.exec(
+        "INSERT INTO audit(id,ts,type,room,subject,detail) VALUES(?,?,?,?,?,?)",
+        row.id ?? null, row.ts ?? 0, row.type ?? "", row.room ?? null, row.subject ?? null, row.detail ?? null,
+      ).toArray();
+    for (const row of data.controlHistory)
+      this.ctx.storage.sql.exec(
+        "INSERT INTO control_history(sequence,ts,code,actor,title,summary,reference,detail,previous_hash,hash) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        row.sequence ?? null, row.ts ?? 0, row.code ?? "", row.actor ?? "", row.title ?? "",
+        row.summary ?? "", row.reference ?? null, row.detail ?? null, row.previous_hash ?? "", row.hash ?? "",
+      ).toArray();
+
+    await this.reloadFromStorage();
+    return { ok: true, restored: data.counts, digest: recomputed };
+  }
+
+  /**
+   * Re-read the in-memory caches after a restore. Without this the object would answer
+   * from the state it held before the restore and report the copy as having failed.
+   */
+  private async reloadFromStorage(): Promise<void> {
+    this.global = (await this.ctx.storage.get<ScoreEntry[]>("global")) ?? [];
+    this.usage = (await this.ctx.storage.get<Usage>("usage")) ?? this.usage;
+    this.spendHistory = (await this.ctx.storage.get<SpendSample[]>("spendHistory")) ?? [];
+    this.dayBaseline = (await this.ctx.storage.get<DayBaseline>("dayBaseline")) ?? null;
+    this.maintenance = (await this.ctx.storage.get<MaintenanceState>("maintenance")) ?? { enabled: false, changedAt: 0, reason: "" };
+    this.maintenanceIncidents = (await this.ctx.storage.get<MaintenanceIncident[]>("maintenanceIncidents")) ?? [];
+    this.r2Snapshot = (await this.ctx.storage.get<R2Snapshot>("r2Snapshot")) ?? this.r2Snapshot;
+    this.reports.clear();
+    const reports = (await this.ctx.storage.get<Record<string, Report>>("reports")) ?? {};
+    for (const [id, report] of Object.entries(reports)) this.reports.set(id, report);
+    const billingWindow = await this.ctx.storage.get<BillingWindow>("billingWindow");
+    if (billingWindow) this.billingWindow = billingWindow;
+    this.profileStats = (await this.ctx.storage.get<ProfileStats>("profileStats")) ?? null;
+    this.backupState = (await this.ctx.storage.get<BackupState>("backupState")) ?? null;
+    // The anchor and the cached verification both describe the chain that was here a
+    // moment ago. Drop them so the next read re-derives them from the restored rows.
+    this.historyAnchor = null;
+    this.historyAnchorLoaded = false;
+    this.historyVerification = null;
+  }
+
+  /**
+   * Delete every key and both tables. Only ever called on the scratch instance used by a
+   * restore drill; the drill's own `finally` calls it whether the drill passed or failed,
+   * so a failed drill does not become the thing that leaves profiles lying around.
+   */
+  private async wipeState(): Promise<number> {
+    let startAfter: string | undefined, pages = 0;
+    const doomed: string[] = [];
+    for (;;) {
+      const batch = await this.ctx.storage.list<unknown>({ limit: 1000, ...(startAfter ? { startAfter } : {}) });
+      if (batch.size === 0) break;
+      for (const key of batch.keys()) { doomed.push(key); startAfter = key; }
+      pages += 1;
+      if (batch.size < 1000 || pages >= BACKUP_MAX_PAGES) break;
+    }
+    for (let i = 0; i < doomed.length; i += 128) await this.ctx.storage.delete(doomed.slice(i, i + 128));
+    this.trackSql("DELETE FROM audit");
+    this.trackSql("DELETE FROM control_history");
+    await this.reloadFromStorage();
+    return doomed.length;
+  }
+
+  private async loadBackupState(): Promise<BackupState> {
+    if (!this.backupState) {
+      this.backupState = (await this.ctx.storage.get<BackupState>("backupState")) ?? { ...EMPTY_BACKUP_STATE };
+      this.usage.storageRowsRead += 1;
+    }
+    return this.backupState;
+  }
+
+  /** Record a copy the Worker has written, and receipt it into the chain. */
+  private async recordBackup(input: Partial<BackupState> & { ok?: boolean }): Promise<BackupState> {
+    const current = await this.loadBackupState(),
+      failed = input.ok === false,
+      error = clean(input.lastBackupError, 200) ?? "";
+    const next: BackupState = failed
+      ? { ...current, lastBackupError: error || "backup failed" }
+      : {
+          ...current,
+          lastBackupAt: clampInt(Number(input.lastBackupAt ?? Date.now()), 0, Number.MAX_SAFE_INTEGER),
+          lastBackupKey: clean(input.lastBackupKey, 200) ?? current.lastBackupKey,
+          lastBackupBytes: clampInt(Number(input.lastBackupBytes ?? 0), 0, Number.MAX_SAFE_INTEGER),
+          lastBackupDigest: clean(input.lastBackupDigest, 64) ?? "",
+          lastBackupCounts: input.lastBackupCounts ?? current.lastBackupCounts,
+          retainedCopies: clampInt(Number(input.retainedCopies ?? current.retainedCopies), 0, 100_000),
+          lastBackupError: "",
+        };
+    this.backupState = next;
+    this.countWrites(2);
+    await this.ctx.storage.put({ backupState: next, usage: this.usage });
+    await this.appendControlHistory({
+      ts: Date.now(),
+      code: failed ? "BACKUP-FAILED" : "BACKUP-TAKEN",
+      actor: "system",
+      title: failed ? "Scheduled state copy failed" : "State copied to object storage",
+      summary: failed
+        ? `A scheduled copy of service state did not complete: ${error || "no detail recorded"}.`
+        : `Service state copied to object storage: ${next.lastBackupCounts?.kv ?? 0} keys, ${next.lastBackupCounts?.controlHistory ?? 0} receipts, ${next.lastBackupBytes} bytes.`,
+      reference: failed ? null : next.lastBackupKey,
+      detail: failed ? null : `digest=${next.lastBackupDigest}; retained=${next.retainedCopies}`,
+    });
+    return next;
+  }
+
+  /** Record a restore drill result, and receipt it. A drill nobody can see proves nothing. */
+  private async recordDrill(ok: boolean, detail: string): Promise<BackupState> {
+    const current = await this.loadBackupState(),
+      next: BackupState = { ...current, lastDrillAt: Date.now(), lastDrillOk: ok, lastDrillDetail: detail };
+    this.backupState = next;
+    this.countWrites(2);
+    await this.ctx.storage.put({ backupState: next, usage: this.usage });
+    await this.appendControlHistory({
+      ts: next.lastDrillAt,
+      code: ok ? "RESTORE-DRILL-PASSED" : "RESTORE-DRILL-FAILED",
+      actor: "operator",
+      title: ok ? "Restore drill passed" : "Restore drill failed",
+      summary: ok
+        ? "A copy of service state was restored into a scratch instance and its export digest matched the original."
+        : "A restore drill did not reproduce the original state. The backup path is not proven until this passes.",
+      reference: "/status/#backup",
+      detail: detail || null,
+    });
+    return next;
+  }
 }
 /** Strip the internal last-seen bookkeeping before a profile leaves the Worker. */
 function publicProfile(profile: StoredProfile): Profile {
@@ -2301,6 +2602,34 @@ function publicProfile(profile: StoredProfile): Profile {
  * two implementations that drift by a single field or key order would make verification
  * fail on honest data and be indistinguishable from a real tamper alarm.
  */
+/**
+ * Digest of the *state* an export carries, not of the export envelope. Three fields are
+ * deliberately outside it: `digest` itself, because a hash cannot cover the place it is
+ * about to be written to; `takenAt`, because it is the moment of capture rather than
+ * anything about the data; and `generation`, which names the deployment that took the
+ * copy. Including `takenAt` would make two exports of identical state hash differently,
+ * which would defeat the one comparison this digest exists to support — restore a copy
+ * into a scratch instance, export it, and check the two digests are equal.
+ *
+ * Object keys are emitted in sorted order at every depth, so the order storage happened
+ * to hand keys back cannot change the hash.
+ */
+async function backupDigest(body: unknown): Promise<string> {
+  const source = (body ?? {}) as Record<string, unknown>;
+  const state = { format: source.format, version: source.version, kv: source.kv, audit: source.audit, controlHistory: source.controlHistory, counts: source.counts };
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object") {
+      const source = value as Record<string, unknown>, out: Record<string, unknown> = {};
+      for (const key of Object.keys(source).sort()) if (key !== "digest") out[key] = canonical(source[key]);
+      return out;
+    }
+    return value;
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(canonical(state)));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 async function hashControlEntry(
   entry: ControlHistoryHashable,
 ): Promise<string> {

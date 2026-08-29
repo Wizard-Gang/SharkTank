@@ -16,6 +16,7 @@
     "build": "vite build",
     "deploy:wizardgangprod": "node scripts/deploy-prod.mjs",
     "deploy:wizardgangprod:dry-run": "node scripts/deploy-prod.mjs --dry-run",
+    "check:evidence": "node scripts/check-evidence.mjs",
     "dev": "wrangler dev --port 8787",
     "start": "wrangler dev --port 8787"
   },

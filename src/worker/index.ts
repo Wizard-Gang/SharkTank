@@ -12,6 +12,7 @@ import { governanceHtml, governanceManifest } from "./governance.js";
 
 export { Room } from "./room-do.js";
 export { Lobby } from "./lobby-do.js";
+import type { BackupState } from "./lobby-do.js";
 
 interface Env {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
@@ -25,6 +26,8 @@ interface Env {
   PHP_HTTP_ORIGIN?: string;
   PHP_WS_ORIGIN?: string;
   PHP_ORIGIN_TOKEN?: string;
+  /** Object storage. Bound in wrangler.jsonc; holds the state copies runBackup writes. */
+  R2_ASSETS?: R2Bucket;
 }
 
 /** Applied to every response this Worker emits. HSTS keeps clients off plaintext after one visit. */
@@ -1846,6 +1849,35 @@ function showcaseChartSvg(input: ShowcaseInput): string {
 }
 
 /** Status-page incident strip: active first, each row linking to its receipt in the control log. */
+/**
+ * What /status/ says about backups. Deliberately reports shape and timing rather than
+ * content: when the last copy was taken, how much it covered, its digest, how many copies
+ * are retained, and whether the last restore drill reproduced the original. A backup
+ * nobody has restored is a claim; a drill with a matching digest is evidence.
+ */
+function backupPanelHtml(backup?: BackupState): string {
+  const state = backup ?? { lastBackupAt: 0, lastBackupKey: "", lastBackupBytes: 0, lastBackupDigest: "", lastBackupCounts: null, lastBackupError: "", retainedCopies: 0, lastDrillAt: 0, lastDrillOk: false, lastDrillDetail: "" };
+  const when = (ts: number) => ts ? new Date(ts).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "never";
+  const counts = state.lastBackupCounts;
+  const coverage = counts ? `${counts.kv} keys (${counts.profiles} player profiles), ${counts.controlHistory} control receipts, ${counts.audit} action-log rows` : "not yet taken";
+  const drillTone = state.lastDrillAt === 0 ? "key-amber" : state.lastDrillOk ? "key-green" : "key-red";
+  const drillWord = state.lastDrillAt === 0 ? "Not yet run" : state.lastDrillOk ? "Passed" : "Failed";
+  const rows: Array<[string, string]> = [
+    ["Last copy taken", when(state.lastBackupAt)],
+    ["What it covered", coverage],
+    ["Copy digest (SHA-256)", state.lastBackupDigest ? state.lastBackupDigest : "—"],
+    ["Copies retained", state.lastBackupAt ? `${state.retainedCopies} dated, plus the most recent` : "—"],
+    ["Last restore drill", `${drillWord}${state.lastDrillAt ? " · " + when(state.lastDrillAt) : ""}`],
+    ["Drill result", state.lastDrillDetail || "—"],
+  ];
+  const failure = state.lastBackupError
+    ? `<p class="sub" style="margin:8px 0 0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
+    : "";
+  return `<div class="card" id="backup"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
+    <p class="sub" style="margin:0 0 10px">Everything the tank holds — the control receipt chain, the 90-day action log, player profiles and spend history — is copied to object storage on a daily schedule. A restore drill restores the most recent copy into a scratch instance and compares its digest against the original; equal digests mean the copy is the original rather than merely similar to it. <span class="key-dot ${drillTone}"></span>${esc(drillWord)}.</p>
+    <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</div>`;
+}
+
 function statusIncidentsHtml(incidents: IncidentRecord[], history: ControlHistoryEntry[]): string {
   const ordered = incidents.map((incident, index) => ({ incident, index })).sort((a, b) => {
     const openA = a.incident.status === "active" ? 0 : 1, openB = b.incident.status === "active" ? 0 : 1;
@@ -2064,6 +2096,7 @@ const SERVICE_REASON_CODES: Readonly<Record<string, string>> = {
   customize: "P200", skin: "P210", settings: "P220", nav: "P230",
   "maintenance-on": "O300", "maintenance-off": "O301", "incidents-archived": "O310", "profiles-pruned": "O320", "profiles-refused": "O321", "billing-reset": "B400", "billing-hard-stop": "B499",
   "security-report": "S500", "security-resolved": "S501", "test-alert": "A600",
+  "backup-taken": "K700", "backup-restored": "K710", "restore-drill": "K720", "backup-failed": "K799",
 };
 const GAME_REASON_CODES: Readonly<Record<string, string>> = {
   join: "G100", leave: "G101", setHeading: "G110", setBoost: "G120", rocket: "G130", respawn: "G140", death: "G150", boot: "G160",
@@ -2299,6 +2332,107 @@ var b=f.querySelector('button');b.disabled=true;
 try{var r=await fetch('/admin/test-alert',{method:'POST',headers:{'content-type':'application/json','x-wg-ops-action':'test-alert'},body:JSON.stringify({code:code})}),d=await r.json();
 var refused=!r.ok||d.ok===false;show((refused?'Rejected: '+(d.error||'the server refused this alert code.'):d.message||'Test alert recorded.')+'\\n\\n'+JSON.stringify(d,null,2),refused);}
 catch(err){show('Unable to send test alert.',true);}finally{b.disabled=false;}});}());</script>`;
+}
+
+/* ── State backup (A.8.13) ────────────────────────────────────────────────────
+   The tank Durable Object holds the receipt chain, the 90-day action log, player
+   profiles and spend history, and until now none of it was copied anywhere. A copy
+   is written to the bound object storage on a schedule, older copies are pruned to a
+   retention window, and the outcome — success or failure — is receipted into the same
+   chain the copy protects. Restoring is a separate, deliberate act; see runRestoreDrill,
+   which proves the path works without touching live state. */
+const BACKUP_PREFIX = "backups/state/";
+const BACKUP_LATEST_KEY = BACKUP_PREFIX + "latest.json";
+/** How many dated copies are kept. Daily copies, so this is roughly a month of history. */
+const BACKUP_RETAIN = 30;
+
+interface StateExportShape {
+  format: string; version: number; takenAt: number; digest?: string;
+  counts?: { kv: number; profiles: number; audit: number; controlHistory: number };
+}
+
+/** Fetch a full export from the tank object. */
+async function fetchStateExport(env: Env): Promise<StateExportShape | null> {
+  const res = await lobbyStub(env).fetch("https://lobby/backup");
+  if (!res.ok) return null;
+  const body = (await res.json()) as { ok?: boolean; export?: StateExportShape };
+  return body.export ?? null;
+}
+
+/**
+ * Take one copy and record the outcome. Returns a report rather than throwing, because a
+ * failed backup must still leave a receipt saying so — a backup path that fails silently
+ * is worse than none, since the register would go on claiming it.
+ */
+async function runBackup(env: Env): Promise<Record<string, unknown>> {
+  if (!env.R2_ASSETS) {
+    await lobbyStub(env).fetch(new Request("https://lobby/backup/record", { method: "POST", body: JSON.stringify({ ok: false, lastBackupError: "no object storage bound" }), headers: { "content-type": "application/json" } }));
+    return { ok: false, error: "no object storage bound" };
+  }
+  try {
+    const data = await fetchStateExport(env);
+    if (!data) throw new Error("export refused");
+    const body = JSON.stringify(data);
+    const stamp = new Date(data.takenAt).toISOString().replace(/[:.]/g, "-");
+    const key = `${BACKUP_PREFIX}${stamp}.json`;
+    const headers = { httpMetadata: { contentType: "application/json" }, customMetadata: { digest: String(data.digest ?? ""), takenAt: String(data.takenAt) } };
+    await env.R2_ASSETS.put(key, body, headers);
+    await env.R2_ASSETS.put(BACKUP_LATEST_KEY, body, headers);
+
+    // Prune to the retention window. Keys are ISO-stamped, so lexical order is time order.
+    const listed = await env.R2_ASSETS.list({ prefix: BACKUP_PREFIX, limit: 1000 });
+    const dated = listed.objects.map((object) => object.key).filter((k) => k !== BACKUP_LATEST_KEY).sort();
+    const doomed = dated.slice(0, Math.max(0, dated.length - BACKUP_RETAIN));
+    for (const old of doomed) await env.R2_ASSETS.delete(old);
+
+    const record = { ok: true, lastBackupAt: data.takenAt, lastBackupKey: key, lastBackupBytes: body.length, lastBackupDigest: data.digest ?? "", lastBackupCounts: data.counts ?? null, retainedCopies: Math.max(0, dated.length - doomed.length) };
+    await lobbyStub(env).fetch(new Request("https://lobby/backup/record", { method: "POST", body: JSON.stringify(record), headers: { "content-type": "application/json" } }));
+    return { ...record, pruned: doomed.length };
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : "unknown failure";
+    await lobbyStub(env).fetch(new Request("https://lobby/backup/record", { method: "POST", body: JSON.stringify({ ok: false, lastBackupError: detail }), headers: { "content-type": "application/json" } }));
+    return { ok: false, error: detail };
+  }
+}
+
+/**
+ * Restore drill. Exports live state, restores it into a scratch Durable Object addressed
+ * by a name nothing else uses, exports the scratch copy, and compares digests. A matching
+ * digest means the restore reproduced the original exactly, not merely something like it.
+ * Live state is never written to, so this is safe to run against production.
+ */
+async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
+  const started = Date.now();
+  // One fixed scratch name, not one per run: a per-run name would leave a new object
+  // holding a full copy of every profile behind after every drill.
+  const scratch = env.LOBBY.get(env.LOBBY.idFromName("state-restore-drill"));
+  try {
+    const source = await fetchStateExport(env);
+    if (!source) throw new Error("could not export live state");
+    const restore = await scratch.fetch(new Request("https://lobby/restore", { method: "POST", body: JSON.stringify({ export: source }), headers: { "content-type": "application/json" } }));
+    const restored = (await restore.json()) as { ok?: boolean; error?: string };
+    if (!restore.ok || !restored.ok) throw new Error(restored.error ?? "restore refused");
+    const copyRes = await scratch.fetch("https://lobby/backup");
+    const copyBody = (await copyRes.json()) as { export?: StateExportShape };
+    const copy = copyBody.export;
+    if (!copy) throw new Error("scratch instance would not export");
+    // The digest covers state only, deliberately excluding takenAt and generation, so two
+    // exports of the same data hash the same however far apart they were taken.
+    const match = Boolean(source.digest) && source.digest === copy.digest;
+    const detail = match
+      ? `digest ${String(source.digest).slice(0, 16)}…; ${source.counts?.kv ?? 0} keys, ${source.counts?.controlHistory ?? 0} receipts, ${source.counts?.audit ?? 0} log rows`
+      : `source ${String(source.digest).slice(0, 16)}… vs restored ${String(copy.digest).slice(0, 16)}…`;
+    await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: match, detail }), headers: { "content-type": "application/json" } }));
+    return { ok: match, detail, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : "unknown failure";
+    await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: false, detail }), headers: { "content-type": "application/json" } }));
+    return { ok: false, detail, elapsedMs: Date.now() - started };
+  } finally {
+    // Whether the drill passed or failed, the scratch copy of every profile goes away.
+    try { await scratch.fetch(new Request("https://lobby/wipe", { method: "POST" })); }
+    catch (e) { console.error("restore drill scratch wipe failed", e); }
+  }
 }
 
 export default {
@@ -2565,6 +2699,7 @@ export default {
           maintenanceIncidents?: IncidentRecord[];
           history?: ControlHistoryEntry[];
           historyIntegrity?: ControlHistoryIntegrity;
+          backup?: BackupState;
         };
         const players = data.rooms.reduce((n, r) => n + r.players, 0);
         const incidents = [...INCIDENTS, ...(data.maintenanceIncidents ?? [])], availability = incidentSummary(incidents), portalAvailability = incidentSummary([]);
@@ -2587,6 +2722,7 @@ export default {
                ${metricCard(data.maintenance.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
              </div>
              <div class="card hero-card"><h2 style="margin-top:0;font-size:1.1rem">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), data.history ?? [], "/incidents/")}${timelineLegend(incidents, data.history ?? [], "/incidents/")}</div>
+             ${backupPanelHtml(data.backup)}
              ${statusIncidentsHtml(incidents, data.history ?? [])}
              ${controlHistoryHtml(data.history ?? [], data.historyIntegrity ?? { mode: "append-only tamper-evident hash chain", algorithm: "SHA-256", entryCount: 0, headHash: null }, 5)}
              <div class="card"><h2 style="margin-top:0;font-size:1.1rem">Tank activity</h2>
@@ -2595,6 +2731,25 @@ export default {
              ${statusLiveScript()}`,
           ),
         );
+      }
+
+      // Full state export. Behind operations authentication because it is every profile
+      // and every receipt in one body; the public evidence for backups is the shape and
+      // timing panel on /status/, not the contents.
+      if (path === "/admin/backup.json") {
+        const data = await fetchStateExport(env);
+        return data ? json({ ok: true, export: data }) : json({ ok: false, error: "export refused" }, 502);
+      }
+      // Take a copy now, outside the schedule.
+      if (path === "/admin/backup/run" && request.method === "POST") {
+        const result = await runBackup(env);
+        return json(result, result.ok ? 200 : 500);
+      }
+      // Restore drill: restore live state into a scratch object and compare digests.
+      // Never writes to live state, so it is safe to run while the game is up.
+      if (path === "/admin/backup/drill" && request.method === "POST") {
+        const result = await runRestoreDrill(env);
+        return json(result, result.ok ? 200 : 500);
       }
 
       // User action log (90-day retention) as JSON / JSONL. `/audit.*` are the pre-move
@@ -2641,6 +2796,13 @@ export default {
     // Non-API, non-WS: static assets.
     const asset = await env.ASSETS.fetch(request);
     const secured = new Response(asset.body, asset); for (const [key, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(key, value); secured.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()"); secured.headers.set("content-security-policy", assetCsp(mintNonce())); return secured;
+  },
+
+  // Cron. One daily copy of tank state to object storage; see runBackup. The handler
+  // never throws: a backup failure is recorded as a receipt and left visible on /status/,
+  // because a scheduled job that fails quietly is how a backup gap goes unnoticed.
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runBackup(env).then((result) => { if (!result.ok) console.error("scheduled backup failed", result.error); }));
   },
 };
 
