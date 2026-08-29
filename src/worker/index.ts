@@ -7,6 +7,7 @@
 
 import { API } from "module-react3fiber/protocol";
 import { OPENAPI, openApiToHtml } from "./openapi.js";
+import { conformanceHtml, conformanceManifest } from "./conformance.js";
 
 export { Room } from "./room-do.js";
 export { Lobby } from "./lobby-do.js";
@@ -155,9 +156,19 @@ function profileId(request: Request): { id: string; fresh: boolean } {
 function connectionRateKey(request: Request): string {
   return request.headers.get("cf-connecting-ip") ?? "edge";
 }
-/** Every route that is credentialed or performs a control mutation. One list, used by every gate. */
+/**
+ * Every route that is credentialed or performs a control mutation. One list, used by every
+ * gate — so a new control route cannot be added without also being gated.
+ *
+ * `/audit/` is deliberately absent: it is now the public conformance register, and a
+ * register nobody can read proves nothing to anybody. The operator dashboard it used to
+ * hold moved to `/admin/`, and the `/audit*` data routes stay credentialed as aliases of
+ * their `/admin/` names so existing operator tooling keeps working.
+ */
 function isOpsPath(path: string): boolean {
-  return path === "/audit" || path.startsWith("/audit/") || path === "/audit.json" || path === "/audit.jsonl" || path.startsWith("/admin/");
+  return path === "/admin" || path.startsWith("/admin/") ||
+    path === "/audit.json" || path === "/audit.jsonl" ||
+    path === "/audit/status.json" || path.startsWith("/audit/game/") || path.startsWith("/audit/replay/");
 }
 
 /** Loopback only — traffic that never leaves the machine, so `wrangler dev` still works. */
@@ -285,7 +296,7 @@ const ROADMAP_MANIFEST: readonly RoadmapEntry[] = [
   { id: "WG-007", at: "02:40", label: "enhancement", deployment: "D03", title: "Match the debug drawer to the public log format", summary: "Align the selected debug language with public tank logs.", evidence: ["desktop debug drawer", "language toggle", "matching log schema"] },
   { id: "WG-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/inquiry/", "binding-aware coverage", "free-tier anchors"] },
   { id: "WG-009", at: "03:30", label: "enhancement", deployment: "D04", title: "Stop gameplay when spend reaches the limit", summary: "Reset current-spend tracking and stop gameplay at the measured limit.", evidence: ["billing reset", "$5 threshold", "service-level gate"] },
-  { id: "WG-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/audit/", "maintenance toggle", "four-character test alerts"] },
+  { id: "WG-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/admin/", "maintenance toggle", "four-character test alerts"] },
   { id: "WG-011", at: "04:25", label: "fix", deployment: "D04", title: "Restore gameplay without closing the investigation", summary: "Restoring gameplay ends impact without closing the investigation.", evidence: ["immediate lockdown", "separate maintenance event", "open investigation state"] },
   { id: "WG-012", at: "04:50", label: "enhancement", deployment: "D05", title: "Chain every control decision into a signed receipt", summary: "Link control decisions in an append-only SHA-256 receipt chain.", evidence: ["linked receipts", "incident references", "digestible history"] },
   { id: "WG-013", at: "05:15", label: "fix", deployment: "D05", title: "Stop tables clipping timestamps and identifiers", summary: "Contain timestamps, subjects, schemas, and identifiers at every viewport.", evidence: ["one-line identity cells", "controlled detail wrap", "contained horizontal scroll"] },
@@ -310,7 +321,7 @@ function maintenanceBypass(path: string): boolean {
     path === "/roadmap" || path.startsWith("/roadmap/") || path === "/roadmap.json" ||
     path === "/logs" || path.startsWith("/logs/") || path === "/logs.json" ||
     path === "/audit" || path.startsWith("/audit/") || path === "/audit.json" || path === "/audit.jsonl" ||
-    path.startsWith("/admin/");
+    path === "/admin" || path.startsWith("/admin/");
 }
 function downtimeResponse(state: MaintenanceState): Response {
   const tick = nextDowntimeTick(), headline = tickPick(DOWNTIME_HEADLINES, tick, 0), quip = tickPick(DOWNTIME_QUIPS, tick, 7);
@@ -863,6 +874,73 @@ const PAGE_CSS = `
   .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:900px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
   .log-room{padding:0;overflow:hidden}.log-room>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:14px 18px;cursor:pointer;list-style:none}.log-room>summary::-webkit-details-marker{display:none}.log-room>summary:after{content:"+";color:var(--cyan);font-size:1.35rem;font-weight:900}.log-room[open]>summary{border-bottom:1px solid var(--border)}.log-room[open]>summary:after{content:"−"}.log-summary{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.log-count{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.72rem;font-weight:800}.log-room-body{padding:16px 18px 4px}.log-actions{display:flex;justify-content:flex-end;margin-bottom:10px}.log-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(150px,.42fr) auto;gap:10px;align-items:end;margin:0 0 14px}.log-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.06em;text-transform:uppercase}.log-toolbar :is(input,select){width:100%;min-height:42px;border:1px solid var(--strong);border-radius:9px;background:var(--surface-1);color:var(--text);padding:8px 10px;font:inherit}.log-visible-count{padding:10px 0;color:var(--faint);font-size:.74rem;white-space:nowrap}.table-sort{min-height:0;padding:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;box-shadow:none}.table-sort:active{transform:none;box-shadow:none}.table-sort:after{content:" ↕";color:var(--faint)}.table-sort[data-direction="asc"]:after{content:" ↑";color:var(--cyan)}.table-sort[data-direction="desc"]:after{content:" ↓";color:var(--cyan)}
   pre{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto}
+  /* ── Conformance register (/audit/) ──────────────────────────────────────────
+     One pill shape for every status, one table shape for every register. The
+     status colours are text-on-transparent with a matching border rather than
+     filled chips: a filled amber chip cannot clear 4.5:1 against this surface
+     without turning the text near-black, and these pills sit next to body copy. */
+  .iso-pill{display:inline-block;padding:3px 10px;border:1px solid currentColor;border-radius:999px;font-size:.7rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .iso-pill.is-met{color:#4ade80}.iso-pill.is-partial{color:#f6c445}.iso-pill.is-gap{color:#ff8080}.iso-pill.is-supplier{color:#b6a9ff}.iso-pill.is-excluded{color:#a49dc4}
+  .iso-section{margin:36px 0 10px;font-size:clamp(1.25rem,3vw,1.7rem);scroll-margin-top:18px}
+  .iso-readiness-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .iso-readiness{display:grid;gap:6px;min-width:0}
+  .iso-readiness__head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .iso-readiness__head a{font-size:.82rem;font-weight:800;text-decoration:none;overflow-wrap:anywhere}
+  .iso-readiness__head strong{color:var(--text);font-variant-numeric:tabular-nums}
+  .iso-track{display:flex;height:10px;border-radius:999px;background:#292544;overflow:hidden}
+  .iso-track>i{display:block;height:100%}.iso-track>i.is-met{background:#4ade80}.iso-track>i.is-partial{background:#f6c445}
+  .iso-readiness__foot{margin:0;color:var(--faint);font-size:.72rem}
+  .iso-key-table{--table-min:520px}
+  .iso-key-table :is(th,td):nth-child(1){width:9rem}
+  .iso-lock{display:inline-block;padding:1px 6px;border:1px solid var(--strong);border-radius:999px;color:var(--muted);font-size:.62rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase;vertical-align:1px}
+  .iso-evidence{margin:0;padding:0;list-style:none;display:grid;gap:5px}
+  .iso-evidence li{min-width:0}
+  .iso-evidence a{font-size:.78rem;font-weight:700;overflow-wrap:anywhere}
+  .iso-missing{color:var(--faint);font-size:.78rem;font-style:italic;overflow-wrap:anywhere}
+  .iso-none{color:var(--faint);font-size:.78rem;font-style:italic}
+  .iso-toolbar-card{margin-bottom:18px}
+  .iso-toolbar{margin:0;grid-template-columns:minmax(220px,1.4fr) minmax(150px,.6fr) minmax(150px,.6fr) auto}
+  .iso-toolbar button{align-self:end;min-height:42px}
+  .iso-register{padding-bottom:6px}
+  .iso-register__head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .iso-register__head h3{margin:0 0 6px;font-size:1.1rem}
+  .iso-count{padding:3px 10px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.72rem;font-weight:800;white-space:nowrap}
+  .iso-empty{margin:0 0 12px;color:var(--faint);font-size:.78rem;font-style:italic}
+  .iso-table{--table-min:1200px;table-layout:fixed!important}
+  .iso-table :is(th,td){vertical-align:top}
+  .iso-table :is(th,td):nth-child(1){width:6.5rem}
+  .iso-table :is(th,td):nth-child(2){width:15rem}
+  .iso-table :is(th,td):nth-child(3){width:19rem}
+  .iso-table :is(th,td):nth-child(4){width:8.5rem}
+  .iso-table :is(th,td):nth-child(6){width:14rem}
+  /* The register's control names must wrap; the global one-line rule is for identifiers. */
+  .iso-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;font-weight:700}
+  .iso-ask,.iso-note{color:var(--muted);font-size:.82rem;line-height:1.5;overflow-wrap:anywhere}
+  .iso-clauses{margin:0;font-size:.74rem;line-height:2;overflow-wrap:anywhere}
+  .iso-doc-table{--table-min:1160px}
+  .iso-doc-table :is(th,td):nth-child(3){width:11rem}
+  .iso-evidence-table{--table-min:900px}
+  .iso-evidence-table :is(th,td):nth-child(1){width:17rem}
+  .iso-evidence-table :is(th,td):nth-child(2){width:7.5rem}
+  .iso-evidence-table :is(th,td):nth-child(3){width:auto}
+  .iso-evidence-table :is(th,td):nth-child(4){width:13rem}
+  .iso-process{display:grid;gap:10px}
+  .iso-process__head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .iso-process__head h3{margin:0;font-size:1.08rem}
+  .iso-process__purpose{margin:0;color:var(--text);max-width:88ch}
+  .iso-trigger{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(11,10,20,.42)}
+  .iso-trigger span{color:var(--faint);font-size:.66rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .iso-trigger strong{min-width:0;color:var(--muted);font-weight:600;font-size:.86rem;overflow-wrap:anywhere}
+  .iso-process__grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px}
+  .iso-process__grid h4{margin:0 0 6px;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .iso-process__grid h4+*{margin-bottom:14px}
+  .iso-steps{margin:0;padding-left:1.2em;display:grid;gap:5px;color:var(--muted);font-size:.85rem}
+  .iso-records{margin:0;padding-left:1.2em;display:grid;gap:4px;color:var(--muted);font-size:.85rem}
+  .iso-path{margin:0;padding-left:1.2em;display:grid;gap:10px;color:var(--muted);max-width:92ch}
+  .iso-path strong{color:var(--text)}
+  @media(max-width:900px){.iso-readiness-grid{grid-template-columns:1fr}.iso-process__grid{grid-template-columns:1fr;gap:10px}}
+  @media(max-width:760px){.iso-toolbar{grid-template-columns:1fr 1fr}.iso-toolbar button{grid-column:1/-1}}
+  @media(max-width:420px){.iso-toolbar{grid-template-columns:1fr}}
   @media(max-width:900px){.goal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:760px){.site-header{align-items:flex-start;flex-direction:column}.site-header nav{justify-content:flex-start}.brand svg{width:48px}.site-header{padding:14px 12px 0}main{padding:22px 12px 48px}.gauge-layout{grid-template-columns:1fr}.metric-grid,.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-metrics,.inquiry-metrics,.showcase-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric-card{min-height:112px;padding:12px}.metric-icon{width:25px;height:25px}.metric-value{font-size:clamp(1.05rem,5vw,1.45rem)}th,td{padding:8px}.history-item{grid-template-columns:1fr}.history-receipt{max-width:100%}.delivery-velocity{text-align:left}.log-toolbar{grid-template-columns:1fr 1fr}.log-visible-count{grid-column:1/-1;padding:0}}
   @media(max-width:420px){nav a{padding:5px 9px}.brand-copy small{display:none}.goal-grid{grid-template-columns:1fr}.inquiry-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.inquiry-metrics .metric-value{font-size:clamp(.95rem,4.4vw,1.2rem)}.log-room>summary{padding:12px}.log-room-body{padding:12px 12px 2px}.log-toolbar{grid-template-columns:1fr}}
@@ -871,7 +949,7 @@ const PAGE_CSS = `
 const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy Shark Tank mascot"><path d="M35 55 4 26l8 30-8 29 31-25c12 26 67 35 112 4 12-8 20-8 29-9-9-2-17-4-29-12C102 13 47 27 35 55Z" fill="#22e6ff" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M76 29 91 5l19 28M76 75 90 102l14-29" fill="#0891b2" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M41 48c24-15 62-22 106-5-43-8-79 1-105 19Z" fill="#fff" opacity=".18"/><circle cx="137" cy="40" r="13" fill="#fff" stroke="#070b14" stroke-width="4"/><circle cx="142" cy="43" r="5" fill="#070b14"/><path d="M119 66q21 16 42-2-21 31-42 2Z" fill="#47142a" stroke="#070b14" stroke-width="4" stroke-linejoin="round"/><path d="m126 69 5 10 6-8 6 8 5-11" fill="#fff" stroke="#070b14" stroke-width="2" stroke-linejoin="round"/><circle cx="158" cy="48" r="3" fill="#070b14"/></svg>`;
 
 function shell(title: string, inner: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title><style>${PAGE_CSS}</style></head><body><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a><nav aria-label="Shark Tank pages"><a href="/">Game</a><a href="/roadmap/">Roadmap</a><a href="/docs/">API</a><a href="/status/">Status</a><a href="/incidents/">Incidents</a><a href="/inquiry/">Inquiry</a><a href="/logs/">Logs</a><a href="/audit/">Audit</a></nav></header><main>${inner}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title><style>${PAGE_CSS}</style></head><body><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a><nav aria-label="Shark Tank pages"><a href="/">Game</a><a href="/roadmap/">Roadmap</a><a href="/docs/">API</a><a href="/status/">Status</a><a href="/incidents/">Incidents</a><a href="/inquiry/">Inquiry</a><a href="/logs/">Logs</a><a href="/audit/">Audit</a><a href="/admin/">Admin</a></nav></header><main>${inner}</main></body></html>`;
 }
 
 function esc(s: string): string {
@@ -1204,7 +1282,7 @@ function inquiryHtml(billing: Record<string, unknown>): string {
       ${metricCard(`<span title="$${measured.toFixed(8)}">${usd(measured)}</span>`, "All-time meter", `since ${new Date(numberValue(allTime.startedAt)).toLocaleDateString()}`, "audit", "tone-cyan")}
       ${metricCard(`<span title="$${todayUsd.toFixed(8)}">${usd(todayUsd)}</span>`, "Spend today", `${hardLimit > 0 ? `${((todayUsd / hardLimit) * 100).toFixed(todayUsd / hardLimit < 0.01 ? 3 : 1)}% of the $${hardLimit.toFixed(2)} stop` : "measured today"}${todayPartial ? ` · measured ${todayHours < 1 ? "under an hour" : `${Math.round(todayHours)}h`}` : ""}`, "requests", todayUsd > averageUsd * 2 && averageUsd > 0 ? "tone-yellow" : "tone-green")}
       ${metricCard(`<span title="$${averageUsd.toFixed(8)}">${usd(averageUsd)}</span>`, "Average spend / day", `over ${observedDays < 1.5 ? "the first day" : `${observedDays.toFixed(1)} days`}`, "uptime", "tone-violet")}
-      ${metricCard(`$${numberValue(billing.hardLimitUsd).toFixed(2)}`, "Audit hard stop", headroom, "traffic", billing.hardLimitExceeded === true ? "tone-red" : "tone-green")}
+      ${metricCard(`$${numberValue(billing.hardLimitUsd).toFixed(2)}`, "Spend hard stop", headroom, "traffic", billing.hardLimitExceeded === true ? "tone-red" : "tone-green")}
     </div>
     <div class="card"><h2>Usage against the free tier</h2>
       <p class="sub" style="margin:0 0 12px">Every meter reads the same way: what it is, what it has used to date, what the free tier allows, what <b>today</b> has spent against that allowance, and the lifetime daily average. Monthly allowances are shown as monthly but compared against a thirtieth of the month, so every bar shares one axis. Storage is a stock, so its cells show the level held rather than a rate.${todayPartial ? ` Today is measured from ${new Date(numberValue(today.since)).toISOString().slice(11, 16)} UTC, not from midnight — the day boundary is captured on the first reading of each day.` : ""}</p>
@@ -2059,13 +2137,13 @@ function gameLogText(roomId: string, events: GameLogWireEvent[]): Response {
 }
 
 /** Authenticated operations dashboard. Dynamic values are written with textContent. */
-function auditViewerHtml(): string {
+function adminViewerHtml(): string {
   // No template literals / ${} inside, to stay valid in this string.
   const script = [
     "function duration(ms){var s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return d?d+'d '+h+'h':h?h+'h '+m+'m':m+'m';}",
     "function coverageRow(body,name,value,url){var tr=document.createElement('tr'),a=document.createElement('td'),b=document.createElement('td'),span=document.createElement('span');a.className='cell-key';a.title=name;a.textContent=name;b.className='cell-detail';b.title=value;span.textContent=value;b.appendChild(span);if(url){var link=document.createElement('a');link.href=url;link.textContent='Reference';link.style.marginLeft='8px';b.appendChild(link);}tr.appendChild(a);tr.appendChild(b);body.appendChild(tr);}",
     "async function tick(){try{",
-    "var sr=await fetch('/audit/status.json');var sd=await sr.json();var b=sd.billingWindow||{};",
+    "var sr=await fetch('/admin/status.json');var sd=await sr.json();var b=sd.billingWindow||{};",
     "document.getElementById('billing-cost').textContent=typeof b.estimatedVariableUsd==='number'?'$'+b.estimatedVariableUsd.toFixed(8):'—';",
     "document.getElementById('billing-requests').textContent=(b.requests||0).toLocaleString();",
     "document.getElementById('billing-duration').textContent=(b.gbSeconds||0).toLocaleString();",
@@ -2080,12 +2158,12 @@ function auditViewerHtml(): string {
     "var m=sd.maintenance||{};var mb=document.getElementById('maintenance-toggle');mb.dataset.enabled=m.enabled?'1':'0';mb.textContent=m.enabled?'Bring server online':'Take server down';mb.className=m.enabled?'restore':'danger';",
     "document.getElementById('maintenance-state').textContent=m.enabled?'OFFLINE':'ONLINE';document.getElementById('maintenance-state').className='m '+(m.enabled?'o':'g');",
     "}catch(err){}}",
-    "document.getElementById('maintenance-toggle').addEventListener('click',async function(){var b=this,o=document.getElementById('maintenance-output'),enabling=b.dataset.enabled!=='1';if(enabling&&!confirm('Take the game offline and disconnect every active player? Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, and Audit will remain available.'))return;b.disabled=true;try{var r=await fetch('/admin/maintenance',{method:'POST',headers:{'content-type':'application/json','x-wg-ops-action':'maintenance'},body:JSON.stringify({enabled:enabling,reason:enabling?'Scheduled maintenance':''})}),d=await r.json();if(!r.ok)throw new Error(d.error||'request failed');o.hidden=false;o.textContent=d.message||'Maintenance state updated.';await tick();}catch(e){o.hidden=false;o.textContent='Unable to change maintenance mode.';}finally{b.disabled=false;}});",
+    "document.getElementById('maintenance-toggle').addEventListener('click',async function(){var b=this,o=document.getElementById('maintenance-output'),enabling=b.dataset.enabled!=='1';if(enabling&&!confirm('Take the game offline and disconnect every active player? Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, Audit, and Admin will remain available.'))return;b.disabled=true;try{var r=await fetch('/admin/maintenance',{method:'POST',headers:{'content-type':'application/json','x-wg-ops-action':'maintenance'},body:JSON.stringify({enabled:enabling,reason:enabling?'Scheduled maintenance':''})}),d=await r.json();if(!r.ok)throw new Error(d.error||'request failed');o.hidden=false;o.textContent=d.message||'Maintenance state updated.';await tick();}catch(e){o.hidden=false;o.textContent='Unable to change maintenance mode.';}finally{b.disabled=false;}});",
     "document.getElementById('billing-reset').addEventListener('click',async function(){var b=this;if(!confirm('Reset the billing measurement window to zero? Uptime and status history will be preserved.'))return;b.disabled=true;try{var r=await fetch('/admin/billing-reset',{method:'POST',headers:{'x-wg-ops-action':'billing-reset'}});if(!r.ok)throw new Error('request failed');await tick();}catch(e){alert('Unable to reset the billing counter.');}finally{b.disabled=false;}});",
     "tick();setInterval(tick,1500);",
   ].join("");
-  return `<section class="page-intro"><div class="eyebrow">Control room · sharp teeth</div><h1>Audit</h1>
-    <p class="sub">Authenticated traffic controls, incident receipts, billing thresholds, and live runtime KPIs.</p></section>
+  return `<section class="page-intro"><div class="eyebrow">Control room · sharp teeth</div><h1>Admin</h1>
+    <p class="sub">Authenticated traffic controls, incident receipts, billing thresholds, and live runtime KPIs. The conformance register these controls produce evidence for is public at <a href="/audit/">Audit</a>.</p></section>
     <h2 style="font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:#b9b4d6">Operations pulse</h2>
     <div class="metric-grid stat-grid">
       ${metricCard("—", "Active players", "live human sessions", "players", "tone-cyan", "kpi-active-players")}
@@ -2093,14 +2171,14 @@ function auditViewerHtml(): string {
       ${metricCard("—", "Bot seats", "server-authoritative rivals", "bot", "tone-yellow", "kpi-bot-seats")}
       ${metricCard("—", "Active tanks", "tanks with human players", "rooms", "tone-green", "kpi-active-rooms")}
       ${metricCard("—", "Service uptime", "preserved across billing resets", "uptime", "tone-green", "kpi-uptime")}
-      ${metricCard("—", "Audit events", "lifetime status counter", "audit", "tone-cyan", "kpi-audit-events")}
+      ${metricCard("—", "Action log events", "lifetime status counter", "audit", "tone-cyan", "kpi-audit-events")}
     </div>
     <div class="card"><h2 style="margin:0 0 10px;font-size:1.1rem">Server control</h2>
       <p>Game traffic: <strong id="maintenance-state" class="m">CHECKING…</strong></p>
-      <div class="server-controls"><button type="button" id="maintenance-toggle" class="danger" data-enabled="0">Take server down</button>${securityReportControl("audit-security-report")}</div>
+      <div class="server-controls"><button type="button" id="maintenance-toggle" class="danger" data-enabled="0">Take server down</button>${securityReportControl("admin-security-report")}</div>
       <pre class="security-receipt" id="maintenance-output" role="status" aria-live="polite" aria-atomic="true" hidden></pre>
       <form class="alert-test" id="test-alert-form"><label for="test-alert-code"><strong>Test alert code</strong></label><input class="alert-code" id="test-alert-code" name="code" maxlength="4" minlength="4" pattern="[A-Za-z][0-9]{3}" placeholder="A000" autocomplete="off" required><button type="submit" class="secondary">Send test alert</button></form><pre class="security-receipt" id="test-alert-output" role="status" aria-live="polite" aria-atomic="true" hidden></pre>
-      <p class="sub" style="margin:10px 0 0">Filing a security report here also takes the game down; the unauthenticated public intake at <code>/api/security-report</code> only records a report. Taking the game down disconnects active tanks and gates the game shell, assets, and tank WebSockets. Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, and Audit stay online. Alert codes are exactly one letter followed by three digits.</p>
+      <p class="sub" style="margin:10px 0 0">Filing a security report here also takes the game down; the unauthenticated public intake at <code>/api/security-report</code> only records a report. Taking the game down disconnects active tanks and gates the game shell, assets, and tank WebSockets. Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, Audit, and Admin stay online. Alert codes are exactly one letter followed by three digits.</p>
     </div>
     <div class="card"><div class="eyebrow">Control receipts</div><h2 style="margin:0 0 8px;font-size:1.1rem">Append-only control history</h2><p class="sub" id="history-integrity">Loading receipt chain…</p><div class="table-scroll" role="region" aria-label="Append-only control history" tabindex="0"><table class="history-table"><thead><tr><th>Seq</th><th>Code</th><th>Decision</th><th>Outcome</th><th>Time</th><th>Reference</th><th>Receipt</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="sub" style="margin:0">SHA-256 receipts link each control decision to the previous entry. These rows are not subject to the 90-day user-action retention policy.</p></div>
     <div class="card gauge-card"><h2 style="margin:0 0 10px;font-size:1.1rem">Billing fuel gauge</h2>
@@ -2116,7 +2194,7 @@ function auditViewerHtml(): string {
       <div class="card" id="billing-coverage-card" style="margin-top:14px" hidden><h3 style="margin:0 0 8px">Billing coverage</h3><div class="table-scroll" role="region" aria-label="Billing coverage" tabindex="0" style="margin:0"><table class="billing-table"><thead><tr><th>Bound service</th><th>Measured usage or reference</th></tr></thead><tbody id="billing-coverage"></tbody></table></div></div>
       <p><button type="button" id="billing-reset" class="secondary">Reset billing counter</button></p>
     </div>
-    <script nonce="__WG_CSP_NONCE__">${script}</script>${securityReportScript("audit-security-report")}${testAlertScript()}`;
+    <script nonce="__WG_CSP_NONCE__">${script}</script>${securityReportScript("admin-security-report")}${testAlertScript()}`;
 }
 
 /**
@@ -2366,7 +2444,14 @@ export default {
         return html(shell("Shark — Logs", publicLogsHtml(serviceEvents, tanks, caps)));
       }
 
-      if (path === "/audit/status.json") {
+      // Public conformance register. Fixed content, no binding read: the evidence is the
+      // routes it links to, so the page has nothing to fetch and nothing to get wrong.
+      if (path === "/audit/manifest.json") return json(conformanceManifest());
+      if (path === "/audit" || path === "/audit/") {
+        return html(shell("Shark — ISO 27001 and 42001 register", conformanceHtml(metricCard)));
+      }
+
+      if (path === "/admin/status.json" || path === "/audit/status.json") {
         const res = await lobbyStub(env).fetch("https://lobby/status");
         const data = (await res.json()) as Record<string, unknown> & { maintenanceIncidents?: IncidentRecord[] };
         const incidents = [...INCIDENTS, ...(data.maintenanceIncidents ?? [])];
@@ -2424,18 +2509,19 @@ export default {
         );
       }
 
-      // User action log (90-day retention) as JSON / JSONL.
-      if (path === "/audit.json") {
+      // User action log (90-day retention) as JSON / JSONL. `/audit.*` are the pre-move
+      // names, kept working so operator tooling written against them does not break.
+      if (path === "/admin/log.json" || path === "/audit.json") {
         return lobbyStub(env).fetch("https://lobby/audit" + url.search);
       }
-      if (path === "/audit.jsonl") {
+      if (path === "/admin/log.jsonl" || path === "/audit.jsonl") {
         const res = await lobbyStub(env).fetch("https://lobby/audit" + url.search);
         const data = (await res.json()) as { events: unknown[] };
         return ndjson(data.events);
       }
 
       // Per-game deterministic log (3-day retention): seed + action stream.
-      const gameLog = path.match(/^\/audit\/game\/([^/]+?)(\.jsonl|\.json)?$/);
+      const gameLog = path.match(/^\/(?:admin|audit)\/game\/([^/]+?)(\.jsonl|\.json)?$/);
       if (gameLog) {
         const roomId = decodeURIComponent(gameLog[1]);
         const res = await roomFetch(env, roomId, "/log");
@@ -2445,15 +2531,16 @@ export default {
       }
 
       // Deterministic replay of a game's state at ?tick=T (rollback / fast-forward).
-      const replayMatch = path.match(/^\/audit\/replay\/([^/]+?)(\.json)?$/);
+      const replayMatch = path.match(/^\/(?:admin|audit)\/replay\/([^/]+?)(\.json)?$/);
       if (replayMatch) {
         const roomId = decodeURIComponent(replayMatch[1]);
         return roomFetch(env, roomId, "/replay?tick=" + encodeURIComponent(url.searchParams.get("tick") ?? ""));
       }
 
-      // Real-time log viewer (HTML).
-      if (path === "/audit" || path === "/audit/") {
-        return html(shell("Shark — Audit", auditViewerHtml()));
+      // Authenticated control room (HTML). Everything above this line under /admin/ is its
+      // data; everything it does lands in the public record the conformance register cites.
+      if (path === "/admin" || path === "/admin/") {
+        return html(shell("Shark — Admin", adminViewerHtml()));
       }
     } catch (e) {
       // The message can carry internal paths, binding names and storage keys, and this

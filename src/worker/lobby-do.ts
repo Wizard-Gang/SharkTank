@@ -601,7 +601,7 @@ export class Lobby implements DurableObject {
             resolvedAt: null,
             impactEndedAt: null,
             summary:
-              reason || "The tank was intentionally taken offline from Audit.",
+              reason || "The tank was intentionally taken offline from the operations control panel.",
           };
           this.maintenanceIncidents.push(incident);
           transitionReference = incident.id;

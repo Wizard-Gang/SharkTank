@@ -19,7 +19,7 @@ export const OPENAPI = {
     { name: "tank", description: "Ocean tanks, presence, and the global leaderboard" },
     { name: "profile", description: "Per-player cosmetics + settings" },
     { name: "realtime", description: "WebSocket gameplay" },
-    { name: "ops", description: "Public status, incidents, billing inquiry, logs, and authenticated Audit controls" },
+    { name: "ops", description: "Public status, incidents, billing inquiry, logs, the public ISO 27001 / ISO 42001 conformance register, and the authenticated Admin controls" },
   ],
   paths: {
     "/api/health": {
@@ -119,7 +119,7 @@ export const OPENAPI = {
       get: {
         tags: ["ops"],
         summary: "Status dashboard",
-        description: "Server availability, scheduled tank downtime, unscheduled outages, and tank presence. Billing remains in Inquiry and authenticated Audit.",
+        description: "Server availability, scheduled tank downtime, unscheduled outages, and tank presence. Billing remains in Inquiry and authenticated Admin.",
         responses: { "200": htmlResponse("HTML dashboard") },
       },
     },
@@ -154,35 +154,52 @@ export const OPENAPI = {
     "/audit/": {
       get: {
         tags: ["ops"],
-        summary: "Audit and server-control dashboard",
-        description: "Protected HTML dashboard for audit records, measured billing counters, billing reset, and maintenance mode.",
-        security: [{ opsBasic: [] }], responses: { "200": htmlResponse("Audit dashboard"), "401": { description: "Operations authentication required" } },
+        summary: "ISO/IEC 27001 and ISO/IEC 42001 conformance register",
+        description: "Public, unauthenticated readiness register: every clause of ISO/IEC 27001:2022 and ISO/IEC 42001:2023, all 93 Annex A controls, all 38 AI controls, the fourteen documented change-management processes, the Stage 1 documented-information list, and an index of every route that serves as evidence. Each row carries a status, the justification behind it, and links to the live routes that prove it. This is a readiness statement, not a certificate.",
+        responses: { "200": htmlResponse("Conformance register") },
       },
     },
-    "/audit.json": {
+    "/audit/manifest.json": {
       get: {
         tags: ["ops"],
-        summary: "Audit trail (JSON array)",
+        summary: "Conformance register (JSON)",
+        description: "The same register as machine-readable data, for independent scoring or import into a compliance tool.",
+        responses: { "200": jsonResponse("Standards, status meanings, readiness summary, change processes, mandatory documents, control registers, and the evidence index") },
+      },
+    },
+    "/admin/": {
+      get: {
+        tags: ["ops"],
+        summary: "Operations control panel",
+        description: "Protected HTML dashboard for action records, measured billing counters, billing reset, and maintenance mode. Formerly served at /audit/, which is now the public conformance register.",
+        security: [{ opsBasic: [] }], responses: { "200": htmlResponse("Control panel"), "401": { description: "Operations authentication required" } },
+      },
+    },
+    "/admin/log.json": {
+      get: {
+        tags: ["ops"],
+        summary: "Action log (JSON array)",
+        description: "90-day user and service action record. Also served at the pre-move path /audit.json.",
         parameters: [{ name: "limit", in: "query", required: false, schema: { type: "integer", maximum: 500 } }],
         security: [{ opsBasic: [] }], responses: { "200": jsonResponse("Audit events"), "401": { description: "Operations authentication required" } },
       },
     },
-    "/audit.jsonl": {
-      get: { tags: ["ops"], summary: "Audit trail (newline-delimited JSON)", security: [{ opsBasic: [] }], responses: { "200": { description: "Audit event stream", content: { "application/x-ndjson": { schema: { type: "string" } } } }, "401": { description: "Operations authentication required" } } },
+    "/admin/log.jsonl": {
+      get: { tags: ["ops"], summary: "Action log (newline-delimited JSON)", description: "Also served at the pre-move path /audit.jsonl.", security: [{ opsBasic: [] }], responses: { "200": { description: "Audit event stream", content: { "application/x-ndjson": { schema: { type: "string" } } } }, "401": { description: "Operations authentication required" } } },
     },
-    "/audit/game/{id}.jsonl": {
-      get: { tags: ["ops"], summary: "Authenticated replayable room action log", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: [{ opsBasic: [] }], responses: { "200": { description: "Room actions with internal replay identifiers", content: { "application/x-ndjson": { schema: { type: "string" } } } }, "401": { description: "Operations authentication required" } } },
+    "/admin/game/{id}.jsonl": {
+      get: { tags: ["ops"], summary: "Authenticated replayable room action log", description: "Seed plus the ordered action stream for one tank — the ISO/IEC 42001 A.6.2.8 event record. Also served at /audit/game/{id}.jsonl.", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: [{ opsBasic: [] }], responses: { "200": { description: "Room actions with internal replay identifiers", content: { "application/x-ndjson": { schema: { type: "string" } } } }, "401": { description: "Operations authentication required" } } },
     },
-    "/audit/replay/{id}": {
-      get: { tags: ["ops"], summary: "Reconstruct a room at a retained tick", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }, { name: "tick", in: "query", required: false, schema: { type: "integer", maximum: 100000 } }], security: [{ opsBasic: [] }], responses: { "200": jsonResponse("Reconstructed authoritative state"), "401": { description: "Operations authentication required" }, "410": { description: "Complete replay history expired" } } },
+    "/admin/replay/{id}": {
+      get: { tags: ["ops"], summary: "Reconstruct a room at a retained tick", description: "Deterministic reconstruction of authoritative state, including every autonomous agent, at a chosen tick. Also served at /audit/replay/{id}.", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }, { name: "tick", in: "query", required: false, schema: { type: "integer", maximum: 100000 } }], security: [{ opsBasic: [] }], responses: { "200": jsonResponse("Reconstructed authoritative state"), "401": { description: "Operations authentication required" }, "410": { description: "Complete replay history expired" } } },
     },
-    "/audit/status.json": {
-      get: { tags: ["ops"], summary: "Private operational status and billing data", security: [{ opsBasic: [] }], responses: { "200": jsonResponse("Full status, audit counters, and billing window"), "401": { description: "Operations authentication required" } } },
+    "/admin/status.json": {
+      get: { tags: ["ops"], summary: "Private operational status and billing data", description: "The unredacted operational record, including the running version identifier and instance residency. Also served at /audit/status.json.", security: [{ opsBasic: [] }], responses: { "200": jsonResponse("Full status, audit counters, and billing window"), "401": { description: "Operations authentication required" } } },
     },
     "/admin/maintenance": {
       post: {
         tags: ["ops"], summary: "Enable or disable maintenance mode",
-        description: "Same-origin Audit action. Enabling creates a separate operator-maintenance incident, closes active WebSockets, and returns the controlled 503 page for the game shell, game assets, and tank traffic while Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, and Audit remain online. Disabling records the end of service impact but leaves independent security reports active until separately resolved. Every transition is persisted to Audit and the control-history receipt chain.",
+        description: "Same-origin Admin action. Enabling creates a separate operator-maintenance incident, closes active WebSockets, and returns the controlled 503 page for the game shell, game assets, and tank traffic while Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, the conformance register, and Admin remain online. Disabling records the end of service impact but leaves independent security reports active until separately resolved. Every transition is persisted to the action log and the control-history receipt chain.",
         security: [{ opsBasic: [] }],
         parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["maintenance"] } }],
         requestBody: { required: true, content: { "application/json": { schema: obj({ enabled: { type: "boolean" }, reason: str() }) } } },
@@ -211,14 +228,14 @@ export const OPENAPI = {
     "/admin/security-report": {
       post: {
         tags: ["ops"], summary: "File a security report and take the game down",
-        description: "Same-origin Audit action. Records the same report, audit event, and control-history receipt as the public intake, and additionally opens an active security incident, enables game maintenance, and disconnects active tanks pending operator review. Restoring game traffic records the end of service impact but does not resolve or close the security report; that is /admin/security-resolve. At most one security-report lockdown is open at a time — a repeat call while one is open returns the existing incident and creates no second incident or receipt. Roadmap, Status, Incidents, Inquiry, Logs, Docs, API, and authenticated Audit remain available throughout.",
+        description: "Same-origin Admin action. Records the same report, audit event, and control-history receipt as the public intake, and additionally opens an active security incident, enables game maintenance, and disconnects active tanks pending operator review. Restoring game traffic records the end of service impact but does not resolve or close the security report; that is /admin/security-resolve. At most one security-report lockdown is open at a time — a repeat call while one is open returns the existing incident and creates no second incident or receipt. Roadmap, Status, Incidents, Inquiry, Logs, Docs, API, the conformance register, and authenticated Admin remain available throughout.",
         security: [{ opsBasic: [] }],
         parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["security-report"] } }],
         responses: { "200": jsonResponse("Linked lockdown and report receipt"), "401": { description: "Operations authentication required" }, "403": { description: "Same-origin operation required" }, "502": { description: "Report and lockdown could not be persisted" } },
       },
     },
     "/admin/test-alert": {
-      post: { tags: ["ops"], summary: "Send an authenticated test alert", description: "Accepts exactly one ASCII letter followed by three digits, normalizes the letter uppercase, and records the acknowledgement in Audit.", security: [{ opsBasic: [] }], parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["test-alert"] } }], requestBody: { required: true, content: { "application/json": { schema: obj({ code: { type: "string", pattern: "^[A-Za-z][0-9]{3}$", minLength: 4, maxLength: 4 } }) } } }, responses: { "200": jsonResponse("Test alert receipt"), "400": { description: "Code does not match letter-digit-digit-digit" }, "401": { description: "Operations authentication required" } } },
+      post: { tags: ["ops"], summary: "Send an authenticated test alert", description: "Accepts exactly one ASCII letter followed by three digits, normalizes the letter uppercase, and records the acknowledgement in the action log.", security: [{ opsBasic: [] }], parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["test-alert"] } }], requestBody: { required: true, content: { "application/json": { schema: obj({ code: { type: "string", pattern: "^[A-Za-z][0-9]{3}$", minLength: 4, maxLength: 4 } }) } } }, responses: { "200": jsonResponse("Test alert receipt"), "400": { description: "Code does not match letter-digit-digit-digit" }, "401": { description: "Operations authentication required" } } },
     },
   },
   components: {
