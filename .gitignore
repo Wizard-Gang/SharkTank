@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+.DS_Store
+
+# Credentials and local runtime configuration never enter public history.
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Local working notes are not controlled product records.
+HANDOFF-*.md
+
