@@ -98,13 +98,7 @@ const E = {
   game: ev("Live Shark Tank demo", "/play/"),
 };
 
-/* ── Change management ────────────────────────────────────────────────────────
-   ISO/IEC 27001 asks for change control in four separate places — Clause 6.3
-   (planned changes to the management system), Clause 8.1 (control of planned
-   changes and review of unintended ones), A.8.32 (change management proper) and
-   the development controls A.8.25 to A.8.34. ISO/IEC 42001 adds Clause 6.3 and
-   A.6.2.5/A.6.2.6 for changes to the AI system itself. These are the processes
-   that have to exist, be operated, and leave records. */
+/* ── Change-management processes and their evidence contracts ─────────────── */
 
 export interface ChangeProcess {
   id: string;
@@ -726,7 +720,6 @@ export function evidenceWalkStats(): { distinctRoutes: number; rows: number; met
 export function conformanceManifest() {
   return {
     ok: true,
-    statement: "Readiness register, not a certificate. No certification body has assessed this service.",
     standards: ["ISO/IEC 27001:2022", "ISO/IEC 42001:2023"],
     statusMeanings: STATUS_MEANING,
     summary: summarise(ALL_CONTROLS),
@@ -762,16 +755,6 @@ function evidenceList(items: readonly Evidence[]): string {
     const label = esc(item.label) + (item.auth ? ` <span class="iso-lock" title="Operations authentication required">auth</span>` : "");
     return `<li>${item.href ? `<a href="${esc(item.href)}">${label}</a>` : `<span class="iso-missing">${label}</span>`}</li>`;
   }).join("")}</ul>`;
-}
-
-function readinessBar(label: string, summary: Summary, href: string): string {
-  const met = summary.applicable ? (summary.byStatus.met / summary.applicable) * 100 : 0;
-  const partial = summary.applicable ? (summary.byStatus.partial / summary.applicable) * 100 : 0;
-  return `<div class="iso-readiness">
-    <div class="iso-readiness__head"><a href="${esc(href)}">${esc(label)}</a><strong>${summary.readiness}%</strong></div>
-    <div class="iso-track" role="img" aria-label="${esc(label)}: ${summary.byStatus.met} evidenced, ${summary.byStatus.partial} partial, ${summary.byStatus.gap} gaps, of ${summary.applicable} controls this organisation must close"><i class="is-met" style="width:${met.toFixed(2)}%"></i><i class="is-partial" style="width:${partial.toFixed(2)}%"></i></div>
-    <p class="iso-readiness__foot">${summary.byStatus.met} evidenced · ${summary.byStatus.partial} partial · ${summary.byStatus.gap} gaps · ${summary.byStatus.supplier} supplier · ${summary.byStatus.excluded} excluded</p>
-  </div>`;
 }
 
 function changeProcessHtml(process: ChangeProcess): string {
@@ -858,24 +841,13 @@ export function conformanceHtml(metricCard: MetricCard, embedded = false): strin
   const overall = summarise(ALL_CONTROLS);
   const statusOptions = STATUSES.map((value) => `<option value="${value}">${esc(STATUS_LABEL[value])}</option>`).join("");
   const documents = summarise(MANDATORY_DOCUMENTS.map((item) => ({ ref: item.ref, title: item.title, ask: "", status: item.status, note: item.note, evidence: item.evidence })));
-  const changes = summarise(CHANGE_PROCESSES.map((item) => ({ ref: item.id, title: item.title, ask: "", status: item.status, note: item.purpose, evidence: item.evidence })));
 
   const intro = embedded
     ? `<section class="controls-block" id="registers" tabindex="-1" aria-labelledby="registers-heading"><div class="eyebrow">Certification readiness · the site is the evidence</div><h2 id="registers-heading">Control register</h2>`
     : `<section class="page-intro"><div class="eyebrow">Certification readiness · the site is the evidence</div><h1>Audit</h1>`;
 
   return `${intro}
-    <p class="sub">Every clause of ISO/IEC 27001:2022 and ISO/IEC 42001:2023, every one of the 93 Annex A controls and all 38 AI controls, each with what an assessor asks for, where this service stands, and the live route that proves it. Nothing here is a screenshot: an evidence link is a URL you can open now and check against the running system.</p>
     <p class="action-links"><a class="action-link" href="#register-filter">Search all ${overall.total} rows →</a> <a class="action-link" href="/audit/manifest.json">Register as JSON →</a></p></section>
-
-  <div class="card hero-card">
-    <div class="eyebrow">Statement</div>
-    <h2 style="margin:0 0 8px;font-size:1.25rem">This is a readiness register, not a certificate</h2>
-    <p class="sub" style="margin:0 0 18px">No certification body has assessed this service. The register is published in the state it is actually in, gaps included, because an overstated register fails a Stage 2 audit faster than an honest one. ${overall.byStatus.gap} rows have no evidence at all and say so.</p>
-    <div class="iso-readiness-grid">
-      ${REGISTERS.map((register) => readinessBar(register.title.replace(/^ISO\/IEC /, "").replace(/:20\d\d/, ""), summarise(register.controls), "#" + register.id)).join("")}
-    </div>
-  </div>
 
   <div class="metric-grid stat-grid">
     ${metricCard(overall.total, "Controls in register", "27001 and 42001, complete", "audit", "tone-cyan")}
@@ -891,11 +863,9 @@ export function conformanceHtml(metricCard: MetricCard, embedded = false): strin
     <div class="table-scroll" role="region" aria-label="Status meanings" tabindex="0" style="margin:0"><table class="iso-key-table"><caption class="sr-only">Status meanings</caption><thead><tr><th scope="col">Status</th><th scope="col">What it means here</th></tr></thead><tbody>
       ${STATUSES.map((value) => `<tr><td>${statusPill(value)}</td><td>${esc(STATUS_MEANING[value])}</td></tr>`).join("")}
     </tbody></table></div>
-    <p class="sub" style="margin:12px 0 0">Readiness counts only the controls this organisation has to close — supplier-inherited and excluded rows are removed from the denominator, and a partial row counts as half. Rows marked <span class="iso-lock">auth</span> need operations credentials; an assessor is given them for the engagement.</p>
   </div>
 
   <h2 class="iso-section" id="change-management">Change management</h2>
-  <p class="sub">ISO/IEC 27001 asks for change control in four separate places — Clause 6.3 for planned changes to the management system, Clause 8.1 for control of planned changes and review of unintended ones, A.8.32 for change management proper, and the development controls A.8.25 to A.8.34. ISO/IEC 42001 adds Clause 6.3 and the deployment and operation controls for the AI system itself. These are the ${CHANGE_PROCESSES.length} processes that satisfy all of them: ${changes.byStatus.met} evidenced, ${changes.byStatus.partial} partial, ${changes.byStatus.gap} with no evidence yet.</p>
   ${CHANGE_PROCESSES.map(changeProcessHtml).join("")}
 
   <h2 class="iso-section" id="documents">Mandatory documented information</h2>

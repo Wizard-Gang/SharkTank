@@ -1,9 +1,9 @@
 {
   "name": "sharktank",
-  "version": "1.0.2",
+  "version": "1.2.0",
   "private": true,
   "license": "MIT",
-  "description": "SharkTank realtime systems workload and governed production case study.",
+  "description": "Realtime multiplayer SharkTank with production controls and operational evidence.",
   "type": "module",
   "engines": {
     "node": "^22.12.0 || >=24.0.0"

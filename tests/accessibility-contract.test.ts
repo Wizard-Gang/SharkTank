@@ -20,10 +20,10 @@ describe("public accessibility contract", () => {
     expect(worker).toContain('el.focus({preventScroll:true})');
   });
 
-  it("scopes the WCAG 2.0 AA claim instead of claiming universal game accessibility", () => {
+  it("keeps the validated WCAG claim without the removed explanatory block", () => {
     expect(worker).toContain("WCAG 2.0 AA");
-    expect(worker).toContain("primary game interfaces are covered");
-    expect(worker).toContain("not presented as universally accessible");
+    expect(worker).not.toContain("The public evidence estate and the game’s menus");
+    expect(worker).not.toContain("The claim is deliberately scoped");
   });
 
   it("keeps the game operable by keyboard with managed focus and reduced motion", () => {

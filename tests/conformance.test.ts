@@ -17,7 +17,9 @@ describe("conformance register", () => {
     expect(summary.readiness).toBeLessThanOrEqual(100);
   });
 
-  it("states that readiness is not certification", () => {
-    expect(conformanceManifest().statement.toLowerCase()).toContain("not a certificate");
+  it("keeps the data manifest focused on the register", () => {
+    const manifest = conformanceManifest();
+    expect(manifest).not.toHaveProperty("statement");
+    expect(manifest.standards).toEqual(["ISO/IEC 27001:2022", "ISO/IEC 42001:2023"]);
   });
 });

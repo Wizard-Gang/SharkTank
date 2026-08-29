@@ -20,6 +20,10 @@ interface Env {
   LOBBY: DurableObjectNamespace;
   ENVIRONMENT?: string;
   SHARKTANK_RELEASE?: string;
+  SHARKTANK_COMMIT_COUNT?: string;
+  SHARKTANK_COMMIT_WINDOW_HOURS?: string;
+  SHARKTANK_COMMIT_VELOCITY?: string;
+  SHARKTANK_DEPLOYED_AT?: string;
   OPS_USERNAME?: string;
   OPS_TOKEN?: string;
   AUDIT_GENERATION?: string;
@@ -888,16 +892,93 @@ const TRUTHFULNESS_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["the split namespace is live, and the register's routes are routes the service serves", "the restore drill reads backups/state/latest.json and fails loudly when there is nothing to read", "the evidence-walk figures are derived from the register at render time, not transcribed", "a route deleted from the service now fails the link checker instead of passing on the game shell's 200", "/spend/ and /docs/ are reachable from all 27 server-rendered pages, including each of the 20 policy documents", "a trust page dropped from 45 KB to 7 KB, and all 22 delivery-chart links clear 24 by 24 with no overlap"],
   reference: { label: "Operations", href: "/status/#delivery" },
 };
-/** Development minutes across every post-delivery entry, WG-018 to WG-048. */
-const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG047 + TRUTHFULNESS_MINUTES;
-
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
   PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
   NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY,
   TRUTHFULNESS_ROADMAP_ENTRY];
+
+/** Public change summaries stay short; implementation detail remains in source and evidence links. */
+const PUBLIC_ROADMAP_SUMMARIES: Readonly<Record<string, string>> = {
+  "WG-001": "Deployed the game and public operations pages from one Worker.",
+  "WG-002": "Moved movement, combat, agents, and room state to the server.",
+  "WG-003": "Added size-based combat, dash movement, and rockets.",
+  "WG-004": "Reduced rendering tears and input delay across supported controls.",
+  "WG-005": "Adapted the game for desktop, keyboard, mouse, and touch.",
+  "WG-006": "Published service and tank logs with downloadable records.",
+  "WG-007": "Aligned the debug drawer with the public log format.",
+  "WG-008": "Mapped product actions to the Cloudflare resources they consume.",
+  "WG-009": "Added a measured spend limit that can stop gameplay.",
+  "WG-010": "Centralized maintenance, billing, alerts, and security controls.",
+  "WG-011": "Separated restored service from an open incident investigation.",
+  "WG-012": "Added an append-only SHA-256 receipt chain for control actions.",
+  "WG-013": "Fixed tables that clipped timestamps and identifiers.",
+  "WG-014": "Kept status and evidence available while gameplay is closed.",
+  "WG-015": "Organized evidence against ISO/IEC 27001 and ISO/IEC 42001.",
+  "WG-016": "Standardized public wording and reason-coded evidence.",
+  "WG-017": "Refreshed the controlled-outage messages.",
+  "WG-018": "Required TLS and authenticated access for operations routes.",
+  "WG-019": "Added a visible arena boundary with authoritative collision behavior.",
+  "WG-020": "Added touch controls for movement and abilities.",
+  "WG-021": "Changed availability measurement to cover the project lifetime.",
+  "WG-022": "Combined billing data into one spend meter.",
+  "WG-023": "Added an incident chart showing cause, start, and duration.",
+  "WG-024": "Protected the game shutdown control with authentication.",
+  "WG-025": "Replaced full-page status reloads with pausable live updates.",
+  "WG-026": "Corrected dialog focus trapping and restoration.",
+  "WG-027": "Fixed low-contrast overlay text in light mode.",
+  "WG-028": "Scoped log throttling to each connection.",
+  "WG-029": "Enforced room capacity when a seat is claimed.",
+  "WG-030": "Bound the incident record to protect recovery paths.",
+  "WG-031": "Made search and paging announcements concise and stable.",
+  "WG-032": "Made chart points reachable without trapping keyboard focus.",
+  "WG-033": "Added a unique heading for every API endpoint.",
+  "WG-034": "Stopped the tank list from announcing every refresh.",
+  "WG-035": "Tightened the Content Security Policy for scripts.",
+  "WG-036": "Removed internal details from public errors and exports.",
+  "WG-037": "Verified the receipt chain whenever it is read.",
+  "WG-038": "Removed invisible control characters from display names.",
+  "WG-039": "Changed the spend view to a readable current-day scale.",
+  "WG-040": "Completed keyboard and screen-reader fixes across public pages.",
+  "WG-041": "Simplified the outage page so its state is immediately clear.",
+  "WG-042": "Added accessible status announcements for important game events.",
+  "WG-043": "Added persistent player display names.",
+  "WG-044": "Published the policy set referenced by the control register.",
+  "WG-045": "Documented risk decisions and the rule-based agent boundary.",
+  "WG-046": "Performed the operational activities previously marked partial.",
+  "WG-047": "Separated the game from the public governance routes.",
+  "WG-048": "Deployed the route split and corrected stale evidence claims."
+};
+
+function publicRoadmapEntry(entry: RoadmapEntry): RoadmapEntry {
+  return { ...entry, summary: PUBLIC_ROADMAP_SUMMARIES[entry.id] ?? entry.summary };
+}
+
 const ROADMAP_ELAPSED_MINUTES = 8 * 60;
-const ROADMAP_DEPLOYMENT_COUNT = 7;
 interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }
+interface DeploymentMetrics {
+  release: string;
+  deployedAt: string | null;
+  commitCount: number;
+  windowHours: number;
+  commitsPerDay: number;
+}
+function deploymentMetrics(env: Env): DeploymentMetrics {
+  const numeric = (value: string | undefined) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+  const commitCount = Math.floor(numeric(env.SHARKTANK_COMMIT_COUNT));
+  const windowHours = numeric(env.SHARKTANK_COMMIT_WINDOW_HOURS);
+  const suppliedVelocity = numeric(env.SHARKTANK_COMMIT_VELOCITY);
+  const commitsPerDay = suppliedVelocity || (commitCount > 0 && windowHours > 0 ? commitCount / (windowHours / 24) : 0);
+  return {
+    release: env.SHARKTANK_RELEASE ?? "development",
+    deployedAt: env.SHARKTANK_DEPLOYED_AT || null,
+    commitCount,
+    windowHours,
+    commitsPerDay,
+  };
+}
 const formatElapsed = (minutes: number) => minutes < 60 ? `${minutes}m` : minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 /**
  * The delivery record, as a section of the operations page.
@@ -914,8 +995,8 @@ const formatElapsed = (minutes: number) => minutes < 60 ? `${minutes}m` : minute
  * time axis is the delivery-shaped question, and every series in it is read from the same
  * source the owning page reads.
  */
-function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRecord[] = [], history: ControlHistoryEntry[] = [], billing: Record<string, unknown> = {}): string {
-  const now = Date.now(), all = [...entries, ...POST_DELIVERY_ENTRIES];
+function deliverySection(entries: readonly RoadmapEntry[], deployment: DeploymentMetrics, incidents: IncidentRecord[] = [], history: ControlHistoryEntry[] = [], billing: Record<string, unknown> = {}): string {
+  const now = Date.now(), all = [...entries, ...POST_DELIVERY_ENTRIES].map(publicRoadmapEntry);
   const portal = incidentSummary([], now), tank = incidentSummary(incidents, now);
   const allTime = recordValue(billing.allTime);
   // Spend is the all-time metered figure, matching the series `spendHistory` samples and
@@ -927,7 +1008,11 @@ function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRe
   const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now };
   const batchCount = deploymentBatches(all).length;
   const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(canonicalPublicHref(entry.reference.href))}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
-  const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60, velocity = (entries.length / elapsedHours).toFixed(1);
+  const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60;
+  const velocity = deployment.commitsPerDay > 0 ? `${deployment.commitsPerDay.toFixed(1)}/day` : "Pending deploy";
+  const velocityDetail = deployment.commitCount > 0
+    ? `${deployment.commitCount} commits through ${deployment.release}`
+    : "populated by the production deploy";
   return `<section id="changes" class="evidence-block" tabindex="-1" aria-labelledby="delivery-heading">
     <div class="eyebrow">Project record</div>
     <h2 id="delivery-heading" style="margin:6px 0 10px">Delivery</h2>
@@ -935,7 +1020,7 @@ function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRe
     <div class="card hero-card">
       <div class="metric-grid showcase-metrics">
         ${metricCard(batchCount, "Deployment batches", `${all.length} feature updates shipped`, "rooms", "tone-cyan")}
-        ${metricCard(`${velocity}/h`, "Commit velocity", `${entries.length} updates in ${Math.floor(elapsedHours)}h of build time`, "requests", "tone-violet")}
+        ${metricCard(velocity, "Commit velocity", velocityDetail, "requests", "tone-violet")}
       </div>
       ${showcaseChartSvg(showcase)}
     </div>
@@ -947,7 +1032,7 @@ function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRe
         <article class="card"><strong>Human accountable</strong><p>Keep high-impact controls authenticated, attributable, and receipt-backed.</p></article>
       </div>
     </section>
-    <section><div class="portal-signoff"><div><div class="eyebrow">${Math.floor(elapsedHours)}h total elapsed</div><h3>Feature-to-deployment map</h3></div><div class="delivery-velocity"><strong>Commit velocity: ${velocity}/hour</strong><span>${entries.length} feature updates · ${ROADMAP_DEPLOYMENT_COUNT} production deployments · ${(entries.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)} updates/deployment</span></div></div><div class="table-scroll" role="region" aria-label="Sortable feature-to-deployment map" tabindex="0"><table class="roadmap-table" id="roadmap-table"><caption class="sr-only">Sortable feature-to-deployment map</caption><thead><tr><th scope="col" aria-sort="ascending"><button class="table-sort" data-key="id" data-direction="asc">ID</button></th><th scope="col" aria-sort="none"><button class="table-sort" data-key="type">Type</button></th><th scope="col">Feature update</th><th scope="col" aria-sort="none"><button class="table-sort" data-key="duration">Elapsed</button></th><th scope="col">Deployment</th></tr></thead><tbody>${rows}</tbody></table></div></section>${roadmapSortScript()}
+    <section><div class="portal-signoff"><div><div class="eyebrow">${Math.floor(elapsedHours)}h initial build</div><h3>Feature-to-deployment map</h3></div><div class="delivery-velocity"><strong>Commit velocity: ${velocity}</strong><span>${velocityDetail} · ${batchCount} deployment batches</span></div></div><div class="table-scroll" role="region" aria-label="Sortable feature-to-deployment map" tabindex="0"><table class="roadmap-table" id="roadmap-table"><caption class="sr-only">Sortable feature-to-deployment map</caption><thead><tr><th scope="col" aria-sort="ascending"><button class="table-sort" data-key="id" data-direction="asc">ID</button></th><th scope="col" aria-sort="none"><button class="table-sort" data-key="type">Type</button></th><th scope="col">Feature update</th><th scope="col" aria-sort="none"><button class="table-sort" data-key="duration">Elapsed</button></th><th scope="col">Deployment</th></tr></thead><tbody>${rows}</tbody></table></div></section>${roadmapSortScript()}
   </section>`;
 }
 
@@ -2419,7 +2504,6 @@ function incidentsSection(incidents: IncidentRecord[], history: ControlHistoryEn
   return `<section id="incidents" tabindex="-1" aria-labelledby="incidents-heading">
     <div class="eyebrow">Availability evidence</div>
     <h2 id="incidents-heading" style="margin:6px 0 10px">Incidents</h2>
-    <p class="sub">Scheduled tank downtime is tracked separately from unscheduled outages and from server availability, because only one of the three is a fault. ${incidents.length} recorded over ${s.windowLabel}. <a href="/incidents.json">Raw incident JSON →</a></p>
     <div class="card hero-card"><h3 style="margin:0 0 4px;font-size:1.1rem">Every incident since project start</h3><p class="sub" style="margin:0 0 10px">${formatCompactDuration(s.scheduledDowntimeMs)} of it scheduled and excluded from availability.</p>${incidentChartSvg(incidents, now, history)}<p class="timeline-key-note" style="margin:8px 0 0">Bars show how long impact lasted; diamonds are instantaneous events. Every mark is a link to its incident and control receipt, reachable by keyboard as well as pointer.</p></div>
     ${activeBlock}${resolvedBlock}
   </section>`;
@@ -2632,7 +2716,6 @@ function trustHtml(input: TrustInput): string {
     <a class="standard-card" href="/controls/#iso-27001"><span>ISO/IEC 27001:2022</span><h2>Information Security Management</h2><p>Scope, risk treatment, Annex A applicability, secure development, operations, recovery, and improvement.</p><strong>Inspect implementation →</strong></a>
     <a class="standard-card" href="/controls/#iso-42001"><span>ISO/IEC 42001:2023</span><h2>AI Management System</h2><p>Purpose, intended use, impact, human authority, monitoring, transparency, change, and known limitations.</p><strong>Inspect implementation →</strong></a>
   </section>
-  <section class="case-principle accessibility-case" id="accessibility"><div><div class="eyebrow">Accessibility · production requirement</div><h2>WCAG-oriented interfaces are part of the control model.</h2></div><div><p>The public evidence estate and the game’s menus and settings target WCAG 2.0 AA: complete keyboard paths, visible focus, semantic controls, readable contrast, scalable layouts, reduced-motion handling, and screen-reader status announcements.</p><p>The claim is deliberately scoped. The governance pages and primary game interfaces are covered; the realtime spatial game is not presented as universally accessible for every nonvisual interaction.</p></div></section>
   <section class="case-principle"><div><div class="eyebrow">Evidence rule</div><h2>Requirement → meaning → implementation → proof.</h2></div><p>A control is not treated as evidenced merely because it is described. Each supported position resolves to a live route or operational record. Partial implementations and gaps stay visible rather than being flattened into a compliance score.</p></section>
   <section aria-labelledby="live-snapshot"><div class="section-head"><div><div class="eyebrow">Live system snapshot</div><h2 id="live-snapshot">Current operational evidence.</h2></div><a class="action-link" href="/evidence/">Open the evidence index →</a></div>
     <div class="trust-grid">
@@ -2647,7 +2730,7 @@ function trustHtml(input: TrustInput): string {
 
 function iso27001Html(embedded = false): string {
   const heading = embedded ? "h2" : "h1";
-  return `<section class="standard-hero controls-block" id="iso-27001" tabindex="-1"><div class="eyebrow">ISO/IEC 27001:2022</div><${heading}>Information Security Management System</${heading}><p>The implementation starts with the governed system and its risks, then maps requirements to controls and evidence. The register is available, but it is not the first explanation.</p><div class="action-links"><a class="button" href="#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="#statement-of-applicability">Statement of Applicability →</a></div></section>
+  return `<section class="standard-hero controls-block" id="iso-27001" tabindex="-1"><div class="eyebrow">ISO/IEC 27001:2022</div><${heading}>Information Security Management System</${heading}><div class="action-links"><a class="button" href="#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="#statement-of-applicability">Statement of Applicability →</a></div></section>
   <section class="governance-topics">
     <article><span>01</span><h3>Scope</h3><p>The governed system is the SharkTank production service: its Worker routes, realtime tank state, Durable Objects, stored copies, operational interfaces, and computer-controlled actors. Provider infrastructure remains a supplier boundary.</p><a href="#context">Scope and context →</a></article>
     <article><span>02</span><h3>Risk management</h3><p>Risks are identified, scored, treated, accepted, and revisited on a defined interval and when material system changes occur. Open positions remain explicit.</p><a href="#risk-assessment">Risk assessment →</a></article>
@@ -2661,7 +2744,7 @@ function iso27001Html(embedded = false): string {
 
 function iso42001Html(embedded = false): string {
   const heading = embedded ? "h2" : "h1";
-  return `<section class="standard-hero controls-block" id="iso-42001" tabindex="-1"><div class="eyebrow">ISO/IEC 42001:2023</div><${heading}>AI Management System</${heading}><p>The AI-system definition comes before the control mapping. SharkTank governs a deliberately bounded, low-impact system whose behavior is inspectable and reproducible.</p><div class="action-links"><a class="button" href="#iso42001-clauses">Open 42001 register →</a><a class="button secondary" href="#ai-policy">AI policy &amp; impact →</a></div></section>
+  return `<section class="standard-hero controls-block" id="iso-42001" tabindex="-1"><div class="eyebrow">ISO/IEC 42001:2023</div><${heading}>AI Management System</${heading}><div class="action-links"><a class="button" href="#iso42001-clauses">Open 42001 register →</a><a class="button secondary" href="#ai-policy">AI policy &amp; impact →</a></div></section>
   <section class="ai-definition" aria-label="SharkTank AI system definition">
     <article><span>System purpose</span><h2>Computer-controlled actors operate inside the game.</h2><p>The system creates autonomous sharks that steer, select targets, move, and interact inside the same realtime simulation as human players.</p></article>
     <article><span>Intended use</span><h2>Gameplay simulation only.</h2><p>The actors provide a populated, dynamic workload for play and for exercising system governance.</p></article>
@@ -2749,14 +2832,13 @@ function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], cap
     const tankName = AUDIT_ROOM_NAMES[room] ?? room;
     return `<details class="card log-room"><summary><span class="log-summary"><strong>${esc(tankName)} Tank</strong><code>${esc(room)}</code><span class="log-count">${records.length} ${records.length === 1 ? "capture" : "captures"} · past 24h</span></span></summary><div class="log-room-body"><div class="log-actions"><a class="action-link" href="/logs/game/${encodeURIComponent(room)}.txt" download>Download the full 24-hour capture (TXT)</a></div>${logToolbar(tableId, records, `${tankName} Tank captures`)}<div class="table-scroll" role="region" aria-label="${esc(tankName)} Tank captures" tabindex="0"><table class="capture-table" id="${tableId}"><caption class="sr-only">${esc(tankName)} Tank captures</caption><thead><tr>${sortButton("timestamp", "Timestamp", "desc")}${sortButton("code", "Reason")}${sortButton("tick", "Tick")}${sortButton("action", "Action")}${sortButton("language", "Language")}${sortButton("details", "Details")}</tr></thead><tbody>${captures || '<tr><td colspan="6">No captures in the past 24 hours.</td></tr>'}</tbody></table></div>${records.length > LOG_PAGE_SIZE ? logPager(tableId, records.length) : ""}</div></details>`;
   }).join("");
-  const captureTotal = gameLogs.reduce((total, tank) => total + tank.records.length, 0);
   const truncationNote = caps.serviceTruncated || caps.captureTruncated
     ? `<p class="table-note" style="margin:0">Showing the newest ${caps.serviceTruncated ? `${serviceRecords.length} service records` : ""}${caps.serviceTruncated && caps.captureTruncated ? " and " : ""}${caps.captureTruncated ? "captures per tank" : ""} — the retained record is larger than one page can carry. The JSON and TXT exports carry the rest.</p>`
     : "";
   const heading = embedded ? "h2" : "h1";
   return `<section class="page-intro${embedded ? " evidence-block" : ""}"${embedded ? ' id="logs" tabindex="-1"' : ""}><div class="eyebrow">Public Shark Tank evidence</div><${heading}>Every operational move leaves a reason.</${heading}><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
     <details class="card log-room"><summary><span class="log-summary"><strong>Service evidence</strong><code>90-day retention</code><span class="log-count">${serviceRecords.length} records</span></span></summary><div class="log-room-body">${logToolbar(serviceTableId, serviceRecords, "service evidence")}<div class="table-scroll" role="region" aria-label="Service evidence" tabindex="0"><table class="events-table" id="${serviceTableId}"><caption class="sr-only">Service evidence</caption><thead><tr><th scope="col">Timestamp</th><th scope="col">Reason</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No public events recorded.</td></tr>'}</tbody></table></div>${serviceRecords.length > LOG_PAGE_SIZE ? logPager(serviceTableId, serviceRecords.length) : ""}<p class="table-note">Reason codes are one letter plus three digits. Full detail remains available in JSON.</p></div></details>
-    <section><h2>Tank captures · past 24 hours</h2><p class="sub">${captureTotal} ${captureTotal === 1 ? "capture" : "captures"} across four ocean tanks. Records older than 24 hours are purged at the source, so this is the complete window. Expand a tank to search, filter, sort, or download it.</p>${tanks}</section>${truncationNote}${gameLogSortScript()}`;
+    <section><h2>Tank captures · past 24 hours</h2>${tanks}</section>${truncationNote}${gameLogSortScript()}`;
 }
 
 /**
@@ -2849,10 +2931,10 @@ function evidenceDashboardHtml(
   data: PublicEvidenceStatus,
   incidentRecord: { incidents: IncidentRecord[]; history: ControlHistoryEntry[]; historyIntegrity: ControlHistoryIntegrity },
   logs: Awaited<ReturnType<typeof publicLogData>>,
+  deployment: DeploymentMetrics,
 ): string {
   const rooms = data.rooms ?? [];
   const players = rooms.reduce((n, room) => n + room.players, 0);
-  const agents = rooms.reduce((n, room) => n + room.bots, 0);
   const incidents = incidentRecord.incidents;
   const availability = incidentSummary(incidents);
   const portalAvailability = incidentSummary([]);
@@ -2865,7 +2947,6 @@ function evidenceDashboardHtml(
   return `<section class="page-intro evidence-intro"><div class="eyebrow">Evidence · generated by the running service</div><h1>Production claims, with inspectable proof.</h1><p class="sub">Availability, incidents, continuity, spend, degradation, reason-coded logs, control receipts, and changes share this dashboard. The raw endpoints remain available for independent checks.</p><nav class="evidence-jump" aria-label="Evidence sections"><a href="#availability">Availability</a><a href="#incidents">Incidents</a><a href="#continuity">Continuity</a><a href="#spend">Spend</a><a href="#degradation">Degradation</a><a href="#logs">Logs</a><a href="#changes">Changes</a><a href="#machine-data">JSON</a></nav></section>
   <section class="evidence-block" id="availability" tabindex="-1" aria-labelledby="availability-heading">
     <div class="eyebrow">Reliability · live</div><h2 id="availability-heading">Availability and workload state</h2>
-    <p class="sub">Server availability is derived from the project-start window and the incident record below; it is not a copied marketing number. ${portalAvailability.availabilityPercent === 100 ? "The current evidence supports the statement <strong>100% uptime maintained</strong>." : `The current measured server availability is <strong>${portalAvailability.availabilityPercent}%</strong>.`}</p>
     <p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a><a class="action-link" href="/incidents.json">Incident JSON →</a></p>
     <div class="live-controls"><button type="button" id="status-autoupdate" class="secondary">Pause auto-update</button><p class="sub">Live figures refresh every 15 seconds in place. Last updated <time id="status-updated-at">just now</time>.</p></div>
     <p class="sr-only" id="status-live" role="status" aria-live="polite"></p>
@@ -2876,7 +2957,7 @@ function evidenceDashboardHtml(
       ${metricCard(data.maintenance?.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance?.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance?.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
     </div>
     <div class="card hero-card"><h3 style="margin-top:0;font-size:1.1rem">Availability since project start</h3>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
-    <div class="card"><h3 style="margin-top:0;font-size:1.1rem">Tank activity</h3><p class="sub" style="margin:0 0 12px">${players} human ${players === 1 ? "player" : "players"} and ${agents} computer-controlled ${agents === 1 ? "agent" : "agents"} across the four tanks. Agents are deterministic rules: fixed steering and target selection, with no model or inference call.</p><div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div></div>
+    <div class="card"><h3 style="margin-top:0;font-size:1.1rem">Tank activity</h3><div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div></div>
   </section>
   ${incidentsSection(incidents, history)}
   ${backupPanelHtml(data.backup)}
@@ -2884,7 +2965,7 @@ function evidenceDashboardHtml(
   ${spendHtml(billing, true)}
   <section class="card evidence-block degradation-card" id="degradation" tabindex="-1" aria-labelledby="degradation-heading"><div class="eyebrow">Controlled degradation · ${gateClosed ? "active" : "standing by"}</div><h2 id="degradation-heading">The service sheds variable-cost work before it sheds evidence.</h2><ol class="degradation-ladder"><li><strong>Normal</strong><span>Gameplay, public reads, and bounded public writes operate.</span></li><li><strong>Hard threshold reached</strong><span>The measured billing window reaches its configured spend stop.</span></li><li><strong>Variable-cost traffic gated</strong><span>Gameplay and metered public writes close; an append-only receipt records why.</span></li><li><strong>Evidence preserved</strong><span>Read-only status and evidence, security-report intake, and protected administration and recovery remain available.</span></li><li><strong>Controlled recovery</strong><span>An authenticated billing reset restores normal operation and records the change.</span></li></ol><p class="sub">Current state: <strong>${gateClosed ? "hard threshold exceeded; the cost gate is active" : "normal; the hard threshold has not been reached"}</strong>.</p></section>
   ${publicLogsHtml(logs.serviceEvents, logs.tanks, logs.caps, true)}
-  ${deliverySection(ROADMAP_MANIFEST, incidents, history, billing)}
+  ${deliverySection(ROADMAP_MANIFEST, deployment, incidents, history, billing)}
   <section class="card evidence-block" id="machine-data" tabindex="-1"><div class="eyebrow">Machine-readable evidence</div><h2>Raw endpoints</h2><p class="sub">The human dashboard and machine responses are two views over the same records.</p><div class="action-links"><a class="action-link" href="/status.json">Status JSON</a><a class="action-link" href="/incidents.json">Incidents JSON</a><a class="action-link" href="/spend.json">Spend JSON</a><a class="action-link" href="/logs.json">Logs JSON</a><a class="action-link" href="/roadmap.json">Changes JSON</a><a class="action-link" href="/audit/manifest.json">Control register JSON</a><a class="action-link" href="/policies.json">Policies JSON</a></div></section>
   ${statusLiveScript()}`;
 }
@@ -3384,13 +3465,30 @@ export default {
         const data = (await statusRes.json()) as PublicEvidenceStatus;
         return html(shell(
           "SharkTank — Live production evidence",
-          evidenceDashboardHtml(data, incidentRecord, logs),
+          evidenceDashboardHtml(data, incidentRecord, logs, deploymentMetrics(env)),
           "Live availability, incidents, continuity, spend governance, controlled degradation, logs, receipts, and delivery evidence from the running SharkTank production workload.",
           "/evidence/",
         ));
       }
 
-      if (path === "/roadmap.json") { const availability = await roadmapAvailability(env), elapsedHours = ROADMAP_ELAPSED_MINUTES / 60; return json({ ok: true, elapsedMinutes: ROADMAP_ELAPSED_MINUTES, elapsedHours, commitVelocity: { perHour: Number((ROADMAP_MANIFEST.length / elapsedHours).toFixed(1)), featureUpdates: ROADMAP_MANIFEST.length, productionDeployments: ROADMAP_DEPLOYMENT_COUNT, updatesPerDeployment: Number((ROADMAP_MANIFEST.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)) }, nextGoal: { name: "ISO/IEC 42001 + ISO/IEC 27001 certification", status: "in-progress" }, availability, license: "MIT", entries: ROADMAP_MANIFEST, postDelivery: { note: "Excluded from every metric above.", hotfixMinutes: POST_DELIVERY_HOTFIX_MINUTES, entries: POST_DELIVERY_ENTRIES } }); }
+      if (path === "/roadmap.json") {
+        const availability = await roadmapAvailability(env);
+        const deployment = deploymentMetrics(env);
+        return json({
+          ok: true,
+          release: deployment.release,
+          deployedAt: deployment.deployedAt,
+          commitVelocity: {
+            perDay: Number(deployment.commitsPerDay.toFixed(2)),
+            commits: deployment.commitCount,
+            windowHours: Number(deployment.windowHours.toFixed(1)),
+          },
+          availability,
+          license: "MIT",
+          entries: ROADMAP_MANIFEST.map(publicRoadmapEntry),
+          postDelivery: { entries: POST_DELIVERY_ENTRIES.map(publicRoadmapEntry) },
+        });
+      }
       // The roadmap and incident *pages* folded into /status/. The JSON did not move: it is
       // a published contract with fixed figures, and folding a page is no reason to break it.
       if (path === "/roadmap" || path === "/roadmap/") return movedTo(url, "/status/#delivery");
@@ -3499,7 +3597,6 @@ export default {
           billingWindow?: Record<string, unknown>;
         };
         const players = data.rooms.reduce((n, r) => n + r.players, 0);
-        const agents = data.rooms.reduce((n, r) => n + r.bots, 0);
         const incidents = [...INCIDENTS, ...(data.maintenanceIncidents ?? [])], availability = incidentSummary(incidents), portalAvailability = incidentSummary([]);
         const history = data.history ?? fullHistory;
         const integrity = data.historyIntegrity ?? historyIntegrity;
@@ -3528,13 +3625,12 @@ export default {
              </div>
              <div class="card hero-card"><h2 style="margin-top:0;font-size:1.1rem">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
              <div class="card"><h2 style="margin-top:0;font-size:1.1rem">Tank activity</h2>
-               <p class="sub" style="margin:0 0 12px">${players} human ${players === 1 ? "player" : "players"} and ${agents} computer-controlled ${agents === 1 ? "agent" : "agents"} across the four tanks. Agents are rule-based: fixed steering and target selection, no model and no inference call.</p>
                <div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div>
              </div>
              ${backupPanelHtml(data.backup)}
              ${incidentsSection(incidents, history)}
              ${controlHistoryListHtml(history, integrity)}
-             ${deliverySection(ROADMAP_MANIFEST, incidents, history, publicBillingWindow(data.billingWindow ?? {}))}
+             ${deliverySection(ROADMAP_MANIFEST, deploymentMetrics(env), incidents, history, publicBillingWindow(data.billingWindow ?? {}))}
              ${statusLiveScript()}`,
             "Live availability, the full incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record for sharktank.wizardgang.ai.",
           ),
