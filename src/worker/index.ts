@@ -1872,7 +1872,12 @@ function backupPanelHtml(backup?: BackupState): string {
   const state = backup ?? { lastBackupAt: 0, lastBackupKey: "", lastBackupBytes: 0, lastBackupDigest: "", lastBackupCounts: null, lastBackupError: "", retainedCopies: 0, lastDrillAt: 0, lastDrillOk: false, lastDrillDetail: "" };
   const when = (ts: number) => ts ? new Date(ts).toISOString().replace("T", " ").slice(0, 19) + " UTC" : "never";
   const counts = state.lastBackupCounts;
-  const coverage = counts ? `${counts.kv} keys (${counts.profiles} player profiles), ${counts.controlHistory} control receipts, ${counts.audit} action-log rows` : "not yet taken";
+  // Counts are small enough at this scale that "1 control receipts" is a visible fault
+  // on a page whose argument is that this service describes itself carefully.
+  const plural = (n: number, one: string, many = one + "s") => `${n} ${n === 1 ? one : many}`;
+  const coverage = counts
+    ? `${plural(counts.kv, "key")} (${plural(counts.profiles, "player profile")}), ${plural(counts.controlHistory, "control receipt")}, ${plural(counts.audit, "action-log row")}`
+    : "not yet taken";
   const drillTone = state.lastDrillAt === 0 ? "key-amber" : state.lastDrillOk ? "key-green" : "key-red";
   const drillWord = state.lastDrillAt === 0 ? "Not yet run" : state.lastDrillOk ? "Passed" : "Failed";
   const rows: Array<[string, string]> = [
