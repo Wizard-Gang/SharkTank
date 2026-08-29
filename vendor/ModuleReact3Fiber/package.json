@@ -1,0 +1,29 @@
+{
+  "name": "module-react3fiber",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Portable R3F game engine + logic for Wizard Gang. Framework-agnostic deterministic engine (server-safe) + React Three Fiber client. Designed to port to Cloudflare Workers/Durable Objects.",
+  "type": "module",
+  "exports": {
+    "./engine": "./src/engine/index.ts",
+    "./store": "./src/store/index.ts",
+    "./protocol": "./src/protocol/index.ts",
+    "./client": "./src/client/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "@react-three/fiber": ">=8",
+    "three": ">=0.160"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true },
+    "@react-three/fiber": { "optional": true },
+    "three": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
