@@ -1242,7 +1242,6 @@ const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy 
  * downstream of that one bar. The game keeps a single way out — one link — and the trust
  * estate keeps its own five-item table of contents.
  */
-type ShellNav = "trust" | "game";
 const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
   ["/trust/", "Overview"],
   ["/audit/", "Register"],
@@ -1250,9 +1249,14 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
   ["/status/", "Operations"],
   ["/logs/", "Evidence"],
 ];
-function navHtml(kind: ShellNav): string {
-  if (kind === "game") return `<nav aria-label="Site"><a href="/trust/">Trust &amp; operations →</a></nav>`;
-  return `<nav aria-label="Trust and operations"><a href="/">← Game</a>${
+/**
+ * The game's single link out is not emitted here — the game is not served by this
+ * template. It is one link in the menu the React client renders, and one link in the
+ * document the client hydrates into. This is only ever the trust side's own contents.
+ * The way back to the game is the brand mark, which is a link to `/` on every page.
+ */
+function navHtml(): string {
+  return `<nav aria-label="Trust and operations">${
     TRUST_NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
   }<a href="/admin/">Admin</a></nav>`;
 }
@@ -1262,9 +1266,9 @@ function navHtml(kind: ShellNav): string {
  * are the evidence an assessor is pointed at, and a result with no description is a result
  * that has to be opened to be identified.
  */
-function shell(title: string, inner: string, description = "", nav: ShellNav = "trust"): string {
+function shell(title: string, inner: string, description = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml(nav)}</header><main id="main" tabindex="-1">${inner}</main><script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main><script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
