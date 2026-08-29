@@ -39,13 +39,15 @@ Then verify all evidence-bearing routes:
 npm run check:evidence -- http://127.0.0.1:8787
 ```
 
-## Production staging
+## Production
 
 The production environment is historically named `wizardgangprod`. Its name and
 Durable Object migration identities remain stable because changing them would create
-new state namespaces rather than migrate the existing product. Production deployment
-is exact-tag-only, protected, and disabled by default during repository migration.
-See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+new state namespaces rather than migrate the existing product. Release v1.0.1 was
+deployed from this public repository on 2026-08-28 and verified at the canonical
+origin. Future production automation remains exact-tag-only and protected. See
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and
+[`docs/DEPLOYMENTS.md`](docs/DEPLOYMENTS.md).
 
 ## Layout
 
