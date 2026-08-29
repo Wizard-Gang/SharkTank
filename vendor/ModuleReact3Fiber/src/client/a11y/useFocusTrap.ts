@@ -3,12 +3,22 @@
 // previously-focused element on unmount, and calls onEscape for Esc. Satisfies
 // 2.1.2 (no keyboard trap escape) + 2.4.3 (focus order) for dialogs.
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEscape?: () => void): void {
+  // `onEscape` is almost always an inline closure at the call site, so it is a new function
+  // on every render of the owning component. Keeping it in the dep array made this effect
+  // tear down and re-arm on every re-render — and cleanup restores focus to the previously
+  // focused element while setup focuses the first control. In-game that meant a keyboard
+  // user was thrown back to the Close button in lockstep with the leaderboard broadcast
+  // (every 2s), which is a keyboard trap in practice (WCAG 2.4.3, 2.1.1). Read it through a
+  // ref instead: the handler always calls the latest callback, and the trap arms once.
+  const escapeRef = useRef(onEscape);
+  escapeRef.current = onEscape;
+
   useEffect(() => {
     if (!active) return;
     const container = ref.current;
@@ -25,7 +35,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEsc
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onEscape?.();
+        escapeRef.current?.();
         return;
       }
       if (e.key !== "Tab") return;
@@ -51,5 +61,5 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEsc
       container.removeEventListener("keydown", onKeyDown);
       previouslyFocused?.focus?.();
     };
-  }, [ref, active, onEscape]);
+  }, [ref, active]);
 }

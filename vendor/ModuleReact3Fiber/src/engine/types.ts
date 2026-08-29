@@ -27,6 +27,15 @@ export interface Snake {
   length: number;
   /** True while the boost input is held AND the snake is long enough to pay for it. */
   boosting: boolean;
+  /** Charge accumulated while the lunge control is held. */
+  chargeTicks: number;
+  /** Remaining ticks in the current forward lunge. */
+  lungeTicks: number;
+  /** Authoritative tick when the next chomp-dash is available. */
+  dashCooldownTick: number;
+  /** Short muzzle-flash timer after firing a rocket. */
+  rocketTicks: number;
+  rocketCooldownTick: number;
   /** Score = cumulative food value eaten. Drives the leaderboard. */
   score: number;
   alive: boolean;
@@ -47,13 +56,33 @@ export interface Food {
   r: number;
 }
 
+/** A lethal player-fired projectile. Movement and collision are server-authoritative. */
+export interface RocketProjectile {
+  id: string;
+  ownerId: string;
+  x: number;
+  z: number;
+  heading: number;
+  expiresTick: number;
+}
+
+/** Short-lived deterministic burst rendered as expanding dots by every client. */
+export interface Explosion {
+  id: string;
+  x: number;
+  z: number;
+  tick: number;
+  skin: string;
+  kind: "shark" | "rocket";
+}
+
 /** Circular arena, like snake.io. Death on crossing `radius`. */
 export interface Arena {
   radius: number;
 }
 
 export interface RoomState {
-  schemaVersion: 2;
+  schemaVersion: 7;
   id: string;
   seed: string;
   tick: number;
@@ -62,6 +91,11 @@ export interface RoomState {
   /** Keyed by snake id (player id or bot id). */
   snakes: Record<string, Snake>;
   food: Food[];
+  rockets: RocketProjectile[];
+  explosions: Explosion[];
+  /** Tick the current Feeding Frenzy ends at. 0 (or past) means no frenzy is running.
+   *  Frenzies are scheduled purely off `tick`, so they stay deterministic under replay. */
+  frenzyUntilTick: number;
 }
 
 /** Player/bot intents applied to authoritative state on the server. */
@@ -70,6 +104,7 @@ export type Action =
   | { type: "leave"; playerId: string }
   | { type: "setHeading"; playerId: string; angle: number }
   | { type: "setBoost"; playerId: string; on: boolean }
+  | { type: "rocket"; playerId: string }
   | { type: "respawn"; playerId: string };
 
 /** One leaderboard row — derived from state, sent to clients and persisted globally. */

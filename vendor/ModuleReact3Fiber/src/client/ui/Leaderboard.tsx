@@ -26,8 +26,8 @@ export function Leaderboard({ socket }: { socket: RoomSocket }) {
   }, [entries, socket.youId, announce]);
 
   return (
-    <nav aria-label="Leaderboard" style={wrap}>
-      <h2 style={heading}>Top Snakes</h2>
+    <nav className="game-leaderboard" aria-label="Leaderboard" style={wrap}>
+      <h2 style={heading}>Top Sharks</h2>
       <ol style={list}>
         {entries.length === 0 && <li style={{ color: "var(--text-muted)" }}>Waiting for scores…</li>}
         {entries.map((e, i) => {

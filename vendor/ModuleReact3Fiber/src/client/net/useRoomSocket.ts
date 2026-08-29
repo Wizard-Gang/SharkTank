@@ -4,8 +4,11 @@
 // Auto-reconnects with backoff.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type ClientMessage, type NetState, type ScoreEntry, type ServerMessage } from "../../protocol/index.js";
+import { TICKS_PER_SECOND } from "../../engine/index.js";
+import { type CaptureLanguage, type ClientMessage, type NetState, type ScoreEntry, type ServerMessage } from "../../protocol/index.js";
 import { getBackend } from "./backend.js";
+
+const TICK_MS = 1000 / TICKS_PER_SECOND;
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
@@ -38,8 +41,11 @@ export interface RoomSocket {
   status: ConnectionStatus;
   leaderboard: ScoreEntry[];
   death: DeathInfo | null;
+  captureLanguage: CaptureLanguage;
+  setCaptureLanguage: (language: CaptureLanguage) => void;
   setHeading: (angle: number) => void;
   setBoost: (on: boolean) => void;
+  rocket: () => void;
   respawn: () => void;
 }
 
@@ -50,17 +56,27 @@ function wsUrl(roomId: string, roomName: string): string {
 export function useRoomSocket(
   roomId: string | null,
   identity: { name: string; skin: string },
-  roomName = "Arena",
+  roomName = "Tank",
 ): RoomSocket {
   const stateRef = useRef<NetState | null>(null);
   const newestAtRef = useRef<number>(0);
   // Ring of recent snapshots stamped with client receive time, ordered oldest→newest.
   const bufferRef = useRef<Array<{ t: number; state: NetState }>>([]);
+  // Convert the authoritative tick clock to the client's monotonic clock once per
+  // connection. Interpolation then advances on server time instead of packet-arrival
+  // time, so a late packet cannot make every remote entity visibly speed up or stall.
+  const timelineOriginRef = useRef<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const lastHeadingRef = useRef<number>(Infinity);
+  const lastHeadingSentAtRef = useRef(0);
   const lastBoostRef = useRef<boolean>(false);
+  const youIdRef = useRef<string | null>(null);
   const identityRef = useRef(identity);
   identityRef.current = identity;
+
+  const [captureLanguage, setCaptureLanguageState] = useState<CaptureLanguage>(initialCaptureLanguage);
+  const captureLanguageRef = useRef<CaptureLanguage>(captureLanguage);
+  captureLanguageRef.current = captureLanguage;
 
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [youId, setYouId] = useState<string | null>(null);
@@ -78,6 +94,11 @@ export function useRoomSocket(
     const now = performance.now();
     newestAtRef.current = now;
     const buf = bufferRef.current;
+    if (buf.length && state.tick < buf[buf.length - 1].state.tick) {
+      buf.length = 0;
+      timelineOriginRef.current = null;
+    }
+    timelineOriginRef.current ??= now - state.tick * TICK_MS;
     buf.push({ t: now, state });
     // Keep ~1.5s of history; always retain at least two to interpolate across.
     const cutoff = now - 1500;
@@ -88,16 +109,20 @@ export function useRoomSocket(
     const buf = bufferRef.current;
     const n = buf.length;
     if (n === 0) return null;
-    const renderTime = performance.now() - delayMs;
-    if (renderTime <= buf[0].t) return { older: buf[0].state, newer: buf[0].state, alpha: 0 };
-    if (renderTime >= buf[n - 1].t) return { older: buf[n - 1].state, newer: buf[n - 1].state, alpha: 1 };
-    // Find i such that buf[i].t <= renderTime < buf[i+1].t (scan from the newest end).
+    const origin = timelineOriginRef.current ?? (buf[0].t - buf[0].state.tick * TICK_MS);
+    const renderServerTime = performance.now() - origin - delayMs;
+    const oldestServerTime = buf[0].state.tick * TICK_MS;
+    const newestServerTime = buf[n - 1].state.tick * TICK_MS;
+    if (renderServerTime <= oldestServerTime) return { older: buf[0].state, newer: buf[0].state, alpha: 0 };
+    if (renderServerTime >= newestServerTime) return { older: buf[n - 1].state, newer: buf[n - 1].state, alpha: 1 };
+    // Find snapshots that bracket the render point on the authoritative tick clock.
     let i = n - 2;
-    while (i > 0 && buf[i].t > renderTime) i -= 1;
+    while (i > 0 && buf[i].state.tick * TICK_MS > renderServerTime) i -= 1;
     const older = buf[i];
     const newer = buf[i + 1];
-    const span = newer.t - older.t;
-    const alpha = span > 0 ? (renderTime - older.t) / span : 0;
+    const olderServerTime = older.state.tick * TICK_MS;
+    const span = (newer.state.tick - older.state.tick) * TICK_MS;
+    const alpha = span > 0 ? (renderServerTime - olderServerTime) / span : 0;
     return { older: older.state, newer: newer.state, alpha };
   }, []);
 
@@ -115,7 +140,7 @@ export function useRoomSocket(
       ws.onopen = () => {
         retry = 0;
         setStatus("open");
-        send({ t: "hello", name: identityRef.current.name, skin: identityRef.current.skin });
+        send({ t: "hello", name: identityRef.current.name, skin: identityRef.current.skin, debugLanguage: captureLanguageRef.current });
       };
 
       ws.onmessage = (ev) => {
@@ -127,7 +152,10 @@ export function useRoomSocket(
         }
         switch (msg.t) {
           case "welcome":
+            bufferRef.current = [];
+            timelineOriginRef.current = null;
             setYouId(msg.youId);
+            youIdRef.current = msg.youId;
             pushSnapshot(msg.state);
             setDeath(null);
             break;
@@ -145,9 +173,13 @@ export function useRoomSocket(
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setStatus("closed");
         if (closedByUs) return;
+        if (event.code === 1012 && event.reason === "maintenance") {
+          window.location.assign("/");
+          return;
+        }
         // Exponential backoff reconnect (cap ~4s).
         retry += 1;
         const delay = Math.min(4000, 250 * 2 ** retry);
@@ -178,13 +210,16 @@ export function useRoomSocket(
       wsRef.current = null;
       stateRef.current = null;
       bufferRef.current = [];
+      timelineOriginRef.current = null;
     };
   }, [roomId, roomName, send, pushSnapshot]);
 
   const setHeading = useCallback(
     (angle: number) => {
-      // Throttle: only send on a meaningful change (~1.7°).
-      if (Math.abs(angle - lastHeadingRef.current) < 0.03) return;
+      // Cap steering traffic at 10Hz; local prediction remains display-rate smooth.
+      const now = performance.now();
+      if (now - lastHeadingSentAtRef.current < 100 || Math.abs(angle - lastHeadingRef.current) < 0.05) return;
+      lastHeadingSentAtRef.current = now;
       lastHeadingRef.current = angle;
       send({ t: "input", action: { type: "setHeading", playerId: "me", angle } });
     },
@@ -204,6 +239,13 @@ export function useRoomSocket(
     setDeath(null);
     send({ t: "input", action: { type: "respawn", playerId: "me" } });
   }, [send]);
+  const rocket = useCallback(() => send({ t: "input", action: { type: "rocket", playerId: "me" } }), [send]);
+  const setCaptureLanguage = useCallback((language: CaptureLanguage) => {
+    captureLanguageRef.current = language;
+    setCaptureLanguageState(language);
+    try { localStorage.setItem("shark.capture-language", language); } catch { /* unavailable */ }
+    send({ t: "debug", language });
+  }, [send]);
 
   return {
     stateRef,
@@ -213,8 +255,22 @@ export function useRoomSocket(
     status,
     leaderboard,
     death,
+    captureLanguage,
+    setCaptureLanguage,
     setHeading,
     setBoost,
+    rocket,
     respawn,
   };
+}
+
+function initialCaptureLanguage(): CaptureLanguage {
+  if (typeof window === "undefined") return "ts";
+  const route = window.location.pathname.startsWith("/php") ? "php" : null;
+  const backend = getBackend().id;
+  try {
+    const saved = localStorage.getItem("shark.capture-language");
+    if (saved === "ts" || saved === "php") return saved;
+  } catch { /* unavailable */ }
+  return route ?? backend;
 }

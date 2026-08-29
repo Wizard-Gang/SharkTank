@@ -29,6 +29,10 @@ export interface Settings {
     keybinds: Keybinds;
     turnAssist: boolean; // gentler steering — accessibility aid
     invertSteer: boolean;
+    /** On-screen thumbstick + ability pads. "auto" follows (pointer: coarse). */
+    touchControls: "auto" | "on" | "off";
+    /** Which thumb drives. "right" puts the stick right and the ability pads left. */
+    stickSide: "right" | "left";
   };
   a11y: {
     theme: "system" | "dark" | "light";
@@ -47,6 +51,8 @@ export const DEFAULT_SETTINGS: Settings = {
     keybinds: { left: "ArrowLeft", right: "ArrowRight", boost: "Space", pause: "Escape" },
     turnAssist: false,
     invertSteer: false,
+    touchControls: "auto",
+    stickSide: "right",
   },
   a11y: { theme: "system", contrast: "normal", motion: "full", fontScale: 1, colorblindLabels: true },
 };

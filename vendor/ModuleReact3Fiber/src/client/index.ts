@@ -1,4 +1,4 @@
-// Public client entry for the snake.io game module. The host mounts <App/>.
+// Public client entry for the Shark Arena game module. The host mounts <App/>.
 export { App } from "./App.js";
 export type { AppProps } from "./App.js";
 

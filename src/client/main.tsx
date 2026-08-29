@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App, getBackend } from "module-react3fiber/client";
+import { App } from "module-react3fiber/app";
+import { getBackend } from "module-react3fiber/backend";
 import "./styles.css";
 
 const el = document.getElementById("root");

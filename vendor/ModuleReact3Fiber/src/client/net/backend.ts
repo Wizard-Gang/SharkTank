@@ -18,10 +18,15 @@ export interface Backend {
 
 const STORAGE_KEY = "snakeio.backend";
 
+export function supportsPhpBackend(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+}
+
 function resolveId(): BackendId {
   if (typeof window === "undefined") return "ts";
   const q = new URLSearchParams(window.location.search).get("api");
-  if (q === "php" || q === "ts") {
+  if ((q === "php" && supportsPhpBackend()) || q === "ts") {
     try {
       localStorage.setItem(STORAGE_KEY, q);
     } catch {
@@ -31,7 +36,7 @@ function resolveId(): BackendId {
   }
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "php" || saved === "ts") return saved;
+    if ((saved === "php" && supportsPhpBackend()) || saved === "ts") return saved;
   } catch {
     /* ignore */
   }
@@ -44,12 +49,13 @@ export function getBackend(): Backend {
   const wsProto = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
 
   if (id === "php") {
+    const local = host === "localhost" || host === "127.0.0.1";
     return {
       id,
       label: "PHP",
-      apiBase: `http://${host}:8080`,
+      apiBase: local ? `http://${host}:8080` : "/php-api",
       // The PHP PoC runs one plain-WS room server (no path routing).
-      socketUrl: () => `${wsProto}//${host}:8081`,
+      socketUrl: () => local ? `${wsProto}//${host}:8081` : `${wsProto}//${window.location.host}/php-room`,
     };
   }
   return {

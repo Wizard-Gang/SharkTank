@@ -8,15 +8,15 @@ import type { SnakeLabel } from "../game/Scene.js";
 
 export function SnakeLabels({ labelsRef }: { labelsRef: React.MutableRefObject<SnakeLabel[]> }) {
   const [labels, setLabels] = useState<SnakeLabel[]>([]);
-  const raf = useRef(0);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const tick = () => {
-      setLabels(labelsRef.current.slice(0, 24));
-      raf.current = requestAnimationFrame(tick);
+      setLabels(labelsRef.current.slice(0, 12));
     };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
+    tick();
+    timer.current = setInterval(tick, 100);
+    return () => { if (timer.current) clearInterval(timer.current); };
   }, [labelsRef]);
 
   return (
@@ -33,6 +33,9 @@ export function SnakeLabels({ labelsRef }: { labelsRef: React.MutableRefObject<S
             borderRadius: 6,
             fontSize: l.me ? "0.85rem" : "0.75rem",
             fontWeight: l.me ? 800 : 600,
+            maxWidth: "8.5rem",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             color: "#0b0a14",
             background: l.color,

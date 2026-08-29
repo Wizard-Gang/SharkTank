@@ -1,7 +1,7 @@
 # ModuleReact3Fiber
 
 Portable game engine + React Three Fiber client for the new Wizard Gang game.
-Consumed by [`WizardGangLocal`](https://github.com/SouthernGentlemen/WizardGangLocal) (as a git submodule)
+Consumed by the Wizard Gang Portal Framework host.
 for local play; designed to port to **Cloudflare Workers / Durable Objects** later.
 
 ## Design (continuity with the previous iteration)

@@ -31,7 +31,7 @@ export function PauseMenu({
         <div className="stack">
           <button className="btn btn--primary btn--lg btn--block" onClick={onResume}>Resume</button>
           <button className="btn btn--block" onClick={onSettings}>Settings</button>
-          <button className="btn btn--block" onClick={onQuit}>Quit to lobby</button>
+          <button className="btn btn--block" onClick={onQuit}>Quit to tank</button>
         </div>
         <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>
           Press <kbd>Esc</kbd> to resume.

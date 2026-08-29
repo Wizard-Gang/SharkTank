@@ -14,9 +14,9 @@ import type { Settings } from "../settings/SettingsContext.js";
 import { LocalPredictor } from "./prediction.js";
 import type { LocalInput } from "./useLocalInput.js";
 
-const MAX_SEGMENTS = 6000;
-const MAX_FOOD = 1200;
-const MAX_EYES = 96; // 2 per snake, ~48 snakes
+const MAX_SEGMENTS = 1200;
+const MAX_FOOD = 128;
+const MAX_EYES = 16;
 // Render slightly behind the newest snapshot so there are always two buffered snapshots
 // to blend across (smooth 60fps despite packet jitter). At 30Hz this is ~2.7 ticks of
 // buffer — small enough to feel responsive, large enough to stay smooth. The LOCAL snake
@@ -73,6 +73,8 @@ export function Scene({
   const camTarget = useMemo(() => new THREE.Vector3(), []);
   const p0 = useMemo(() => new THREE.Vector3(), []);
   const proj = useMemo(() => new THREE.Vector3(), []);
+  const prevById = useMemo(() => new Map<string, NetSnake>(), []);
+  const headColor = useMemo(() => new THREE.Color(), []);
 
   useFrame((_, dt) => {
     const seg = segMesh.current;
@@ -86,15 +88,17 @@ export function Scene({
     if (!frame) return;
     const state = frame.newer; // entity set + food come from the newer of the pair
     const prev = frame.older;
-    const a = frame.alpha;
+    const reducedMotion = settings.a11y.motion === "reduced";
+    const a = reducedMotion ? 1 : frame.alpha;
 
-    const prevById = new Map<string, NetSnake>(prev.snakes.map((s) => [s.id, s]));
+    prevById.clear();
+    for (const snake of prev.snakes) prevById.set(snake.id, snake);
     if (boundaryRef.current) boundaryRef.current.scale.setScalar(state.arenaRadius);
 
     // ── Client-side prediction for the LOCAL snake (rendered at zero delay) ──
     const auth = socket.stateRef.current?.snakes.find((s) => s.id === socket.youId) ?? null;
     const staleness = (performance.now() - socket.newestAtRef.current) / 1000;
-    const predicted = inputRef ? predictor.step(auth, inputRef.current, dt, staleness) : null;
+    const predicted = !reducedMotion && inputRef ? predictor.step(auth, inputRef.current, dt, staleness) : null;
 
     const labels: SnakeLabel[] = [];
     const wantLabels = settings.a11y.colorblindLabels && labelsRef;
@@ -111,7 +115,8 @@ export function Scene({
       const p = prevById.get(s.id);
       const body = skinBody.get(s.skin) ?? FALLBACK;
       const band = skinBand.get(s.skin) ?? FALLBACK;
-      const count = usePred ? predicted!.segments.length : s.segments.length;
+      const count = 1;
+      const sharkScale = Math.min(2.5, 0.72 + Math.sqrt(s.length) * 0.12);
 
       // Resolve a segment's render position into p0 (predicted or interpolated).
       const posAt = (i: number) => {
@@ -129,15 +134,15 @@ export function Scene({
         // Count-independent scale: slightly bigger head, uniform body, and only the last
         // TAIL_FADE discs taper smoothly to the tip — so body size doesn't pulse as the
         // snake grows and the tail fades cleanly (no janky pop).
-        const fromTail = count - 1 - i;
-        let r = i === 0 ? 0.9 : 0.72;
-        if (fromTail < TAIL_FADE) r *= 0.18 + 0.82 * (fromTail / TAIL_FADE);
+        const r = sharkScale;
         dummy.position.copy(p0);
-        dummy.scale.setScalar(r);
+        dummy.rotation.set(0, -heading, 0);
+        dummy.scale.set(r * 1.75, r * 0.62, r * 0.82);
         dummy.updateMatrix();
         seg.setMatrixAt(n, dummy.matrix);
         // Subtle 2-on/2-off banding for a scaled look without high contrast noise.
-        const c = i === 0 ? (isMe ? body.clone().lerp(WHITE, 0.22) : body) : i % 4 < 2 ? body : band;
+        const glow = s.boosting ? Math.min(0.72, 0.25 + (s.chargeTicks ?? 0) * 0.07) : isMe ? 0.18 : 0;
+        const c = glow ? headColor.copy(body).lerp(WHITE, glow) : body;
         seg.setColorAt(n, c);
         n += 1;
       }
@@ -155,7 +160,7 @@ export function Scene({
           const ex = p0.x + fx * 0.34 + px * sign * 0.34;
           const ez = p0.z + fz * 0.34 + pz * sign * 0.34;
           dummy.position.set(ex, 1.15, ez);
-          dummy.scale.setScalar(0.4);
+          dummy.scale.setScalar(0.26 * sharkScale);
           dummy.updateMatrix();
           eyes.setMatrixAt(e, dummy.matrix);
           eyes.setColorAt(e, EYE_WHITE);
@@ -249,7 +254,7 @@ export function Scene({
         <meshBasicMaterial color="#0c0b18" />
       </mesh>
 
-      {settings.graphics.showGrid && <gridHelper args={[400, 80, "#312c58", "#1c1836"]} position={[0, 0, 0]} />}
+      {settings.graphics.showGrid && settings.a11y.motion !== "reduced" && <gridHelper args={[400, 80, "#312c58", "#1c1836"]} position={[0, 0, 0]} />}
 
       {/* Arena boundary ring (scaled to arenaRadius each frame) */}
       <mesh ref={boundaryRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>

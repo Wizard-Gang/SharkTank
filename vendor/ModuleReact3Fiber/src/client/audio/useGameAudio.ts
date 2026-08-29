@@ -1,5 +1,5 @@
 // Bridges game events → audio + captions. Starts/stops the music loop with the game
-// screen, tracks the local snake to fire SFX (eat on score-up, boost on boost-start,
+// screen, tracks the local shark to fire SFX (eat on score-up, dash on dash-start,
 // spawn on (re)spawn), and death SFX from the socket. Returns the latest caption so a
 // visual captions layer can render it (WCAG 1.2 — non-audio alternative for sound cues).
 
@@ -54,7 +54,7 @@ export function useGameAudio(socket: RoomSocket, settings: Settings): Caption | 
     if (socket.death) cue.current("die");
   }, [socket.death]);
 
-  // Poll the local snake for eat / boost / spawn transitions.
+  // Poll the local shark for eat / dash / spawn transitions.
   useEffect(() => {
     const id = setInterval(() => {
       const s = socket.stateRef.current;
@@ -69,8 +69,9 @@ export function useGameAudio(socket: RoomSocket, settings: Settings): Caption | 
       if (!me.alive) return;
       if (me.score > lastScore.current) cue.current("eat");
       lastScore.current = me.score;
-      if (me.boosting && !lastBoost.current) cue.current("boost");
-      lastBoost.current = me.boosting;
+      const dashing = me.lungeTicks > 0 || me.rocketTicks > 0;
+      if (dashing && !lastBoost.current) cue.current("boost");
+      lastBoost.current = dashing;
     }, 150);
     return () => clearInterval(id);
   }, [socket]);

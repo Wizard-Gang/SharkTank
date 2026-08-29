@@ -1,5 +1,5 @@
 // Systems menu: Graphics / Audio / Controls / Accessibility. Rendered either as a
-// full screen (from the main menu) or as a modal overlay (from pause) when `onClose`
+// full screen (from the main menu) or as a modal overlay (from the in-game gear) when `onClose`
 // is supplied. Tabs follow the WAI-ARIA tabs pattern (arrow-key navigation, roving
 // focus); every control has a programmatic name and current value.
 
@@ -155,8 +155,7 @@ function AudioPanel() {
 const REBINDABLE: Array<{ key: keyof Keybinds; label: string }> = [
   { key: "left", label: "Turn left" },
   { key: "right", label: "Turn right" },
-  { key: "boost", label: "Boost" },
-  { key: "pause", label: "Pause" },
+  { key: "boost", label: "Chomp dash" },
 ];
 
 function ControlsPanel() {
@@ -200,6 +199,18 @@ function ControlsPanel() {
       </ul>
       <Toggle label="Turn assist" hint="Gentler, slower steering." checked={settings.controls.turnAssist} onChange={(v) => update("controls", { turnAssist: v })} />
       <Toggle label="Invert steering" checked={settings.controls.invertSteer} onChange={(v) => update("controls", { invertSteer: v })} />
+      <Choice
+        label="On-screen controls"
+        value={settings.controls.touchControls}
+        onChange={(v) => update("controls", { touchControls: v })}
+        options={[{ v: "auto", l: "Auto (touch devices)" }, { v: "on", l: "Always on" }, { v: "off", l: "Off" }]}
+      />
+      <Choice
+        label="Thumbstick side"
+        value={settings.controls.stickSide}
+        onChange={(v) => update("controls", { stickSide: v })}
+        options={[{ v: "right", l: "Right (dash and rocket left)" }, { v: "left", l: "Left (dash and rocket right)" }]}
+      />
     </div>
   );
 }
@@ -213,7 +224,7 @@ function AccessibilityPanel() {
       <Choice label="Contrast" value={a.contrast} onChange={(v) => update("a11y", { contrast: v })} options={[{ v: "normal", l: "Normal" }, { v: "high", l: "High" }]} />
       <Choice label="Motion" value={a.motion} onChange={(v) => update("a11y", { motion: v })} options={[{ v: "full", l: "Full" }, { v: "reduced", l: "Reduced" }]} />
       <Slider label="Text size" value={a.fontScale} min={0.9} max={1.6} step={0.1} onChange={(v) => update("a11y", { fontScale: v })} />
-      <Toggle label="Show snake name labels" hint="Adds text names above snakes so colors aren't the only cue." checked={a.colorblindLabels} onChange={(v) => update("a11y", { colorblindLabels: v })} />
+      <Toggle label="Show shark name labels" hint="Adds text names above sharks so colors aren't the only cue." checked={a.colorblindLabels} onChange={(v) => update("a11y", { colorblindLabels: v })} />
       <div>
         <button className="btn btn--ghost" onClick={reset}>Reset all settings to defaults</button>
       </div>

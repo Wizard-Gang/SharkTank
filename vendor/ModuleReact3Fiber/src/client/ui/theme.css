@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────────────────────
-   Snake.io UI design system — WCAG 2.2 AA.
+   Shark Arena UI design system — WCAG 2.2 AA.
    Token-driven so contrast is auditable in one place. All text tokens hit ≥4.5:1
    on their intended surface; UI/border tokens hit ≥3:1 (1.4.3 / 1.4.11).
    Honors prefers-color-scheme, prefers-contrast, prefers-reduced-motion, plus
@@ -25,11 +25,19 @@
   --accent-contrast: #0b0a14; /* text ON accent buttons; ≥4.5:1 vs --accent */
   --focus-ring: #ffd54a;      /* high-contrast focus, distinct from accent */
 
-  /* Status */
-  --danger: #ff6b6b;
-  --danger-contrast: #1a0606;
+  /* Status — text and fills on the *themed* page surfaces (--surface-1..3).
+     These follow the theme; the light block below redefines all four. */
+  --danger: #ff6b6b;         /* ≥5:1 on surfaces 1–3 */
+  --danger-contrast: #1a0606; /* text ON a --danger fill */
   --success: #4ade80;
   --warning: #ffcf5c;
+
+  /* Status — chrome painted over the game canvas or the inspector's own dark panel,
+     both of which stay dark in every theme. Never redefined: a light-theme value here
+     would put dark-on-dark inside .debug-panel and the connection banner. */
+  --danger-on-dark: #ff6b6b;
+  --success-on-dark: #4ade80;
+  --warning-on-dark: #ffcf5c;
 
   /* Borders / lines */
   --border: #3a355e;         /* subtle separators (decorative) */
@@ -62,13 +70,28 @@
     --focus-ring: #8a5a00;
     --border: #c9c3e6;
     --border-strong: #9a92c4;
+    /* The dark-surface reds, greens and yellows measure 1.4–2.8:1 on these surfaces.
+       Each value below clears 4.5:1 against --surface-1, --surface-2 *and* --surface-3
+       (--surface-3 is the strict one). */
+    --danger: #b3261e;         /* 6.5 / 5.7 / 5.1 */
+    --danger-contrast: #ffffff; /* text ON a --danger fill — 6.5:1 */
+    --success: #12693a;        /* 6.8 / 5.9 / 5.2 */
+    --warning: #7a4f00;        /* 7.1 / 6.2 / 5.5 */
     color-scheme: light;
   }
 }
 
 /* High contrast — system pref OR in-app [data-contrast="high"] */
 @media (prefers-contrast: more) {
-  :root { --text-faint: var(--text-muted); --border: var(--border-strong); }
+  :root {
+    --text-faint: var(--text-muted); --border: var(--border-strong);
+    --danger: #ff8f8f; --success: #6ff0a3; --warning: #ffe08a;
+    --danger-on-dark: #ff8f8f; --success-on-dark: #6ff0a3; --warning-on-dark: #ffe08a;
+  }
+}
+/* Matched specificity, placed after the light block so it actually wins there. */
+@media (prefers-contrast: more) and (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --danger: #8f1410; --success: #0b4f2b; --warning: #5c3b00; }
 }
 :root[data-contrast="high"] {
   --text: #ffffff;
@@ -78,6 +101,12 @@
   --border-strong: #ffffff;
   --accent: #b7a6ff;
   --focus-ring: #ffe066;
+  --danger: #ff8f8f;
+  --success: #6ff0a3;
+  --warning: #ffe08a;
+  --danger-on-dark: #ff8f8f;
+  --success-on-dark: #6ff0a3;
+  --warning-on-dark: #ffe08a;
 }
 
 * { box-sizing: border-box; }
@@ -144,6 +173,11 @@ body {
 .btn--danger { background: var(--danger); color: var(--danger-contrast); border-color: transparent; }
 .btn--lg { min-height: 56px; font-size: 1.125rem; padding: 0 28px; }
 .btn--block { width: 100%; }
+.icon-button { width:52px;height:52px;display:inline-grid;place-items:center;padding:0;border:1px solid var(--border-strong);border-radius:14px;background:rgba(22,20,42,.92);color:var(--text);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.25);backdrop-filter:blur(12px); }
+.icon-button:hover { background:var(--surface-3); }
+.icon-button:active { transform:translateY(2px);box-shadow:0 3px 0 rgba(0,0,0,.25); }
+.icon-button.is-active { border-color:var(--focus-ring);background:var(--accent);color:var(--accent-contrast); }
+.icon-button svg { width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round; }
 
 /* ── Form controls ── */
 .field { display: grid; gap: 6px; }
@@ -165,6 +199,34 @@ body {
   border-radius: var(--radius); padding: 20px;
 }
 
+/* Shared Shark Arena identity also used by Docs, Status, Incidents, and Audit. */
+.shark-menu { position: relative; gap: clamp(12px, 2.2vmin, 22px); }
+.shark-menu::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle at 14% -12%, rgba(34,230,255,.15), transparent 28rem),
+              radial-gradient(circle at 90% 5%, rgba(143,123,255,.2), transparent 32rem);
+}
+.shark-menu::after {
+  content: ""; position: fixed; inset: -90px; z-index: -1; pointer-events: none; opacity: .7;
+  background-image: radial-gradient(circle,rgba(34,230,255,.62) 0 1.4px,transparent 1.9px),radial-gradient(circle,rgba(143,123,255,.5) 0 1.2px,transparent 1.8px),radial-gradient(circle,rgba(255,255,255,.34) 0 1px,transparent 1.6px);
+  background-size: 31px 31px,53px 53px,79px 79px; background-position: 0 0,17px 23px,41px 13px;
+  animation: shark-dots-drift 24s linear infinite;
+}
+@keyframes shark-dots-drift { to { transform: translate3d(64px,42px,0); } }
+.shark-menu__brand { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
+.shark-menu__mark { width: clamp(128px,18vmin,188px); height: auto; filter: drop-shadow(0 18px 32px rgba(34,230,255,.28)); }
+.shark-menu__brand span { display: block; color: var(--text-muted); font-size: .72rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.shark-menu__brand h1 { margin: 2px 0 0; font-size: clamp(3rem,9vmin,5.1rem); line-height:.88; letter-spacing:-.055em; background:linear-gradient(100deg,#fff 25%,#aaf6ff 62%,#b9adff);-webkit-background-clip:text;background-clip:text;color:transparent; }
+.shark-menu__tagline { max-width:38ch;margin:-3px auto 0;color:var(--text-muted);font-size:clamp(.95rem,2vmin,1.2rem);font-weight:700;letter-spacing:.04em;text-transform:uppercase; }
+.shark-menu__panel { padding:clamp(20px,3.5vmin,32px);border-color:#514a81;background:linear-gradient(145deg,rgba(32,29,59,.96),rgba(15,14,29,.97));box-shadow:0 22px 70px rgba(0,0,0,.3); }
+.shark-menu__panel .btn--lg{min-height:clamp(64px,9vmin,78px);font-size:clamp(1.15rem,2.6vmin,1.45rem);font-weight:900}
+.shark-menu__panel .btn{min-height:54px}
+.shark-menu__nav { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; font-size: .8rem; }
+.shark-menu__nav a { min-height: 38px; display: inline-flex; align-items: center; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: rgba(22,20,42,.72); color: var(--text-muted); font-weight: 800; text-decoration: none; }
+.shark-menu__nav a:hover { border-color: var(--border-strong); background: var(--surface-2); color: var(--text); }
+@media (prefers-reduced-motion: reduce){.shark-menu::after{animation:none}}
+@media (max-height:650px){.shark-menu__mark{width:112px}.shark-menu__brand h1{font-size:2.75rem}.shark-menu{gap:10px}.shark-menu__panel{padding:16px}.shark-menu__panel .btn--lg{min-height:56px}}
+
 /* ── Modal / dialog scrim ── */
 .scrim {
   position: fixed; inset: 0; z-index: 100;
@@ -172,7 +234,7 @@ body {
   background: var(--overlay-scrim);
 }
 
-/* ── Data table (lobby / leaderboard) ── */
+/* ── Data table (tank / leaderboard) ── */
 .table { width: 100%; border-collapse: collapse; }
 .table caption { text-align: left; color: var(--text-muted); padding-bottom: 8px; }
 .table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
@@ -192,4 +254,249 @@ body {
 @media (max-width: 520px) {
   .row { flex-wrap: wrap; }
   .table th:nth-child(4), .table td:nth-child(4) { display: none; }
+  /* Tighten the remaining columns so the action column still fits without a
+     horizontal scroll — a Join button you have to scroll sideways to find is the
+     same bug as a hidden one. */
+  .table th, .table td { padding: 9px 6px; }
+  .table th { font-size: .8rem; }
+  .table .btn { min-height: 44px; padding: 0 12px; }
 }
+
+/* Live execution inspector: deliberately game-specific, not a generic tutorial shell. */
+.debug-game-layout { position: absolute; inset: 0; overflow: hidden; display: grid; grid-template-columns: minmax(260px, 23vw) minmax(0, 1fr); background: var(--bg); }
+.debug-game-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid var(--border-strong); }
+.debug-panel { min-width: 0; overflow: auto; padding: 14px; background: rgba(16,15,31,.96); color: var(--text); font-size: .78rem; scrollbar-width: thin; }
+.debug-drawer { position:absolute;z-index:24;left:12px;top:100px;bottom:76px;width:min(430px,calc(100% - 24px));border:1px solid var(--border-strong);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.46);backdrop-filter:blur(18px); }
+.debug-panel__head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font:.72rem ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--success-on-dark); }
+.debug-panel__head>span{display:flex;align-items:center;gap:7px}.debug-panel__head .icon-button{width:38px;height:38px;border-radius:10px}.debug-panel__head .icon-button svg{width:20px;height:20px}
+.debug-live-dot { display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success-on-dark);box-shadow:0 0 10px var(--success-on-dark); }
+.debug-eyebrow, .debug-label { display: block; color: var(--text-faint); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.debug-compact-button { border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 9px; background: transparent; color: var(--text-muted); font: inherit; cursor: pointer; }
+.debug-language { display: flex; gap: 4px; margin-bottom: 8px; }
+.debug-language button { min-height: 28px; padding: 0 9px; border: 1px solid var(--border); border-radius: 999px; background: transparent; color: var(--text-muted); font: inherit; font-weight: 700; cursor: pointer; }
+.debug-language button[aria-pressed="true"] { background: var(--accent); color: var(--accent-contrast); }
+.debug-admin-gate { display: grid; place-items: center; gap: 4px; min-height: 112px; margin: 0 0 10px; padding: 14px; border: 3px solid var(--warning-on-dark); border-radius: 8px; background: #171006; color: #fff2bd; text-align: center; text-decoration: none; }
+.debug-admin-gate strong { font-size: clamp(1rem, 1.8vw, 1.55rem); letter-spacing: .06em; }
+.debug-admin-gate span { color: #eadc9d; font-size: .72rem; }
+.debug-section, .debug-data, .debug-code { margin: 0 0 8px; }
+.debug-event { margin: 0 0 8px; color: var(--text-muted); }
+.debug-section h2 { margin: 4px 0; font: 800 1.15rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--warning-on-dark); overflow-wrap: anywhere; }
+.debug-section p { margin: 0; color: var(--text-muted); }
+.debug-data dl { margin: 3px 0 0; padding: 5px 7px; background: var(--surface-2); border-radius: 6px; }
+.debug-data dl > div { display: flex; justify-content: space-between; gap: 12px; }
+.debug-data dt { color: var(--text-faint); }
+.debug-data dd { margin: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; text-align: right; }
+.debug-code pre { margin: 3px 0 0; padding: 6px 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; background: #090812; color: #dcd8ff; font: .65rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.debug-code code > span { display: block; padding: 0 10px; white-space: pre; }
+.debug-code code > span.is-active { background: rgba(143, 123, 255, .2); color: #fff; border-left: 2px solid var(--focus-ring); padding-left: 8px; }
+.debug-code-compare { display: grid; grid-template-columns: 1fr; gap: 3px; }
+.debug-code-compare .debug-code pre { font-size: .63rem; }
+.debug-demo { display: flex; align-items: center; gap: 6px; padding-top: 2px; }
+.debug-demo small { color: var(--text-faint); text-align: center; }
+/* ─────────────────────────────────────────────────────────────────────────────
+   In-game overlay layout.
+
+   Two arrangements, chosen by control scheme rather than by width alone:
+   • pointer — tools rail bottom-left, ability rail on the right, minimap bottom-right.
+   • touch (`.game-screen--touch`) — a floating thumbstick owns one half of the screen,
+     the ability pads and the collapsed tools trigger sit under the opposite thumb.
+
+   Every overlay that is not a control is `pointer-events:none`, so a thumb dragged over
+   the leaderboard or the HUD still steers instead of hitting dead glass.
+   ──────────────────────────────────────────────────────────────────────────── */
+:root {
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+.game-screen { touch-action: none; }
+
+/* ── Read-only overlays ── */
+/* These sit directly on the game canvas, which renders the same dark tank in every theme,
+   so their scrim stays dark by design. The light theme flipped --text to near-black while
+   leaving that scrim dark, which put the whole HUD at 1.05:1 — score, leaderboard, and the
+   connection-loss banner were invisible for anyone whose OS is set to light (WCAG 1.4.3;
+   dark mode measured 18:1, which is why it went unnoticed). Pin the palette these surfaces
+   read from rather than pinning one `color`, so the muted label/sub tokens and the borders
+   travel with it. The tools rail and its popover have the same defect from the other
+   direction — their background is a hard-coded dark rgba while the icon stroke follows
+   --text, which measured 1.08:1 in light mode — so they are pinned here too. Anything
+   genuinely on a themed surface (the respawn card, the settings panel) is unaffected. */
+.hud-card, .conn-banner, .game-leaderboard, .game-minimap, .game-tools, .gearbox__popover {
+  --overlay-scrim: rgba(6, 5, 12, 0.72);
+  --surface-3: #2b2750;
+  --text: #f3f1ff;
+  --text-muted: #b9b4d6;
+  --text-faint: #9a95bd;
+  --border: #3a355e;
+  --border-strong: #847cb4;
+  color: var(--text);
+}
+/* Keep honouring the contrast preferences on top of the pinned palette. */
+@media (prefers-contrast: more) {
+  .hud-card, .conn-banner, .game-leaderboard, .game-minimap, .game-tools, .gearbox__popover { --text-faint: var(--text-muted); --border: var(--border-strong); }
+}
+:root[data-contrast="high"] .hud-card, :root[data-contrast="high"] .conn-banner,
+:root[data-contrast="high"] .game-leaderboard, :root[data-contrast="high"] .game-minimap,
+:root[data-contrast="high"] .game-tools, :root[data-contrast="high"] .gearbox__popover {
+  --text: #ffffff; --text-muted: #eae7ff; --text-faint: #eae7ff; --border: #ffffff; --border-strong: #ffffff;
+}
+
+.game-hud { position:absolute; z-index:10; top:calc(12px + var(--safe-t)); left:calc(12px + var(--safe-l)); display:flex; flex-wrap:wrap; gap:8px; max-width:calc(100% - 24px); pointer-events:none; }
+.hud-card { min-width:74px; padding:7px 13px; border:1px solid var(--border); border-radius:var(--radius); background:var(--overlay-scrim); color:var(--text); text-align:center; }
+.hud-card__label { color:var(--text-muted); font-size:.78rem; line-height:1.2; }
+.hud-card__value { font-size:1.55rem; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.hud-card__sub { color:var(--text-muted); font-size:.9rem; font-weight:700; }
+.game-leaderboard, .game-minimap, .conn-banner { pointer-events:none; }
+/* The leaderboard grows with the tank (ten rows at 32 sharks) and the ability rail is
+   pinned above the minimap, so on a short window the two used to meet. Cap the board to
+   the space that is actually free rather than letting rows run under the pads. */
+.game-leaderboard { max-height: calc(100dvh - 400px); overflow: hidden; }
+.conn-banner { position:absolute; z-index:12; bottom:calc(12px + var(--safe-b)); left:50%; transform:translateX(-50%); max-width:calc(100% - 24px); padding:8px 16px; border:1px solid var(--warning-on-dark); border-radius:var(--radius); background:var(--overlay-scrim); color:var(--text); text-align:center; }
+
+/* ── Tools rail ── */
+.game-tools{position:absolute;z-index:130;left:calc(12px + var(--safe-l));bottom:calc(12px + var(--safe-b));display:flex;align-items:center;gap:4px;padding:5px;border:1px solid var(--border-strong);border-radius:18px;background:rgba(11,10,20,.9);box-shadow:0 12px 36px rgba(0,0,0,.34);backdrop-filter:blur(16px)}
+.game-tools>.icon-button,.game-tools>.gearbox>.icon-button{width:50px;height:50px;border-color:transparent;border-radius:12px;background:transparent;box-shadow:none}.game-tools>.icon-button:hover,.game-tools>.gearbox>.icon-button:hover{background:var(--surface-3)}.game-tools>.icon-button:active,.game-tools>.gearbox>.icon-button:active{transform:none;box-shadow:none}.game-tools>.icon-button.is-active,.game-tools>.gearbox>.icon-button.is-active{border-color:var(--focus-ring);background:var(--accent)}
+.gearbox{position:relative}
+.gearbox__popover{position:absolute;left:0;bottom:60px;z-index:1;display:grid;grid-template-columns:repeat(5,52px);gap:7px;padding:9px;border:1px solid var(--border-strong);border-radius:16px;background:rgba(11,10,20,.96);box-shadow:0 18px 54px rgba(0,0,0,.4);backdrop-filter:blur(16px)}
+/* Collapsed (touch): the popover holds all nine controls, so it wraps to three columns
+   and is width-capped to the viewport rather than running off the side of the phone. */
+.game-tools--collapsed .gearbox__popover{grid-template-columns:repeat(3,52px);max-width:calc(100vw - 24px)}
+
+/* ── Ability pads ── */
+.ability-rail{position:absolute;z-index:13;right:calc(12px + var(--safe-r));bottom:calc(150px + var(--safe-b));display:grid;gap:12px;justify-items:end}
+.ability-button{position:relative;width:150px;min-height:104px;display:grid;grid-template-columns:48px 1fr;grid-template-rows:1fr auto;align-items:center;gap:0 8px;padding:12px;border:2px solid #fff;border-radius:18px;color:#fff;cursor:pointer;font:900 .86rem/1 var(--font-ui);letter-spacing:.05em;box-shadow:0 7px 0 rgba(0,0,0,.34);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.ability-button:active:not(:disabled){transform:translateY(3px);box-shadow:0 4px 0 rgba(0,0,0,.34)}
+.ability-button:disabled{opacity:.54;cursor:not-allowed;filter:saturate(.55)}
+.ability-button svg{grid-row:1/3;width:48px;height:48px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ability-button span{min-width:0;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ability-button small{min-width:0;font-size:.62rem;opacity:.86;letter-spacing:.11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rocket-button{background:#d94322}.dash-button{background:#6557d7}
+
+/* ── Feeding Frenzy ── */
+.frenzy-banner{position:absolute;z-index:12;top:calc(12px + var(--safe-t));left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:1px;max-width:calc(100% - 24px);padding:7px 18px;border:2px solid #ffd54a;border-radius:999px;background:linear-gradient(120deg,#9a2a12,#995215);color:#fff;text-align:center;pointer-events:none;box-shadow:0 10px 30px rgba(217,67,34,.4);animation:frenzy-pulse 1.1s ease-in-out infinite}
+.frenzy-banner strong{font-size:.92rem;font-weight:900;letter-spacing:.14em}
+/* White on the darkened gradient measures 5.9:1 at its lightest point, so the .7rem
+   span here and the .6rem one in the phone layout both clear AA. The old .94 opacity
+   took the small text to 2.2:1 — it is gone rather than compensated for. */
+.frenzy-banner span{max-width:100%;font-size:.7rem;font-weight:700}
+@keyframes frenzy-pulse{50%{box-shadow:0 10px 40px rgba(255,213,74,.62)}}
+
+/* ── Respawn card (non-modal on purpose — see DeathOverlay.tsx) ── */
+.scrim--respawn{pointer-events:none;background:rgba(6,5,12,.5);padding:16px}
+.respawn-card{pointer-events:auto;width:min(380px,100%);max-height:calc(100dvh - 32px);overflow:auto;text-align:center}
+.respawn-card h2{margin:0;font-size:clamp(1.3rem,4.5vw,1.75rem)}
+.respawn-card p{margin:0;color:var(--text-muted)}
+.respawn-card p strong{color:var(--text);font-size:1.15rem}
+.respawn-note{font-size:.76rem;color:var(--text-faint)}
+/* On a short screen a centred card lands on the tools trigger, which is exactly the
+   control this card is meant to leave reachable. Pin it to the top instead. */
+@media (max-height:560px){.scrim--respawn{align-items:start}.respawn-card{padding:14px}.respawn-card .btn--lg{min-height:48px;font-size:1rem}.respawn-note{display:none}}
+
+/* ── Virtual thumbstick ── */
+.stick-zone{position:absolute;z-index:6;top:calc(88px + var(--safe-t));bottom:0;width:50%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.stick-zone--right{right:0}
+.stick-zone--left{left:0}
+/* The base is always positioned by left/top and centred with negative margins, so the
+   resting anchor below and the inline coordinates written on touch-down use the same
+   axes — no `right:auto` unwinding, and nothing to fight the inline style. */
+.stick-base{position:absolute;left:calc(100% - 94px - var(--safe-r));top:calc(100% - 94px - var(--safe-b));width:132px;height:132px;margin:-66px 0 0 -66px;border:2px solid rgba(243,241,255,.28);border-radius:50%;background:rgba(11,10,20,.32);opacity:.5;transition:opacity 140ms ease}
+.stick-zone--left .stick-base{left:calc(94px + var(--safe-l))}
+.stick-base.is-live{opacity:1;border-color:rgba(34,230,255,.55);background:rgba(11,10,20,.46)}
+.stick-knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border:2px solid rgba(255,255,255,.9);border-radius:50%;background:radial-gradient(circle at 35% 30%,#8ff4ff,#22a8d8);box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.stick-hint{position:absolute;left:calc(100% - 94px - var(--safe-r));bottom:calc(8px + var(--safe-b));width:150px;margin:0;transform:translateX(-50%);color:var(--text-faint);font-size:.68rem;font-weight:800;letter-spacing:.1em;text-align:center;text-transform:uppercase}
+.stick-zone--left .stick-hint{left:calc(94px + var(--safe-l))}
+
+/* ── Touch arrangement: stick on one side, pads + tools on the other ── */
+.game-screen--touch .ability-rail{grid-auto-flow:column;gap:10px;bottom:calc(12px + var(--safe-b))}
+.game-screen--touch .game-tools{bottom:calc(104px + var(--safe-b))}
+.game-screen--touch .ability-button{width:84px;min-height:84px;grid-template-columns:1fr;grid-template-rows:1fr auto;justify-items:center;gap:2px;padding:8px;border-radius:20px}
+.game-screen--touch .ability-button svg{grid-row:auto;width:38px;height:38px}
+.game-screen--touch .ability-button span{font-size:.66rem;letter-spacing:.06em}
+.game-screen--touch .game-minimap{display:none}
+/* Stick right → pads and tools left, and vice versa. */
+.game-screen--stick-right .ability-rail{left:calc(12px + var(--safe-l));right:auto;justify-items:start}
+.game-screen--stick-right .game-tools{left:calc(12px + var(--safe-l));right:auto}
+.game-screen--stick-left .ability-rail{right:calc(12px + var(--safe-r));left:auto;justify-items:end}
+.game-screen--stick-left .game-tools{right:calc(12px + var(--safe-r));left:auto}
+.game-screen--stick-left .gearbox__popover{left:auto;right:0}
+.game-screen--touch .debug-drawer{bottom:calc(170px + var(--safe-b))}
+.game-screen--touch .conn-banner{bottom:auto;top:calc(64px + var(--safe-t))}
+
+.help-note{margin:0;padding:11px 13px;border:1px solid #6a5a2e;border-radius:12px;background:rgba(255,213,74,.09);color:var(--text-muted);font-size:.86rem}.help-note strong{color:var(--warning)}
+.control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.control-card{display:grid;grid-template-columns:48px 1fr;align-items:center;gap:8px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);min-width:0}.control-card__icon{grid-row:1/3;width:42px;height:42px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.control-card>strong{min-width:0;text-align:left;overflow-wrap:anywhere}.control-card>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;color:var(--text-muted)}.control-card small{width:100%;text-align:left;overflow-wrap:anywhere}
+
+@media (max-width: 800px) {
+  .debug-game-layout { grid-template-columns: minmax(230px, 38vw) minmax(0, 1fr); }
+  .debug-panel { padding: 12px; }
+  .debug-code-compare { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .debug-game-layout { grid-template-columns: 1fr; grid-template-rows: minmax(180px, 38dvh) minmax(0, 62dvh); }
+  .debug-game-stage { border-left: 0; border-top: 1px solid var(--border-strong); }
+  .debug-panel { padding: 10px 12px; }
+  .debug-panel__head { margin-bottom: 8px; }
+  .debug-language { margin-bottom: 10px; }
+  .debug-section, .debug-data, .debug-code { margin-bottom: 10px; }
+  .debug-section h2 { font-size: 1rem; }
+  .game-hud { top: calc(6px + var(--safe-t)); left: calc(6px + var(--safe-l)); gap: 4px; max-width: 58vw; }
+  .hud-card { min-width: 0; padding: 4px 8px; }
+  .hud-card__label { font-size: .6rem; letter-spacing: .04em; }
+  .hud-card__value { font-size: 1.05rem; }
+  .hud-card__sub { font-size: .7rem; }
+  .game-leaderboard { top: calc(6px + var(--safe-t)) !important; right: calc(6px + var(--safe-r)) !important; width: 124px !important; max-width: 38vw !important; padding: 6px !important; }
+  .game-leaderboard h2 { margin-bottom: 3px !important; font-size: .65rem !important; }
+  .game-leaderboard li { grid-template-columns: 12px 8px 1fr auto !important; gap: 3px !important; font-size: .7rem !important; }
+  .game-leaderboard li:nth-child(n+5) { display: none !important; }
+  .game-minimap { display: none !important; }
+  .game-tools{gap:2px;padding:4px}
+  .game-tools>.icon-button,.game-tools>.gearbox>.icon-button{width:48px;height:48px}
+  .gearbox__popover{grid-template-columns:repeat(5,48px);bottom:58px}
+  .game-tools--collapsed .gearbox__popover{grid-template-columns:repeat(3,48px)}
+  .ability-rail{right:calc(6px + var(--safe-r));bottom:calc(140px + var(--safe-b))}
+  .ability-button{width:112px;min-height:94px;border-radius:16px;padding:10px;grid-template-columns:42px 1fr}
+  .ability-button svg{width:42px;height:42px}
+  .game-screen--touch .ability-rail{bottom:calc(10px + var(--safe-b))}
+  .game-screen--stick-right .ability-rail{left:calc(6px + var(--safe-l))}
+  .game-screen--stick-left .ability-rail{right:calc(6px + var(--safe-r))}
+  .game-screen--touch .game-tools{bottom:calc(96px + var(--safe-b))}
+  .game-screen--stick-right .game-tools{left:calc(6px + var(--safe-l))}
+  .game-screen--stick-left .game-tools{right:calc(6px + var(--safe-r))}
+  .game-screen--touch .ability-button{width:76px;min-height:76px;padding:6px}
+  .game-screen--touch .ability-button svg{width:34px;height:34px}
+  .stick-base{left:calc(100% - 84px - var(--safe-r));top:calc(100% - 84px - var(--safe-b));width:118px;height:118px;margin:-59px 0 0 -59px}
+  .stick-zone--left .stick-base{left:calc(84px + var(--safe-l))}
+  .stick-knob{width:54px;height:54px;margin:-27px 0 0 -27px}
+  .stick-hint{left:calc(100% - 84px - var(--safe-r));width:130px}
+  .stick-zone--left .stick-hint{left:calc(84px + var(--safe-l))}
+  /* No room for a centred banner between the HUD and the leaderboard on a phone —
+     tuck it directly under the HUD chips instead, where the water is empty. */
+  .frenzy-banner{top:calc(64px + var(--safe-t));left:calc(6px + var(--safe-l));right:auto;transform:none;justify-items:start;max-width:56vw;padding:5px 12px;border-radius:14px;text-align:left}
+  .frenzy-banner strong{font-size:.72rem;letter-spacing:.08em}
+  .frenzy-banner span{font-size:.6rem;line-height:1.25}
+  .debug-drawer{left:6px;right:6px;top:88px;bottom:68px;width:auto}.control-grid{grid-template-columns:1fr}
+}
+/* Very short viewports (landscape phones): the pads and the tools trigger cannot stack. */
+@media (max-height: 430px) {
+  .game-screen--touch .ability-rail{bottom:calc(8px + var(--safe-b))}
+  .game-screen--touch .game-tools{bottom:auto;top:calc(50% - 30px)}
+  .game-screen--touch .gearbox__popover{bottom:auto;top:60px}
+  .stick-zone{top:calc(56px + var(--safe-t))}
+}
+/* Short desktop windows cannot stack a vertical ability rail beside a ten-row
+   leaderboard — the pads landed on top of the scores. Lay them along the bottom edge
+   instead, clear of the minimap, and trim the leaderboard to what actually fits. */
+@media (max-height: 640px) {
+  .game-screen:not(.game-screen--touch) .ability-rail{grid-auto-flow:column;gap:10px;bottom:calc(12px + var(--safe-b));right:calc(164px + var(--safe-r))}
+  .game-screen:not(.game-screen--touch) .ability-button{width:140px;min-height:74px;grid-template-columns:36px 1fr;padding:9px}
+  .game-screen:not(.game-screen--touch) .ability-button svg{width:36px;height:36px}
+  .game-leaderboard{max-height:calc(100dvh - 130px)}
+  .game-leaderboard li:nth-child(n+8){display:none!important}
+}
+@media (max-height: 480px) {
+  .game-minimap{display:none}
+  .game-screen:not(.game-screen--touch) .ability-rail{right:calc(12px + var(--safe-r))}
+  .game-leaderboard li:nth-child(n+6){display:none!important}
+}
+@media (pointer:coarse){.icon-button{width:56px;height:56px}.game-tools>.icon-button,.game-tools>.gearbox>.icon-button{width:52px;height:52px}.btn{min-height:52px}}

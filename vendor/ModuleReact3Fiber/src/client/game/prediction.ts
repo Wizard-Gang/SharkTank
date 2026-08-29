@@ -16,8 +16,9 @@ const SPEED = MOVE.BASE_SPEED * TICKS_PER_SECOND;
 const BOOST = MOVE.BOOST_SPEED * TICKS_PER_SECOND;
 const TURN = MOVE.TURN_RATE * TICKS_PER_SECOND;
 const CRUMB_STEP = MOVE.SEGMENT_SPACING * 0.5; // drop a breadcrumb every half-spacing
-const RECONCILE = 0.35; // fraction of positional error corrected per frame — hug the
-// server tightly so what you SEE matches what the server collides (consistent deaths).
+const RECONCILE_PER_SECOND = 5;
+const MAX_RECONCILE_SPEED = SPEED * 0.65;
+const TELEPORT_ERROR = 8;
 
 function rotateToward(cur: number, target: number, maxStep: number): number {
   let d = target - cur;
@@ -70,29 +71,37 @@ export class LocalPredictor {
       return this.build();
     }
 
-    // Grow FORWARD: when the server reports we grew (ate), extend the head forward by the
-    // gained length so new segments appear at the front and the tail stays put.
-    const grew = auth.length - this.length;
-    if (grew > 0.001) {
-      this.head = { x: this.head.x + Math.cos(this.heading) * MOVE.SEGMENT_SPACING * grew, z: this.head.z + Math.sin(this.heading) * MOVE.SEGMENT_SPACING * grew };
-    }
+    // Sharks grow visually by scale; eating must not teleport the predicted head.
     this.length = auth.length;
     const step = Math.min(dt, 0.05); // clamp long frames (tab was backgrounded)
 
-    // Turn toward the player's live target; move at the intended speed.
+    // Turn toward the player's live target. The shark accelerates only during its
+    // own dash; rockets are independent server-authoritative projectiles.
     this.heading = rotateToward(this.heading, input.targetHeading, TURN * step);
-    const speed = input.boosting ? BOOST : SPEED;
+    const speed = auth.lungeTicks > 0 ? BOOST : SPEED;
     let nx = this.head.x + Math.cos(this.heading) * speed * step;
     let nz = this.head.z + Math.sin(this.heading) * speed * step;
 
     // Reconcile toward where the server head actually is *now* — the authoritative head
     // extrapolated forward by its own motion over the snapshot's staleness. Soft, so
     // small mispredictions ease out instead of snapping (no rubber-banding).
-    const authSpeed = auth.boosting ? BOOST : SPEED;
+    const authSpeed = auth.lungeTicks > 0 ? BOOST : SPEED;
     const authNowX = auth.segments[0].x + Math.cos(auth.heading) * authSpeed * staleness;
     const authNowZ = auth.segments[0].z + Math.sin(auth.heading) * authSpeed * staleness;
-    nx += (authNowX - nx) * RECONCILE;
-    nz += (authNowZ - nz) * RECONCILE;
+    const errorX = authNowX - nx, errorZ = authNowZ - nz;
+    const error = Math.hypot(errorX, errorZ);
+    if (error > TELEPORT_ERROR) {
+      this.seed(auth);
+      return this.build();
+    }
+    if (error > 0.001) {
+      // Time-based and velocity-capped reconciliation avoids the packet-rate sawtooth
+      // caused by correcting a fixed fraction on every display frame.
+      const eased = 1 - Math.exp(-RECONCILE_PER_SECOND * step);
+      const correction = Math.min(eased, MAX_RECONCILE_SPEED * step / error);
+      nx += errorX * correction;
+      nz += errorZ * correction;
+    }
 
     this.head = { x: nx, z: nz };
 

@@ -13,7 +13,7 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
   const [summary, setSummary] = useState("");
 
   useEffect(() => {
-    let raf = 0;
+    let drawTimer: ReturnType<typeof setInterval> | null = null;
     const draw = () => {
       const cv = canvasRef.current;
       const s = socket.stateRef.current;
@@ -49,9 +49,9 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
           }
         }
       }
-      raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(draw);
+    draw();
+    drawTimer = setInterval(draw, 125);
 
     // Low-rate textual summary for AT.
     const id = setInterval(() => {
@@ -61,18 +61,18 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
         const { x, z } = me.segments[0];
         const dir = z < -5 ? "north" : z > 5 ? "south" : "";
         const dir2 = x < -5 ? "west" : x > 5 ? "east" : "";
-        setSummary(`You are near arena ${[dir, dir2].filter(Boolean).join("-") || "center"}.`);
+        setSummary(`You are near tank ${[dir, dir2].filter(Boolean).join("-") || "center"}.`);
       }
     }, 2000);
 
     return () => {
-      cancelAnimationFrame(raf);
+      if (drawTimer) clearInterval(drawTimer);
       clearInterval(id);
     };
   }, [socket]);
 
   return (
-    <div style={wrap}>
+    <div className="game-minimap" style={wrap}>
       <canvas ref={canvasRef} width={SIZE} height={SIZE} aria-hidden="true" style={{ display: "block" }} />
       <p className="sr-only" role="status">{summary}</p>
     </div>

@@ -1,9 +1,9 @@
-// App shell + screen state machine: Menu → Lobby → Game, with Customize and Settings
+// App shell + screen state machine: Menu → Tank → Game, with Customize and Settings
 // reachable from the menu. Wraps everything in the Settings + Announcer providers,
 // renders the skip link and the #main landmark, loads/saves the player profile, and
 // manages focus on screen transitions (moving focus to the new screen's region).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import "./ui/theme.css";
 import { SettingsProvider, useSettings } from "./settings/SettingsContext.js";
 import { AnnouncerProvider, useAnnouncer } from "./a11y/announcer.js";
@@ -11,12 +11,12 @@ import { MainMenu } from "./ui/MainMenu.js";
 import { Lobby } from "./ui/Lobby.js";
 import { Customize } from "./ui/Customize.js";
 import { Settings } from "./ui/Settings.js";
-import { GameScreen } from "./ui/GameScreen.js";
 import { logUserAction } from "./net/audit.js";
 import { API, type ProfileResponse } from "../protocol/index.js";
 import { DEFAULT_SKIN } from "../engine/index.js";
 
-type Screen = "menu" | "lobby" | "customize" | "settings" | "game";
+type Screen = "menu" | "tank" | "customize" | "settings" | "game";
+const GameScreen = lazy(() => import("./ui/GameScreen.js").then((module) => ({ default: module.GameScreen })));
 
 export interface AppProps {
   /** Base URL for the server API. Defaults to same origin. */
@@ -77,7 +77,7 @@ function Shell({ baseUrl }: { baseUrl: string }) {
     if (screen !== "menu" && screen !== "game") regionRef.current?.focus();
     const titles: Record<Screen, string> = {
       menu: "Main menu",
-      lobby: "Arena list",
+      tank: "Shark Tank list",
       customize: "Customize",
       settings: "Settings",
       game: "In game",
@@ -105,12 +105,12 @@ function Shell({ baseUrl }: { baseUrl: string }) {
             <MainMenu
               playerName={name}
               best={best}
-              onPlay={() => setScreen("lobby")}
+              onPlay={() => setScreen("tank")}
               onCustomize={() => setScreen("customize")}
               onSettings={() => setScreen("settings")}
             />
           )}
-          {screen === "lobby" && <Lobby playerName={name} onJoin={join} onBack={() => setScreen("menu")} baseUrl={baseUrl} />}
+          {screen === "tank" && <Lobby playerName={name} onJoin={join} onBack={() => setScreen("menu")} baseUrl={baseUrl} />}
           {screen === "customize" && (
             <Customize
               name={name}
@@ -128,11 +128,13 @@ function Shell({ baseUrl }: { baseUrl: string }) {
         </div>
       ) : (
         room && (
-          <GameScreen
-            room={room}
-            identity={{ name: name || "Player", skin }}
-            onQuit={() => setScreen("lobby")}
-          />
+          <Suspense fallback={<main id="main" className="center-screen" aria-live="polite">Loading tank…</main>}>
+            <GameScreen
+              room={room}
+              identity={{ name: name || "Player", skin }}
+              onQuit={() => setScreen("tank")}
+            />
+          </Suspense>
         )
       )}
     </>

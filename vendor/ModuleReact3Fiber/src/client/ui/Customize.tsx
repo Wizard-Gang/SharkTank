@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { SKINS } from "../../engine/index.js";
+import { isFamilyFriendlyName, sanitizeDisplayName } from "../../protocol/index.js";
 
 export function Customize({
   name,
@@ -19,6 +20,7 @@ export function Customize({
   const [draftName, setDraftName] = useState(name);
   const [draftSkin, setDraftSkin] = useState(skin);
   const dirty = draftName !== name || draftSkin !== skin;
+  const validName = isFamilyFriendlyName(draftName);
 
   return (
     <div className="center-screen">
@@ -35,12 +37,15 @@ export function Customize({
             onChange={(e) => setDraftName(e.target.value)}
             placeholder="Player"
             autoComplete="off"
+            aria-invalid={!validName}
+            aria-describedby={!validName ? "cz-name-error" : undefined}
           />
+          {!validName && <span id="cz-name-error" role="alert" style={{ color: "var(--danger, #ff7b7b)" }}>Choose a family-friendly name.</span>}
         </div>
 
         <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
           <legend style={{ fontWeight: 600, marginBottom: 8 }}>Skin</legend>
-          <div role="radiogroup" aria-label="Snake skin" style={grid}>
+          <div role="radiogroup" aria-label="Shark skin" style={grid}>
             {SKINS.map((s) => {
               const selected = s.id === draftSkin;
               return (
@@ -57,7 +62,7 @@ export function Customize({
 
         <div className="row" style={{ justifyContent: "flex-end" }}>
           <button className="btn" onClick={onExit}>Exit</button>
-          <button className="btn btn--primary" onClick={() => onConfirm(draftName.trim() || "Player", draftSkin)} disabled={!dirty}>
+          <button className="btn btn--primary" onClick={() => onConfirm(sanitizeDisplayName(draftName), draftSkin)} disabled={!dirty || !validName}>
             Confirm
           </button>
         </div>
