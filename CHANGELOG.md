@@ -2,6 +2,12 @@
 
 All notable reconstructed phases and forward public-repository changes are recorded here. Dates in source provenance are historical; public commits retain their real reconstruction timestamps.
 
+## v1.0.2 — 2026-08-28
+
+- Recorded the successful v1.0.1 production cutover from the public repository.
+- Captured live evidence, API, WebSocket, security-boundary, portfolio-link, and rollback results.
+- Closed the parity gate for archiving `WizardGangLocal` as immutable provenance.
+
 ## v1.0.1 — 2026-08-28
 
 - Accepted GitHub-verified Dependabot dependency bumps as the sole automated exception to the human ST commit template.

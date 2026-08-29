@@ -12,6 +12,8 @@ On 2026-08-28, the final local state passed strict host and vendored TypeScript 
 
 The existing production origin was inspected before reconstruction: public game, trust, status, documentation, logs, audit, policy, and spend routes answered successfully; unauthenticated admin access returned 401; a room route without a WebSocket upgrade returned 426; and legacy human-facing routes redirected while legacy API compatibility remained available.
 
-## Remaining migration boundary
+## Production cutover result
 
-Production still runs its pre-publication deployment until an exact tagged release is separately approved and deployed. Runtime identity therefore must not be claimed as v1.0.0 until `https://sharktank.wizardgang.ai/version.json` returns that release after the controlled workflow. Legacy repository retirement remains out of scope until that parity check and an observation window pass.
+Release v1.0.1 was deployed from this public repository on 2026-08-29 at 01:37 UTC. The existing stateful names and bindings were retained. After cutover, the complete evidence walk passed against production, `/version.json` returned v1.0.1 in production, public APIs returned their expected contracts, an unauthenticated admin request returned 401, a non-upgraded room request returned 426, and a real WebSocket session received the authoritative `welcome` message.
+
+WizardGang's public case-study page linked to the canonical game and trust origins, and its legacy human route redirected. The public repositories therefore own all active product and portfolio information needed to archive `WizardGangLocal`. The legacy source history remains preserved for provenance rather than deleted.
