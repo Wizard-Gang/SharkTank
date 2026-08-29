@@ -27,6 +27,19 @@ const AUDIT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000,
  */
 const PUBLIC_AUDIT_RATE_PER_MINUTE = 240;
 /**
+ * Profile writes, per edge connection and across every public caller at once.
+ *
+ * A profile save is a Durable Object write on the one global instance, and the identity it
+ * writes under is a cookie the caller mints for itself, so nothing about the caller bounds
+ * it. `PROFILE_CAP` bounds how many rows may be *created*; it says nothing about how often
+ * an existing row may be overwritten, and an overwrite costs the same write as a creation.
+ * These two buckets are what bound the overwrite. The per-minute figures are set well above
+ * a person playing — a save happens on a name change or a new best score — and well below a
+ * loop.
+ */
+const PROFILE_WRITE_RATE_PER_MINUTE = 20;
+const PUBLIC_PROFILE_WRITE_RATE_PER_MINUTE = 120;
+/**
  * The types /api/audit is allowed to write, and the number of such rows kept. Trimming to
  * AUDIT_MAX_ROWS alone means a flood of public rows evicts every server-recorded row from
  * the 90-day log; holding public rows to their own floor means a flood can only evict
@@ -1167,6 +1180,15 @@ export class Lobby implements DurableObject {
       return json({ ok: true, profile: publicProfile(previous) });
     if (request.method !== "POST")
       return json({ ok: false, error: "method not allowed" }, 405);
+    // Throttle before the body is read and before either branch below. x-rate-key is set by
+    // the Worker from the edge connection; it is never the caller's own cookie, because the
+    // cookie is self-issued. Absent, every caller shares one bucket, which limits harder.
+    const rateKey = request.headers.get("x-rate-key");
+    if (
+      !this.allow(`profile:${rateKey ?? "edge"}`, PROFILE_WRITE_RATE_PER_MINUTE) ||
+      !this.allow("profile:all", PUBLIC_PROFILE_WRITE_RATE_PER_MINUTE)
+    )
+      return json({ ok: false, error: "rate limited" }, 429);
     const body = await safeJson<Partial<Profile>>(request);
     if (!body) return json({ ok: false, error: "invalid JSON" }, 400);
     const skin = SKINS.some((s) => s.id === body.skin)
@@ -1183,8 +1205,9 @@ export class Lobby implements DurableObject {
       settings,
       seenAt: Date.now(),
     };
-    // Writing over a row that already exists adds nothing to the row count, so an existing
-    // player is never rate-checked, never refused, and never loses a saved name or score.
+    // Writing over a row that already exists adds nothing to the row count, so the row
+    // ceiling never refuses it and a saved name or score is never lost. The write itself is
+    // still metered: the throttle above applies to both branches.
     if (stored) {
       this.countWrites(1);
       await this.ctx.storage.put(key, next);

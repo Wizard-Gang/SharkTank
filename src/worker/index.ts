@@ -61,6 +61,10 @@ const SECURITY_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-frame-options": "DENY",
+  // Was set on the static asset path only, so the eight server-rendered pages — the ones
+  // that exist to demonstrate the controls — shipped without it. It belongs in the one
+  // table every response passes through, not on a single branch.
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
 };
 
 /**
@@ -128,6 +132,40 @@ function html(body: string, status = 200): Response {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": csp, ...SECURITY_HEADERS, "referrer-policy": "no-referrer" },
   });
+}
+
+/**
+ * Read a request body with a hard byte ceiling, enforced on the bytes that actually arrive.
+ *
+ * `Content-Length` is absent on a chunked request, so a cap read from that header alone is
+ * simply not applied to a body sent with `Transfer-Encoding: chunked` — the check passes on
+ * `Number(null) === 0`. The header is still consulted first, because refusing an oversized
+ * body before reading it is cheaper, but it is an optimisation rather than the control: the
+ * stream is counted as it is consumed and cancelled the moment it passes the cap.
+ *
+ * Returns null when the body is too large. The caller turns that into a 413.
+ */
+const BODY_CAP_BYTES = 16_384;
+async function readCappedBody(request: Request, cap = BODY_CAP_BYTES): Promise<string | null> {
+  const declared = Number(request.headers.get("content-length") ?? NaN);
+  if (Number.isFinite(declared) && declared > cap) return null;
+  const stream = request.body;
+  if (!stream) return "";
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > cap) { await reader.cancel().catch(() => {}); return null; }
+    chunks.push(value);
+  }
+  const joined = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { joined.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(joined);
 }
 
 /** `/room/:id/ws` → the matching Room DO. Returns the room id, or null if not a room path. */
@@ -316,7 +354,27 @@ async function maintenanceState(env: Env, fresh = false): Promise<MaintenanceSta
   maintenanceCache = { state, expiresAt: Date.now() + 1_000 };
   return state;
 }
-function maintenanceBypass(path: string): boolean {
+/**
+ * The public writes that cost money: each one is a write into the single global Lobby
+ * Durable Object, which is what the metered spend is mostly made of.
+ */
+const METERED_PUBLIC_WRITES = new Set<string>([API.profile, "/api/audit"]);
+/**
+ * Paths that keep answering while the gate is closed.
+ *
+ * The gate closes for two reasons: an operator opens it deliberately, or measured spend
+ * reaches the hard limit and `enforceSpendLimit` closes it. In the second case the whole
+ * point is to stop spending, so the routes that generate the billable writes have to close
+ * with it — exempting all of `/api/*` meant the ceiling stopped the game while leaving the
+ * two unauthenticated write paths taking Durable Object writes at full rate.
+ *
+ * Reads stay up: the evidence pages, the JSON behind them and `GET /api/*` are how anyone
+ * finds out *why* the service stopped, and a transparency estate that goes dark at exactly
+ * the moment it has something to explain is worth nothing. `/api/security-report` stays up
+ * for the same reason — the white-hat intake must never be closed by a spend event.
+ */
+function maintenanceBypass(path: string, method: string): boolean {
+  if (METERED_PUBLIC_WRITES.has(path) && method !== "GET" && method !== "HEAD") return false;
   return path === "/api" || path.startsWith("/api/") ||
     path === "/docs" || path.startsWith("/docs/") || path === "/openapi.json" ||
     path === "/status" || path.startsWith("/status/") || path === "/status.json" ||
@@ -1367,7 +1425,7 @@ function inquiryHtml(billing: Record<string, unknown>): string {
         <div class="eyebrow">Spend trend</div>
         <h2>Cumulative metered spend</h2>
         ${spendTrendSvg(samples, hardLimit)}
-        <p class="sub">${samples.length} hourly ${samples.length === 1 ? "sample" : "samples"} · $${hardLimit.toFixed(2)} hard stop · ${billing.hardLimitExceeded === true ? "<b>game traffic disabled</b>" : "traffic allowed"}</p>
+        <p class="sub">${samples.length} hourly ${samples.length === 1 ? "sample" : "samples"} · $${hardLimit.toFixed(2)} hard stop · ${billing.hardLimitExceeded === true ? "<b>game traffic and public writes disabled</b>" : "traffic allowed"}</p>
       </div>
     </div>
     <div class="metric-grid inquiry-metrics">
@@ -2473,9 +2531,13 @@ export default {
         }
         return tlsRequired();
       }
-      if (!maintenanceBypass(path)) {
+      if (!maintenanceBypass(path, request.method)) {
         const state = await maintenanceState(env);
-        if (state.enabled) return downtimeResponse(state);
+        if (state.enabled) {
+          // An API caller gets the machine-readable refusal, not the downtime page.
+          if (path.startsWith("/api/")) return json({ ok: false, error: "service gated", reason: state.reason || "Safety control active" }, 503);
+          return downtimeResponse(state);
+        }
       }
       // Same-origin facade keeps the TypeScript ⇄ PHP proof-of-concept toggle usable
       // on HTTPS production. PHP itself runs on a separately hosted Workerman origin.
@@ -2531,11 +2593,27 @@ export default {
         return stub.fetch("https://lobby/leaderboard");
       }
 
+      // Profile read/write. The write is unauthenticated by design — one GET mints a
+      // `wg_player` cookie and that cookie is the whole identity — so the cookie cannot be
+      // the throttle key: dropping it buys a fresh identity and a fresh allowance on every
+      // request. `x-rate-key` is built here from the edge connection, exactly as /api/audit
+      // does, and the DO buckets the write on it. Both the body cap and the key are set from
+      // scratch so a client-supplied copy of either never reaches the Durable Object.
       if (path === API.profile) {
         if (request.method !== "GET" && request.method !== "POST") return json({ ok: false, error: "method not allowed" }, 405);
         const owner = profileId(request);
-        const headers = new Headers(request.headers); headers.set("x-profile-id", owner.id); headers.set("content-type", "application/json");
-        const res = await lobbyStub(env).fetch("https://lobby/profile", { method: request.method, headers, body: request.method === "POST" ? request.body : undefined });
+        let body: string | undefined;
+        if (request.method === "POST") {
+          const read = await readCappedBody(request);
+          if (read === null) return json({ ok: false, error: "payload too large" }, 413);
+          body = read;
+        }
+        const headers = new Headers(request.headers);
+        headers.set("x-profile-id", owner.id);
+        headers.set("content-type", "application/json");
+        headers.set("x-rate-key", connectionRateKey(request));
+        headers.delete("content-length");
+        const res = await lobbyStub(env).fetch("https://lobby/profile", { method: request.method, headers, body });
         if (!owner.fresh) return res;
         const out = new Response(res.body, res); out.headers.append("set-cookie", `wg_player=${owner.id}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000${url.protocol === "https:" ? "; Secure" : ""}`); return out;
       }
@@ -2543,9 +2621,10 @@ export default {
       // Client-emitted user actions → the Lobby DO's 90-day user log.
       if (path === "/api/audit" && request.method === "POST") {
         const owner = profileId(request);
-        if (Number(request.headers.get("content-length") ?? 0) > 16_384) return json({ ok: false, error: "payload too large" }, 413);
+        const raw = await readCappedBody(request);
+        if (raw === null) return json({ ok: false, error: "payload too large" }, 413);
         let body: { type?: string; room?: string; detail?: string };
-        try { body = (await request.json()) as { type?: string; room?: string; detail?: string }; } catch { return json({ ok: false, error: "invalid JSON" }, 400); }
+        try { body = JSON.parse(raw) as { type?: string; room?: string; detail?: string }; } catch { return json({ ok: false, error: "invalid JSON" }, 400); }
         if (!body.type || !PUBLIC_AUDIT_TYPES.has(body.type)) return json({ ok: false, error: "unsupported public event type" }, 400);
         const room = typeof body.room === "string" && ALLOWED_ROOMS.has(body.room) ? body.room : undefined;
         if (body.type === "play" && !room) return json({ ok: false, error: "valid room required" }, 400);
@@ -2816,7 +2895,7 @@ export default {
 
     // Non-API, non-WS: static assets.
     const asset = await env.ASSETS.fetch(request);
-    const secured = new Response(asset.body, asset); for (const [key, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(key, value); secured.headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()"); secured.headers.set("content-security-policy", assetCsp(mintNonce())); return secured;
+    const secured = new Response(asset.body, asset); for (const [key, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(key, value); secured.headers.set("content-security-policy", assetCsp(mintNonce())); return secured;
   },
 
   // Cron. One daily copy of tank state to object storage; see runBackup. The handler
