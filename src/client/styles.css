@@ -1,15 +1,4 @@
-:root {
-  color: #f3f1ff;
-  background: #0b0a14;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-}
-
-body {
-  margin: 0;
-}
-
-main {
-  width: min(42rem, calc(100% - 3rem));
-  margin: 18vh auto 0;
-}
-
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: #0b0a14; overflow: hidden; }
