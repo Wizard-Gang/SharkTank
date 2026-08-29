@@ -1,48 +1,51 @@
 # SharkTank
 
-SharkTank is a realtime multiplayer workload and a governed production-system
-case study. The deployed product remains at
+SharkTank is a self-contained realtime multiplayer workload and governed
+production-system case study. It contains the Cloudflare Worker host, authoritative
+Durable Object rooms, WebSockets, public APIs and operational evidence, the React
+Three Fiber client and deterministic engine, and an optional PHP protocol-parity
+runtime. The deployed product remains at
 [sharktank.wizardgang.ai](https://sharktank.wizardgang.ai).
 
-At this point in the reconstructed history, the repository contains authoritative
-realtime rooms, Durable Objects, WebSockets, public APIs and operational pages, the
-React Three Fiber client, and an optional PHP protocol-parity runtime. Its public
-history is reconstructed from the private legacy implementation and does not pretend
-reconstructed commits were the original commits.
+The public history is reconstructed from the private legacy implementation and does
+not pretend reconstructed commits were the original commits. Former private module
+dependencies are normal tracked files, so a public clone contains all product code.
 
 See [`docs/RECONSTRUCTION.md`](docs/RECONSTRUCTION.md) for the method and
 [`docs/history/CHANGE-MAP.csv`](docs/history/CHANGE-MAP.csv) for provenance.
 
+## Validate
+
+```bash
+npm ci
+npm run verify
+```
+
+This runs strict TypeScript checks, unit tests, the PHP cross-runtime replay proof,
+the production build, and the dependency audit. Node.js 24 and PHP 8.2 or newer are
+recommended.
+
 ## Local development
 
-```bash
-npm run local
-```
-
-The loop clears prior local runtime state, builds the client, starts Wrangler on
-port 8787, and opens the application. The same `wrangler.jsonc` remains deploy-valid.
-
-## Validate this state
+Start the Worker with ignored local credentials:
 
 ```bash
-npm install
-npm run typecheck
-npm run build
+npm run dev
 ```
 
-No test suite exists at this point in the reconstructed history.
+Then verify all evidence-bearing routes:
+
+```bash
+npm run check:evidence -- http://127.0.0.1:8787
+```
 
 ## Production staging
 
-The historical production environment is named `wizardgangprod`. Its name and
+The production environment is historically named `wizardgangprod`. Its name and
 Durable Object migration identities remain stable because changing them would create
-new state namespaces rather than migrate the existing product. The deployment script
-requires the Cloudflare account identifier from ignored local configuration and refuses
-to deploy unless the operator secret is configured.
-
-```bash
-npm run deploy:wizardgangprod:dry-run
-```
+new state namespaces rather than migrate the existing product. Production deployment
+is exact-tag-only, protected, and disabled by default during repository migration.
+See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Layout
 
@@ -54,3 +57,12 @@ npm run deploy:wizardgangprod:dry-run
 - `packages/php-runtime` — optional PHP protocol-parity proof.
 - `scripts/local.mjs` — one-command local loop.
 - `wrangler.jsonc` — Worker and static-asset configuration.
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — components and state boundaries.
+- [`docs/SECURITY-MODEL.md`](docs/SECURITY-MODEL.md) — assets, trust boundaries, and limitations.
+- [`docs/OPERATIONS.md`](docs/OPERATIONS.md) and [`docs/CONTINUITY.md`](docs/CONTINUITY.md) — operating and recovering the service.
+- [`docs/RELEASE-MANAGEMENT.md`](docs/RELEASE-MANAGEMENT.md) and [`docs/CHANGE-MANAGEMENT.md`](docs/CHANGE-MANAGEMENT.md) — controlled delivery.
+- [`docs/AI-APPLICABILITY.md`](docs/AI-APPLICABILITY.md) — why the deterministic agents are in the AI readiness scope.
+- [`docs/PARITY.md`](docs/PARITY.md) and [`docs/history/LEGACY-INVENTORY.md`](docs/history/LEGACY-INVENTORY.md) — migration verification and scope.

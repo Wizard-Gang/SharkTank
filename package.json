@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p vendor/ModuleReact3Fiber/tsconfig.json",
     "build": "vite build",
     "check:history": "node scripts/check-history.mjs",
+    "check:provenance": "node scripts/check-provenance.mjs",
     "verify": "npm run typecheck && npm test && npm run test:php && npm run build && npm audit --audit-level=moderate",
     "deploy:wizardgangprod": "node scripts/deploy-prod.mjs",
     "deploy:wizardgangprod:dry-run": "node scripts/deploy-prod.mjs --dry-run",
