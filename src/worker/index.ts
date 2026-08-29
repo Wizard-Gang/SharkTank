@@ -121,13 +121,15 @@ function mintNonce(): string {
 /**
  * `script-src` carries a nonce and NO `'unsafe-inline'`: under CSP3 the nonce alone makes an
  * unmarked inline script inert, which is the point — injected markup cannot guess the nonce.
- * `style-src 'unsafe-inline'` stays because these pages carry inline `style=` attributes
- * everywhere and a nonce cannot cover an attribute.
+ * `style-src` carries `'self'` for the one external stylesheet these pages link, and keeps
+ * `'unsafe-inline'` because they also carry inline `style=` attributes everywhere and a nonce
+ * cannot cover an attribute. `'self'` is the only widening here: without it the linked
+ * stylesheet is blocked outright and every page renders unstyled.
  */
 function html(body: string, status = 200): Response {
   const nonce = mintNonce();
   const body2 = body.split(`nonce="${NONCE_SLOT}"`).join(`nonce="${nonce}"`);
-  const csp = `default-src 'self'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
+  const csp = `default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'nonce-${nonce}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
   return new Response(body2, {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": csp, ...SECURITY_HEADERS, "referrer-policy": "no-referrer" },
@@ -387,6 +389,9 @@ const METERED_PUBLIC_WRITES = new Set<string>([API.profile, "/api/audit"]);
  */
 function maintenanceBypass(path: string, method: string): boolean {
   if (METERED_PUBLIC_WRITES.has(path) && method !== "GET" && method !== "HEAD") return false;
+  // The stylesheet the bypassed trust pages link. Without this it would answer with the
+  // downtime page under a text/css request and every bypassed page would render unstyled.
+  if (path.startsWith("/styles/")) return true;
   return path === "/api" || path.startsWith("/api/") ||
     path === "/docs" || path.startsWith("/docs/") || path === "/openapi.json" ||
     path === "/status" || path.startsWith("/status/") || path === "/status.json" ||
@@ -1244,6 +1249,41 @@ const PAGE_CSS = `
   @media(max-width:760px){.site-footer{padding:0 12px 44px}.site-footer nav{grid-template-columns:1fr 1fr}}
 `;
 
+/**
+ * The page stylesheet, served once and cached, instead of inlined into every response.
+ *
+ * PAGE_CSS was inlined into every server-rendered page and html() sets `no-store` on all of
+ * them, so 38.6 KB of identical CSS crossed the wire on every view: 85% of /trust/, 79% of a
+ * policy document, and all of it metered egress against the ceiling /spend/ reports. The
+ * policy split made this worse by turning one page into twenty that each carried the whole
+ * stylesheet.
+ *
+ * The file name carries a hash of its own contents, so a `no-store` page can never pair with
+ * a stale stylesheet -- different CSS is a different URL, which is what makes the immutable
+ * cache-control on it safe. The hash is FNV-1a rather than SHA-256 because it has to be
+ * computed synchronously at module scope, and because it is a cache key that nothing trusts
+ * rather than a security control.
+ */
+function cssFingerprint(source: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < source.length; i += 1) {
+    hash ^= source.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+const PAGE_CSS_PATH = `/styles/page-${cssFingerprint(PAGE_CSS)}.css`;
+
+function pageCssResponse(): Response {
+  return new Response(PAGE_CSS, {
+    headers: {
+      "content-type": "text/css; charset=utf-8",
+      "cache-control": "public, max-age=31536000, immutable",
+      ...SECURITY_HEADERS,
+    },
+  });
+}
+
 const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy Shark Tank mascot"><path d="M35 55 4 26l8 30-8 29 31-25c12 26 67 35 112 4 12-8 20-8 29-9-9-2-17-4-29-12C102 13 47 27 35 55Z" fill="#22e6ff" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M76 29 91 5l19 28M76 75 90 102l14-29" fill="#0891b2" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M41 48c24-15 62-22 106-5-43-8-79 1-105 19Z" fill="#fff" opacity=".18"/><circle cx="137" cy="40" r="13" fill="#fff" stroke="#070b14" stroke-width="4"/><circle cx="142" cy="43" r="5" fill="#070b14"/><path d="M119 66q21 16 42-2-21 31-42 2Z" fill="#47142a" stroke="#070b14" stroke-width="4" stroke-linejoin="round"/><path d="m126 69 5 10 6-8 6 8 5-11" fill="#fff" stroke="#070b14" stroke-width="2" stroke-linejoin="round"/><circle cx="158" cy="48" r="3" fill="#070b14"/></svg>`;
 
 /**
@@ -1310,7 +1350,7 @@ function navHtml(): string {
  */
 function shell(title: string, inner: string, description = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
@@ -2854,6 +2894,13 @@ export default {
           return downtimeResponse(state);
         }
       }
+      // The page stylesheet, ahead of every other route and of the asset fallback. Only the
+      // current fingerprint is served: any other /styles/ path is a miss and says so, rather
+      // than falling through to the single-page-application fallback, which would answer a
+      // text/css request with the game shell and leave the page unstyled with no error.
+      if (path === PAGE_CSS_PATH) return pageCssResponse();
+      if (path.startsWith("/styles/")) return new Response("Not found", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS } });
+
       // Same-origin facade keeps the TypeScript ⇄ PHP proof-of-concept toggle usable
       // on HTTPS production. PHP itself runs on a separately hosted Workerman origin.
       if (path === "/php-room") {
