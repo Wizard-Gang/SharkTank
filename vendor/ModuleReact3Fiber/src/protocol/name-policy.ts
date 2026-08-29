@@ -50,9 +50,25 @@ function comparable(value: string): string {
 }
 
 export function isFamilyFriendlyName(value: string): boolean {
+  // Emptiness is judged on what actually renders, not on what survives comparable().
+  // Stripping the invisibles here (rather than trusting the caller to have sanitised
+  // first) keeps a name built only from zero-width or bidi characters rejected.
+  if (value.replace(INVISIBLE, "").trim().length === 0) return false;
+
   const normalized = comparable(value);
-  return normalized.length > 0
-    && !BLOCKED.some((word) => normalized.includes(word))
+  // comparable() projects onto [a-z], so a name written entirely in another script —
+  // 龍王小明, Владимир, Αθηνά, שלום, or emoji — collapses to "". That used to be treated
+  // as a rejection, which quietly renamed every such player to "Player" while
+  // mixed names like "Ken 龍王" passed. An absence of Latin letters means this
+  // blocklist has nothing to screen, not that the name is unsafe.
+  //
+  // The trade-off is explicit: BLOCKED is Latin-only, so profanity written in another
+  // script is not caught. It never was — a Cyrillic homoglyph already slipped through
+  // the [^a-z] strip — and screening other scripts needs a wordlist per script rather
+  // than a wider net here.
+  if (normalized.length === 0) return true;
+
+  return !BLOCKED.some((word) => normalized.includes(word))
     && !BLOCKED_WHOLE_NAMES.includes(normalized as (typeof BLOCKED_WHOLE_NAMES)[number]);
 }
 

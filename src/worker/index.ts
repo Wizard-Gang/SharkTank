@@ -690,12 +690,26 @@ const GAMEA11Y2_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["a repeated message is spoken again", "losing the connection is announced, not only drawn", "spoken position survives turning the radar off", "the single-key shortcut can be switched off and ignores typing"],
   reference: { label: "Play the game", href: "/" },
 };
-/** Development minutes across every post-delivery hotfix, WG-018 to WG-042. */
-const POST_DELIVERY_HOTFIX_MINUTES =
+/** Running total through WG-042. */
+const POST_DELIVERY_MINUTES_THROUGH_WG042 =
   POST_DELIVERY_MINUTES_THROUGH_WG039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES;
+const NAMES_HOTFIX_MINUTES = 9;
+const NAMES_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "WG-043",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG042 + NAMES_HOTFIX_MINUTES),
+  label: "hotfix",
+  deployment: "D21",
+  title: "Players can use their own name",
+  summary: `Closed in ${NAMES_HOTFIX_MINUTES} minutes. A name written entirely in Chinese, Cyrillic, Greek, Hebrew, Korean or emoji was refused and the player was renamed to Player, while a name mixing one of those with Latin letters was fine. The name check compared against Latin letters only, so a name containing none of them looked empty rather than unscreenable. Names are now accepted on what they actually contain.`,
+  evidence: ["names in any script are kept as typed", "the existing word list still blocks what it blocked before", "names built only from invisible characters are still refused", "spoofing defences and the length limit are unchanged"],
+  reference: { label: "Play the game", href: "/" },
+};
+/** Development minutes across every post-delivery hotfix, WG-018 to WG-043. */
+const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG042 + NAMES_HOTFIX_MINUTES;
 
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
-  PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY];
+  PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
+  NAMES_HOTFIX_ROADMAP_ENTRY];
 const ROADMAP_ELAPSED_MINUTES = 8 * 60;
 const ROADMAP_DEPLOYMENT_COUNT = 7;
 interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }
