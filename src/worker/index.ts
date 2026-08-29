@@ -837,12 +837,25 @@ const NAMESPACE_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["one menu became two, and the game's competing seven-link menu became one link", "every figure on the trust page is computed from the source the owning page uses", "the receipt chain and the uptime, spend and incident counts each render in exactly one place", "the spend limit now closes the routes that generate the billable writes", "moved routes redirect and every evidence link in the register still resolves", "the agent count is published beside human occupancy, which the AI policy already said it was"],
   reference: { label: "Trust and operations", href: "/trust/" },
 };
-/** Development minutes across every post-delivery entry, WG-018 to WG-047. */
-const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES;
+const POST_DELIVERY_MINUTES_THROUGH_WG047 = POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES;
+const TRUTHFULNESS_MINUTES = 88;
+const TRUTHFULNESS_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "WG-048",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG047 + TRUTHFULNESS_MINUTES),
+  label: "feature",
+  deployment: "D26",
+  title: "Deploy the split, then close the four things it left behind",
+  summary: `Built in ${TRUTHFULNESS_MINUTES} minutes. The previous version was written and never deployed, so for its whole life the register pointed at routes the live service did not serve; that went out first. Then four things that were written down but not true. The restore drill said it restored the most recent copy and did not: it exported the live object and restored that, which proves the object can copy itself and proves nothing about object storage. It now reads the copy back out of the bucket, and with no bucket or no copy it fails and says so instead of quietly testing something else. Three policy records stated the evidence walk's result as a present-tense measurement and all three had the previous version's numbers; they are read off the register when the page is built, so they cannot go stale again. The link checker accepted any 200 as proof a route exists, but every unrouted path here answers 200 with the game — it now requires each response to carry something only the real page emits. And the split had left the spend and API pages reachable from two of the seven trust pages, so every page carries the whole estate in its footer. Two other things: the stylesheet was 38.6 KB re-sent on every page view and is now fetched once and cached, and every link on the delivery chart is a 24-pixel target instead of nine.`,
+  evidence: ["the split namespace is live, and the register's routes are routes the service serves", "the restore drill reads backups/state/latest.json and fails loudly when there is nothing to read", "the evidence-walk figures are derived from the register at render time, not transcribed", "a route deleted from the service now fails the link checker instead of passing on the game shell's 200", "/spend/ and /docs/ are reachable from all 27 server-rendered pages, including each of the 20 policy documents", "a trust page dropped from 45 KB to 7 KB, and all 22 delivery-chart links clear 24 by 24 with no overlap"],
+  reference: { label: "Operations", href: "/status/#delivery" },
+};
+/** Development minutes across every post-delivery entry, WG-018 to WG-048. */
+const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG047 + TRUTHFULNESS_MINUTES;
 
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
   PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
-  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY];
+  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY,
+  TRUTHFULNESS_ROADMAP_ENTRY];
 const ROADMAP_ELAPSED_MINUTES = 8 * 60;
 const ROADMAP_DEPLOYMENT_COUNT = 7;
 interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }
