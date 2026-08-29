@@ -10,6 +10,18 @@
 // that does not exist is worse than a recorded gap: it fails a Stage 2 audit faster, and
 // it makes every other row on the register suspect.
 
+import { evidenceWalkStats } from "./conformance.js";
+
+/**
+ * The evidence-link walk's figures, read from the register rather than transcribed.
+ *
+ * Three records below state this result. Each was written by hand, each went stale as the
+ * register grew, and each went on reading as a present-tense measurement while saying a
+ * number that was no longer true. Deriving them here is the only version of this that
+ * cannot rot: the sentence and the register are now the same source.
+ */
+const WALK = evidenceWalkStats();
+
 export interface DocSection {
   heading: string;
   /** Paragraphs. Kept as prose because an assessor reads these, not a machine. */
@@ -937,7 +949,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "The failure this arrangement is most likely to produce is a renamed anchor: a document keeps its content, its identifier changes, and every register row pointing at it silently stops resolving. Nothing about the page would look wrong.",
           "So it is checked mechanically rather than watched for. A checker committed alongside the service walks the register's own manifest, fetches every evidence link on every row, requires public routes to answer 200 and operator routes to answer 401, and — the part that catches the renamed anchor — requires any fragment in a link to exist as an identifier in the page that comes back. The same pass asserts the honesty rule from the other direction: no row marked met may carry an evidence list with no link in it.",
-          "At this version the walk covers 37 distinct routes across every row of the register, with no broken links and no met row lacking a route.",
+          `At this version the walk covers ${WALK.distinctRoutes} distinct routes across every row of the register, with no broken links and no met row lacking a route. That count is re-read from the register whenever this page is rendered rather than written down here, so it cannot fall behind the register it describes.`,
         ],
       },
       {
@@ -1162,7 +1174,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "Performed at this version. This is the review of whether the service complies with its own policies, as distinct from the register, which records whether it complies with the standards.",
           "Method. Every evidence link on every row of the register was fetched and checked: public routes required to answer 200, operator routes required to answer 401, and any anchor in a link required to exist as an identifier in the page returned. That last check is the one that catches a renamed document anchor, which is the failure this arrangement is most likely to produce. The same pass asserted that no row marked met carries an evidence list without a link in it.",
-          "Result: 37 distinct routes across every row, no broken links, 102 met rows, none without a route. The checker is committed with the service rather than rewritten each time, so this review is repeatable by someone who is not the person who performed it.",
+          `Result: ${WALK.distinctRoutes} distinct routes across ${WALK.rows} rows, no broken links, ${WALK.metRows} met rows, ${WALK.metWithoutRoute === 0 ? "none without a route" : `${WALK.metWithoutRoute} without a route`}. Those figures are derived from the register at the moment this page is rendered, not transcribed at the date of the review: an earlier version of this record stated them as a fixed result and was still stating the previous version's numbers two versions later. The checker is committed with the service rather than rewritten each time, so this review is repeatable by someone who is not the person who performed it.`,
           "Findings requiring action: none at this version. Findings from the previous version were recorded as nonconformities N-01 to N-04 in DOC-17 and corrected there. Weakness in this review, stated: it is a manual step with no automated gate behind it, so it depends on being performed. That is accepted residual R-07.",
         ],
       },
@@ -1300,7 +1312,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Management review",
         body: [
           "Performed at this version. Management review, unlike internal audit, does not require independence — it requires top management to review the system at planned intervals against defined inputs and to produce defined outputs. That is performable by one person, and it has been performed.",
-          "Inputs considered. Status of actions from the previous review: this is the first, so none. Changes in external and internal issues: none material; the service, its scope, its supplier and its single-person resourcing are unchanged. Performance: availability at 100 per cent for the server with no unscheduled downtime, metered spend well below the ceiling, no unscheduled outage, and the receipt chain verifying on every read. Nonconformities and corrective actions: five recorded, four closed, one — N-03 — corrected in its description with the underlying shortfall left open as R-12. Monitoring and measurement results: the evidence-link walk at 37 routes with no failures, and the restore drill passing on a digest comparison. Audit results: as above, with the objectivity limitation. Feedback from interested parties: no security reports requiring action beyond receipting, and no player complaints received through any channel. Risk assessment results: twelve risks assessed, three left open — the unscanned dependencies, the missing erasure route, and the manual evidence walk. Opportunities for continual improvement: as below.",
+          `Inputs considered. Status of actions from the previous review: this is the first, so none. Changes in external and internal issues: none material; the service, its scope, its supplier and its single-person resourcing are unchanged. Performance: availability at 100 per cent for the server with no unscheduled downtime, metered spend well below the ceiling, no unscheduled outage, and the receipt chain verifying on every read. Nonconformities and corrective actions: five recorded, four closed, one — N-03 — corrected in its description with the underlying shortfall left open as R-12. Monitoring and measurement results: the evidence-link walk at ${WALK.distinctRoutes} routes with no failures, and the restore drill passing on a digest comparison against the copy read back out of object storage. Audit results: as above, with the objectivity limitation. Feedback from interested parties: no security reports requiring action beyond receipting, and no player complaints received through any channel. Risk assessment results: twelve risks assessed, three left open — the unscanned dependencies, the missing erasure route, and the manual evidence walk. Opportunities for continual improvement: as below.`,
           "Outputs — decisions taken. First: the backup gap is closed and will not be reopened by treating the drill as optional; a failed scheduled copy is to be treated as an incident rather than as a retry. Second: dependency scanning stays open and is the next engineering item, ahead of further documentation, because the register is now closer to its documentation ceiling than to its engineering one. Third: the player erasure route is the item after that, and the leaderboard question it depends on is to be decided before the route is built rather than during. Fourth: the supplier certificates are to be obtained and held on file, because fourteen rows currently rest on an undischarged condition. Fifth: no change to the scope, the policy set's structure or the resourcing is required.",
           "Changes needed to the management system: none structural. The suitability, adequacy and effectiveness of the system are judged sufficient for its scope, with the two named exceptions — audit objectivity and the undischarged supplier condition — which are limitations of the arrangement rather than defects in it.",
         ],

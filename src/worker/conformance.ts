@@ -689,6 +689,39 @@ export function summarise(controls: readonly Control[]): Summary {
 
 export const ALL_CONTROLS: readonly Control[] = REGISTERS.flatMap((register) => register.controls);
 
+/**
+ * The figures the evidence-link walk produces, derived from the arrays the walk reads.
+ *
+ * These numbers were transcribed into the policy records by hand and went stale twice --
+ * once as the register grew, once as the policy split multiplied the routes -- while the
+ * sentences carrying them stayed in the present tense. A record that states a measured
+ * result and states it wrongly is worse than one that states nothing, because the whole
+ * register is read on the assumption that its numbers were checked.
+ *
+ * The distinct-route count deliberately mirrors scripts/check-evidence.mjs: the same three
+ * sources, the same `href|auth` key. The published figure and the checker's output are
+ * therefore the same figure, and a disagreement between them is a real disagreement rather
+ * than two ways of counting.
+ */
+export function evidenceWalkStats(): { distinctRoutes: number; rows: number; metRows: number; metWithoutRoute: number } {
+  const distinct = new Set<string>();
+  let rows = 0;
+  const add = (list: readonly Evidence[] | undefined) => {
+    for (const item of list ?? []) if (item && item.href) { rows += 1; distinct.add(`${item.href}|${Boolean(item.auth)}`); }
+  };
+  for (const process of CHANGE_PROCESSES) add(process.evidence);
+  for (const document of MANDATORY_DOCUMENTS) add(document.evidence);
+  for (const register of REGISTERS) for (const control of register.controls) add(control.evidence);
+
+  let metRows = 0, metWithoutRoute = 0;
+  for (const control of ALL_CONTROLS) {
+    if (control.status !== "met") continue;
+    metRows += 1;
+    if (!(control.evidence ?? []).some((item) => item && item.href)) metWithoutRoute += 1;
+  }
+  return { distinctRoutes: distinct.size, rows, metRows, metWithoutRoute };
+}
+
 /** The full register as data, for anyone who would rather re-verify it themselves. */
 export function conformanceManifest() {
   return {
