@@ -7,6 +7,11 @@
   "type": "module",
   "scripts": {
     "local": "node scripts/local.mjs",
+    "php:install": "node scripts/php.mjs install",
+    "php:start": "node scripts/php.mjs start",
+    "php:stop": "node scripts/php.mjs stop",
+    "php:status": "node scripts/php.mjs status",
+    "test:php": "php packages/php-runtime/bin/selftest.php",
     "typecheck": "tsc --noEmit && tsc --noEmit -p vendor/ModuleReact3Fiber/tsconfig.json",
     "build": "vite build",
     "dev": "wrangler dev --port 8787",

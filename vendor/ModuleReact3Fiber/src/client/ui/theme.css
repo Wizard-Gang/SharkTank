@@ -1,0 +1,195 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Snake.io UI design system — WCAG 2.2 AA.
+   Token-driven so contrast is auditable in one place. All text tokens hit ≥4.5:1
+   on their intended surface; UI/border tokens hit ≥3:1 (1.4.3 / 1.4.11).
+   Honors prefers-color-scheme, prefers-contrast, prefers-reduced-motion, plus
+   in-app overrides via [data-contrast] / [data-motion] / --font-scale on <html>.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces (dark is the default game theme) */
+  --bg: #0b0a14;
+  --surface-1: #16142a;
+  --surface-2: #201d3b;
+  --surface-3: #2b2750;
+  --overlay-scrim: rgba(6, 5, 12, 0.72);
+
+  /* Text — measured on --surface-1/2 */
+  --text: #f3f1ff;         /* ~15:1 on --bg */
+  --text-muted: #b9b4d6;   /* ~7:1 on --surface-1 */
+  --text-faint: #9a95bd;   /* ~4.6:1 on --surface-1, AA body */
+
+  /* Brand / accent — accessible focus + primary actions */
+  --accent: #8f7bff;
+  --accent-strong: #6f5cff;
+  --accent-contrast: #0b0a14; /* text ON accent buttons; ≥4.5:1 vs --accent */
+  --focus-ring: #ffd54a;      /* high-contrast focus, distinct from accent */
+
+  /* Status */
+  --danger: #ff6b6b;
+  --danger-contrast: #1a0606;
+  --success: #4ade80;
+  --warning: #ffcf5c;
+
+  /* Borders / lines */
+  --border: #3a355e;         /* subtle separators (decorative) */
+  --border-strong: #847cb4;  /* control boundaries — ≥3:1 on surfaces 1–3 (WCAG 1.4.11) */
+
+  /* Shape + rhythm */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-scale: 1;
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --tap-min: 44px;           /* WCAG 2.5.8 target size */
+
+  color-scheme: dark;
+}
+
+/* Optional light theme (system pref). Kept AA on light surfaces. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f3fb;
+    --surface-1: #ffffff;
+    --surface-2: #f0eef9;
+    --surface-3: #e4e0f5;
+    --overlay-scrim: rgba(20, 18, 40, 0.45);
+    --text: #14122a;
+    --text-muted: #3f3a5e;
+    --text-faint: #565080;     /* ≥4.5:1 on white */
+    --accent: #5a45e0;
+    --accent-strong: #4733c4;
+    --accent-contrast: #ffffff;
+    --focus-ring: #8a5a00;
+    --border: #c9c3e6;
+    --border-strong: #9a92c4;
+    color-scheme: light;
+  }
+}
+
+/* High contrast — system pref OR in-app [data-contrast="high"] */
+@media (prefers-contrast: more) {
+  :root { --text-faint: var(--text-muted); --border: var(--border-strong); }
+}
+:root[data-contrast="high"] {
+  --text: #ffffff;
+  --text-muted: #eae7ff;
+  --text-faint: #eae7ff;
+  --border: #ffffff;
+  --border-strong: #ffffff;
+  --accent: #b7a6ff;
+  --focus-ring: #ffe066;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+html { font-size: calc(100% * var(--font-scale)); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Respect motion preferences (2.3.3 + user setting). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+}
+:root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important;
+}
+
+/* ── Focus: always visible, never removed (2.4.7). ── */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* Keep a visible ring even for mouse users on primary controls in high-contrast. */
+:root[data-contrast="high"] :where(button, a):focus { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+
+/* ── Screen-reader-only utility ── */
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+/* Skip link becomes visible on focus. */
+.skip-link {
+  position: fixed; top: 8px; left: 8px; z-index: 1000;
+  transform: translateY(-150%);
+  background: var(--accent); color: var(--accent-contrast);
+  padding: 10px 14px; border-radius: var(--radius-sm); font-weight: 700;
+  transition: transform 120ms ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--tap-min); padding: 0 18px;
+  font: inherit; font-weight: 600; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); cursor: pointer;
+  transition: background 120ms ease, transform 80ms ease;
+}
+.btn:hover { background: var(--surface-3); }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.btn--primary { background: var(--accent); color: var(--accent-contrast); border-color: transparent; }
+.btn--primary:hover { background: var(--accent-strong); }
+.btn--ghost { background: transparent; }
+.btn--danger { background: var(--danger); color: var(--danger-contrast); border-color: transparent; }
+.btn--lg { min-height: 56px; font-size: 1.125rem; padding: 0 28px; }
+.btn--block { width: 100%; }
+
+/* ── Form controls ── */
+.field { display: grid; gap: 6px; }
+.field > label { font-weight: 600; color: var(--text-muted); }
+.input, .select {
+  min-height: var(--tap-min); width: 100%;
+  padding: 10px 12px; font: inherit; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.input::placeholder { color: var(--text-faint); }
+
+/* Range slider — larger hit area, visible track/thumb */
+.range { width: 100%; height: var(--tap-min); accent-color: var(--accent); }
+
+/* ── Cards / panels ── */
+.panel {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+
+/* ── Modal / dialog scrim ── */
+.scrim {
+  position: fixed; inset: 0; z-index: 100;
+  display: grid; place-items: center; padding: 24px;
+  background: var(--overlay-scrim);
+}
+
+/* ── Data table (lobby / leaderboard) ── */
+.table { width: 100%; border-collapse: collapse; }
+.table caption { text-align: left; color: var(--text-muted); padding-bottom: 8px; }
+.table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.table th { color: var(--text-muted); font-weight: 700; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table tbody tr:focus-within { background: var(--surface-2); }
+
+/* ── Layout helpers ── */
+.stack { display: grid; gap: 16px; }
+.row { display: flex; gap: 12px; align-items: center; }
+.spread { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.center-screen { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+
+/* Reflow: content must not require horizontal scroll at 320px (1.4.10). On narrow
+   screens hide ONLY the low-priority "Leader" column (4th). Never hide the action
+   column — the Join button must always remain reachable. */
+@media (max-width: 520px) {
+  .row { flex-wrap: wrap; }
+  .table th:nth-child(4), .table td:nth-child(4) { display: none; }
+}

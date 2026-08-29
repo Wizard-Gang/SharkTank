@@ -1,4 +1,4 @@
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
-body { background: #0b0a14; overflow: hidden; }
+/* Host-level styles only. The design system + theming lives in the game module's
+   ui/theme.css (imported by <App/>), which owns color-scheme, tokens, and the
+   html/body/#root box. Keep this file minimal so it never fights the theme. */
+#root { isolation: isolate; }
