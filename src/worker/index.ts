@@ -734,12 +734,25 @@ const GOVERNANCE_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["a risk method with worded scales and an acceptance threshold, not a colour chart", "twelve assessed risks with scores, decisions and what is left over", "the backup gap, the unscanned dependencies and the missing erasure route recorded as open", "four inaccurate descriptions found and corrected while checking them"],
   reference: { label: "Policies", href: "/policies/" },
 };
-/** Development minutes across every post-delivery entry, WG-018 to WG-045. */
-const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG044 + GOVERNANCE_MINUTES;
+/** Running total through WG-045. */
+const POST_DELIVERY_MINUTES_THROUGH_WG045 = POST_DELIVERY_MINUTES_THROUGH_WG044 + GOVERNANCE_MINUTES;
+const PARTIALS_MINUTES = 71;
+const PARTIALS_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "WG-046",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES),
+  label: "feature",
+  deployment: "D24",
+  title: "Do the things the register said were only written down",
+  summary: `Built in ${PARTIALS_MINUTES} minutes. Forty-two rows were marked partial, and sorting them showed most were not missing writing at all — they were activities defined and never performed, or one piece of engineering nobody had built. The engineering came first: everything the tank holds — the receipt chain, the ninety-day log, player profiles, spend history — is now copied daily to object storage under a digest, and the copy is proven by restoring it into a scratch instance and checking the two digests match. The first drill failed for a real reason and that failure is on the public chain in front of the passes. Then four activities were run for the first time and recorded — an access review, a supplier check, a compliance review and the AI policy review — and seven documents written for what remained. Ten rows are still open and named: no dependency scanning, no erasure route, no audit independence, and supplier certificates nobody has obtained. Readiness moved from 77 to 93 per cent.`,
+  evidence: ["state copied daily and proven by a restore that compares digests, not by assertion", "the first restore drill failed, and the failure is published before the passes", "four recurring activities performed for the first time, each stating what was examined", "six controls excluded on the boundary the scope statement already drew, not on convenience", "internal audit stays partial because one person cannot be objective, and says so"],
+  reference: { label: "Policies", href: "/policies/" },
+};
+/** Development minutes across every post-delivery entry, WG-018 to WG-046. */
+const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES;
 
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
   PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
-  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY];
+  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY];
 const ROADMAP_ELAPSED_MINUTES = 8 * 60;
 const ROADMAP_DEPLOYMENT_COUNT = 7;
 interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }

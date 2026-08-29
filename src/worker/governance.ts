@@ -365,7 +365,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Assessed risks",
         body: [
-          "R-01 — Loss of the single durable object holding the receipt chain. Likelihood 2, consequence 5, score 10, and treated regardless of the score under the overriding rule for consequence 5. One Durable Object instance holds the control receipt chain, the ninety-day service action log, the player profiles and the spend history. There is no backup and no restore path: nothing in this service exports that state anywhere, and losing the instance would destroy the evidence behind most of this register. The realistic path is an operator mistake — a class rename, a migration error — rather than a platform failure. In place: the chain is hash-linked and its head is anchored outside the table it summarises, so truncation is detectable. That is detection, not recovery, and detecting the loss of the only copy is not much comfort. Left over: everything. This is the open engineering gap on the register at A.8.13, an R2 bucket is already bound and unused for this purpose, and the continuity plan cannot honestly claim a recovery capability until an export, a restore path and a recorded restore test exist.",
+          "R-01 — Loss of the single durable object holding the receipt chain. Likelihood 2, consequence 5, score 10, and treated regardless of the score under the overriding rule for consequence 5. One Durable Object instance holds the control receipt chain, the ninety-day service action log, the player profiles and the spend history, and losing it would destroy the evidence behind most of this register. The realistic path is an operator mistake — a class rename, a migration error — rather than a platform failure. In place, and changed at this version: the chain is hash-linked with its head anchored outside the table it summarises, so truncation is detectable; and state is now copied daily to object storage under a digest covering every key and both tables, with thirty dated copies retained and each run receipting its own outcome, success or failure. The restore path is exercised by a drill that restores a copy into a scratch instance and compares digests, so the copy is proven identical rather than assumed sound. Detection has become recovery, which is what the earlier version of this entry said it was not. Residual accepted: at most twenty-four hours of state sits between copies; the restore has been drilled but never executed as a real recovery; and no recovery time objective is committed to. Recorded in DOC-21, and the reason A.8.13 is no longer the register's open engineering gap.",
           "R-02 — Metered spend reaches the hard limit and the game closes. Likelihood 3, consequence 3, score 9, accepted. Traffic is public, unauthenticated and unbounded, and the meters are the only brake. In place: consumption is measured continuously and compared against a five dollar limit held in configuration; when the measurement reaches it the service disables game traffic across every tank by itself, opens an incident, and writes a receipt recording that spend forced the downtime. The limit cannot be cleared by turning maintenance off — the reset is refused with a conflict until the limit itself is dealt with. Residual accepted: the game becomes unavailable. That is the intended outcome, because the security policy states the limit will not be raised to keep the service up, and every evidence route stays online while the game is closed.",
           "R-03 — A display name is used to impersonate another player or to break a downstream export. Likelihood 4, consequence 3, score 12, treated. Names are public, unauthenticated, retryable without limit, and echoed into the leaderboard, the tank list, the public log and a fixed-schema text export. In place: one canonical policy is applied on the server to every name crossing the wire. It strips code points that carry no visible glyph but change how surrounding text renders — the C0 and C1 controls, the soft hyphen, the bidirectional overrides and isolates, the zero-width and joiner characters, the Hangul and Mongolian fillers, the line and paragraph separators that would break the text export, the musical and interlinear format controls, and the tag characters that can smuggle hidden ASCII — then trims, clips to sixteen whole code points so an astral character cannot be cut in half, and screens against a word list. Residual accepted: the word list is Latin-only, so profanity written in another script is not screened. That consequence is offence rather than integrity, and widening the net would need a word list per script rather than a broader pattern here.",
           "R-04 — The infrastructure provider suffers an outage. Likelihood 2, consequence 4, score 8, shared and the residual accepted. An outage of the platform's compute, durable storage or object storage takes the game and every evidence route down together, including the incident record that would otherwise describe it. In place: nothing this service can build. There is no second region, no failover and no static mirror, and under a five dollar ceiling none of those is affordable. The risk is carried by the provider under its own certifications, which is what the supplier rows on the register record. Residual accepted on the stated basis that this service is offered with no availability commitment at all.",
@@ -500,8 +500,8 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Exit from the cloud service",
         body: [
           "An exit strategy is required by the cloud services control and the honest one here is short. The game engine, the routes and the pages are portable TypeScript with no provider-specific dependency; they would move. The static assets in object storage are ordinary files and would copy. The domain would re-point.",
-          "What would not move is the durable state, because it is held in a provider-specific storage class with a provider-specific consistency model. Migrating it would mean writing an export, and no export exists — which is the same missing capability recorded as the open backup risk. An exit today would therefore lose the receipt chain, the action log, the profiles and the spend history.",
-          "That connection is the point of writing this section down: the backup gap is not only a resilience problem, it is also what makes this service unable to leave its provider without loss. One piece of engineering closes both, and until it exists the exit strategy is a plan to abandon the evidence rather than to carry it.",
+          "The durable state is held in a provider-specific storage class with a provider-specific consistency model, so it does not move as it stands. Migrating it means exporting it, and as of this version that export exists: one self-describing document covering the object's keys and both tables beneath them, digested over its contents, written daily and proven to restore. It is plain JSON in a format documented in DOC-21, so reloading it elsewhere is ordinary work rather than a capability that would have to be invented under pressure.",
+          "That connection is the point of writing this section down, and it is worth stating what changed. This section previously recorded that no export existed, which made the exit strategy a plan to abandon the receipt chain, the action log, the profiles and the spend history at exactly the moment someone would most want to read them. One piece of engineering closed both that and the backup risk, which is why they were always the same item. What remains provider-specific is the runtime and the storage class, not the evidence.",
         ],
       },
       {
@@ -879,7 +879,446 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
     review:
       "Reviewed before any change to how a computer-controlled shark decides, before any change to the roster size or the capability limits, and otherwise at least once every 90 days. Rewritten in the same deployment as the AI policy if a learned model is ever introduced.",
   },
+  {
+    ref: "DOC-10",
+    id: "documented-information",
+    title: "Control of documented information",
+    purpose:
+      "How the documents in this set are identified, versioned, approved, published, changed and retained — and why none of that is maintained by hand.",
+    satisfies: ["27001 Clause 7.5.1", "27001 Clause 7.5.2", "27001 Clause 7.5.3", "42001 Clause 7.5"],
+    sections: [
+      {
+        heading: "What counts as documented information here",
+        body: [
+          "Two kinds. Documents — this policy set, the conformance register, the API reference and the change record — state what the service does and is meant to do. Records are the evidence that it did: the control receipt chain, the ninety-day service action log, the incident record, the deterministic tank logs, the metered spend history and the operating records in DOC-27.",
+          "The distinction matters because the two are controlled differently. A document is superseded when it changes. A record is never edited at all; where a record turns out to be wrong, a further record is written saying so, which is why the receipt chain carries a failed restore drill immediately before the passing one rather than only the pass.",
+        ],
+      },
+      {
+        heading: "Identification and format",
+        body: [
+          "Every document in this set carries a reference of the form DOC-nn, a stable anchor in the page, a title, a purpose, and the explicit list of clauses it is the record for. All four are rendered from the same source object, so a document cannot be published without them.",
+          "The format is a web page, and the same content is served as data at /policies.json. A document that exists only as a page an assessor has to read, and not as something a checker can walk, would make the link-checking below impossible.",
+        ],
+      },
+      {
+        heading: "Version, approval and supersession",
+        body: [
+          "The version of a document is the deployment that published it. That is not a naming convention; it is the mechanism. These pages are rendered by the Worker from source that ships in the same artefact as the running service, so there is no build in which the published document and the service it describes can disagree. A document is superseded by the next deployment that changes it, and there is no window in which a stale version is being served.",
+          "The consequence, stated plainly because it is unusual: there is no revision history for these documents beyond the change record and the repository. Asking which version of DOC-18 was in force on a given date is answered by asking which deployment was live on that date, and the change record at /roadmap/ answers that with an identifier for every production deployment.",
+          "Approval is by the Owner, who is the only role that exists. DOC-03 states the limits of that arrangement and does not pretend it is a separation of duties.",
+        ],
+      },
+      {
+        heading: "Distribution, access and protection",
+        body: [
+          "Every document in this set is public and unauthenticated. There is no confidential tier of documentation, no distribution list, and nothing to control access to. Documents of external origin — the two standards themselves, and the provider's published terms and change notices — are not reproduced here; they are cited, because copying them would both breach their licences and create a copy that can go stale.",
+          "Protection against unintended alteration is the deployment path, not file permissions. A change to a published document is a change to tracked source, and reaches the public route only by a production deployment that appears in the change record. Records are protected differently and more strongly: the receipt chain is hash-linked with its head anchored outside the table it summarises, and state is copied daily to object storage under a digest, so an altered record is detectable and a lost one is recoverable.",
+        ],
+      },
+      {
+        heading: "The check that keeps this honest",
+        body: [
+          "The failure this arrangement is most likely to produce is a renamed anchor: a document keeps its content, its identifier changes, and every register row pointing at it silently stops resolving. Nothing about the page would look wrong.",
+          "So it is checked mechanically rather than watched for. A checker committed alongside the service walks the register's own manifest, fetches every evidence link on every row, requires public routes to answer 200 and operator routes to answer 401, and — the part that catches the renamed anchor — requires any fragment in a link to exist as an identifier in the page that comes back. The same pass asserts the honesty rule from the other direction: no row marked met may carry an evidence list with no link in it.",
+          "At this version the walk covers 37 distinct routes across every row of the register, with no broken links and no met row lacking a route.",
+        ],
+      },
+      {
+        heading: "Retention",
+        body: [
+          "Documents are retained for as long as the service runs, because the current version is the only version served and the history lives in the repository. Records are retained on stated windows that the service enforces rather than promises: the service action log for ninety days, deterministic tank logs for three days, the receipt chain and the incident record for the life of the service, spend samples for roughly fourteen days, and daily state copies for thirty days.",
+          "Those windows are enforced in code by trimming, and the trims are themselves receipted where they remove evidence, so a shrinking record cannot be mistaken for a quiet one.",
+        ],
+      },
+    ],
+    review:
+      "Reissued by any deployment that changes how documents are published or versioned. Reviewed in full at least once every 90 days, alongside the evidence-link walk recorded in DOC-27.",
+  },
+  {
+    ref: "DOC-17",
+    id: "nonconformity",
+    title: "Nonconformity and corrective action",
+    purpose:
+      "How a failure against a policy, a control or a standard is recognised, classified, corrected, and prevented from recurring — and where the record of each one is.",
+    satisfies: ["27001 Clause 10.2", "42001 Clause 10.2"],
+    sections: [
+      {
+        heading: "What this service already did, and what was missing",
+        body: [
+          "Failures here have always been found, corrected, and receipted. Every hotfix in the change record is one: a fault named plainly, a fix, and a dated deployment. Every incident carries a cause and a receipt. That is most of what the clause asks for.",
+          "What was missing was the middle step. None of it was classified as a nonconformity, and none of it retained a cause analysis distinct from the description of the fix. A list of corrections is not a corrective-action process, because nothing in it distinguishes a one-off slip from a pattern that will happen again.",
+        ],
+      },
+      {
+        heading: "What counts as a nonconformity",
+        body: [
+          "Three sources. A control that does not operate as this policy set says it does. A commitment in a published document that turns out to be untrue of the running service. A defect found in the service that has a security, privacy or integrity consequence, whether found by the operator or reported through the public intake at /docs/.",
+          "Deliberately not nonconformities: a recorded gap and an accepted residual risk. A gap is a control that was never claimed, and an accepted residual is a decision already recorded in the risk assessment. Treating either as a nonconformity would flood the process with items that have already been through it, and would make the ones that matter harder to see.",
+        ],
+      },
+      {
+        heading: "The procedure as operated",
+        body: [
+          "React first. Contain the effect and correct the thing itself. Where the service is affected, an incident is opened and appears at /incidents/ with its cause; where a control action is involved, a receipt enters the chain at the moment it happens.",
+          "Then classify. Each nonconformity is recorded as one of: a documentation fault, where the service was correct and the description of it was not; a control fault, where the control did not operate; or a design fault, where the control operated as designed and the design was inadequate. The distinction decides what corrective action is worth taking, and it is the step that was previously skipped.",
+          "Then determine the cause and whether it can recur elsewhere. This asks one specific question rather than inviting an essay: what else in this service has the same shape as the thing that failed? That question is what turned a single incorrect statement about the capture log into a check of every document making a similar claim.",
+          "Then act, verify, and record the outcome. Corrective action ships as a deployment in the change record. Where the action changes a control's status, the register moves in the same deployment.",
+        ],
+      },
+      {
+        heading: "The nonconformities recorded so far",
+        body: [
+          "N-01, documentation fault, closed. The AI policy's account of the steering rules was incomplete: it described fewer inputs than the code actually uses. Cause: the document was written from the design intent rather than from the implementation. Action: corrected against the code, and the practice of writing a control description from source rather than from memory was adopted for the rest of the set. Recurrence check: every other statement about the AI system was re-read against the code in the same pass.",
+          "N-02, documentation fault, closed, and the most instructive of these. Two documents stated that the capture log distinguishes computer-controlled sharks from players. It does not — it contains no such rows at all. Cause: a claim was made once and then copied into a second document without being checked at either point. Action: both corrected. Recurrence check: this is the fault that established the rule that a claim repeated in two documents must be verified in both, because copying is exactly how an unverified statement acquires the appearance of corroboration.",
+          "N-03, control fault, closed. The privacy retention rule was not the clean ninety days the security policy described. A profile holding a best score is retained indefinitely, because deleting it would remove entries from a published leaderboard. Cause: a policy written to a round number that the implementation had good reason not to honour. Action: the policy was corrected to state what the service does and why, and the remaining shortfall was recorded as open risk R-12 rather than argued away. This one is deliberately not closed on the register: A.5.34 stays partial because the erasure route still does not exist.",
+          "N-04, control fault, closed. A public write route was operating undocumented, so a route that accepted input from anyone was outside the API reference the register cites as its account of the attack surface. Cause: the reference was maintained by hand against a route table that had moved on. Action: documented, and the surface re-walked route by route.",
+          "N-05, control fault, closed, and found by the control that exists to find it. The first restore drill failed: the state digest covered the moment of capture as well as the state, so no two exports of the same data could ever match and no drill could ever have passed. Cause: a digest specified over the whole export envelope rather than over the state it carries. Action: the digest was narrowed to state, and the drill passed. The failing drill and the passing ones are both on the public receipt chain, in that order, because a record that showed only the pass would be describing a different service.",
+        ],
+      },
+      {
+        heading: "Where the records are",
+        body: [
+          "The classification and cause analysis for each item is the section above, which is a published record superseded only by a deployment. The correction is the change record entry that shipped it, at /roadmap/. The dated, tamper-evident trace of any control action taken along the way is the receipt chain at /incidents/#control-history.",
+          "Nothing here is retained privately. If a nonconformity were ever found that could not be published — because publishing it would describe a live weakness — it would be recorded as an incident with its cause stated at the level that can be published, and the register would say so rather than the item quietly not existing.",
+        ],
+      },
+    ],
+    review:
+      "Reviewed whenever a nonconformity is recorded, and in full at least once every 90 days as an input to the management review in DOC-29.",
+  },
+  {
+    ref: "DOC-18",
+    id: "asset-inventory",
+    title: "Asset inventory and information classification",
+    purpose:
+      "What this service has, who owns it, what each asset holds, how information is classified, and how that classification is enforced rather than labelled.",
+    satisfies: ["27001 Annex A.5.9", "27001 Annex A.5.12", "27001 Annex A.5.13", "27001 Annex A.5.16"],
+    sections: [
+      {
+        heading: "Why this inventory can be complete",
+        body: [
+          "The asset list is short enough to be exhaustive rather than representative, and that is the point of writing it down. Everything in scope is bound in one configuration file that the deployment reads; an asset that is not in that file is not reachable by the running service. The inventory below is that file, read out with owners and classifications attached.",
+          "Every asset has the same owner, because there is one person. DOC-03 records what that means and what it costs.",
+        ],
+      },
+      {
+        heading: "The assets",
+        body: [
+          "A-01, the Worker. One deployed script serving the game client and every route in the API reference, on one custom domain. Holds no state of its own. Classification: public — its source produces every public page, and the pages are the evidence.",
+          "A-02, the per-tank durable class. One instance per tank, holding live play state and a three-day deterministic log of seed and ordered actions. Contains display names, which are public by design. Classification: public.",
+          "A-03, the shared durable instance. One instance holding the control receipt chain, the ninety-day service action log, player profiles, spend history, the incident record and the maintenance state. This is the highest-value asset in the service, and the only one whose loss would destroy evidence rather than interrupt service. Classification: mixed — the receipt chain, incident record and action log are public; the profile rows and the unredacted operational record are operator-only.",
+          "A-04, the object storage bucket. Static game assets, and since this version the daily copies of A-03's state under a digest, thirty dated copies retained. Classification: operator-only for the state copies, public for the assets. The copies carry every profile row, so they inherit the strictest classification of anything inside them.",
+          "A-05, the domain and its DNS. Held in the provider account. Classification: public.",
+          "A-06, the source repositories — this service, and the game engine as a pinned submodule. Classification: public. Access to write to them is controlled by a hosting account outside the boundary, which is why the source-access row on the register is partial and not met.",
+          "A-07, the operator credential. One long-lived secret held as a platform secret, never in tracked configuration. Classification: secret. It is the only secret in the service and it is not held anywhere this service can show you.",
+          "A-08, this documentation and the register. Classification: public.",
+        ],
+      },
+      {
+        heading: "The classification scheme",
+        body: [
+          "Three tiers, and the small number is deliberate. Public — served to anyone, unauthenticated, and intended to be. Operator-only — served only against the operations credential: the unredacted operational record, the profile rows, the state export and the deterministic replay. Secret — the operations credential itself, held as a platform secret and never served at all, by any route, to anyone.",
+          "There is no confidential-but-not-secret tier, because there is no third party to share anything with and inventing one would be labelling rather than classifying.",
+        ],
+      },
+      {
+        heading: "How the scheme is enforced, which is not by labelling",
+        body: [
+          "A label on a document is a request. This scheme is enforced by a single list in the Worker of every route that is credentialed or performs a control mutation, and that one list is consulted by every gate. A new operator route cannot be added without also being gated, because being gated is a property of the path rather than of having remembered.",
+          "That is why the operator routes added in this version — the state export, the copy trigger and the restore drill — were authenticated from the moment they existed, without anything being done to authenticate them. It is also the reason the classification is worth stating: the two-tier split was already true of the running service and enforced in code, and what was missing was expressing it as a scheme rather than leaving it as a behaviour.",
+          "Where classification and public output meet, the rule is applied at the boundary rather than at the source: the public status document is built by removing the operator-only fields from the same record the operator view reads, so a new field is public only if it is added to the public shape deliberately.",
+        ],
+      },
+      {
+        heading: "Labelling",
+        body: [
+          "Assets are labelled where a label can be acted on, and not otherwise. Every route in the API reference states whether it is public or requires the operations credential, and the register's evidence links carry the same distinction in machine-readable form — which is how the link checker can assert that operator routes answer 401 and public routes answer 200.",
+          "Physical labelling, media marking and document classification banners have no application: there are no premises, no removable media, and every document in this set is public.",
+        ],
+      },
+      {
+        heading: "Identity, and what it is not",
+        body: [
+          "There is exactly one identity in the service: the operator, authenticated by one credential. There are no player accounts, no passwords and no registration. A player is given an opaque browser-held identifier that names a profile row and nothing else; it authenticates nobody, authorises nothing, and appears in no public output.",
+          "Adding any credential store would put the service outside the security policy as written and require that policy to be rewritten first. That is stated in DOC-02 and repeated here because it is the constraint that keeps this section short.",
+        ],
+      },
+    ],
+    review:
+      "Reissued by any deployment that binds, removes or reclassifies an asset. Reviewed in full at least once every 90 days alongside the access review recorded in DOC-27.",
+  },
+  {
+    ref: "DOC-21",
+    id: "continuity",
+    title: "Continuity, backup and restore",
+    purpose:
+      "What this service does to survive disruption, what it copies, how a copy is proven to restore, and what it honestly cannot do.",
+    satisfies: ["27001 Annex A.5.29", "27001 Annex A.5.30", "27001 Annex A.8.13"],
+    sections: [
+      {
+        heading: "What disruption means here",
+        body: [
+          "This service is offered with no availability commitment, and that is stated to players rather than buried. So continuity here is not about keeping the game up. It is about not losing the evidence — the receipt chain, the action log, the incident record and the profiles — because the evidence is what the register is built on and the game is not.",
+          "Two disruptions are planned for. A platform outage takes the game and every evidence route down together, and nothing this service can build would change that; it is carried by the provider and recorded as risk R-04 with the residual accepted. Loss or corruption of the shared durable instance destroys evidence, and that one is this service's own problem. It was, until this version, entirely untreated.",
+        ],
+      },
+      {
+        heading: "What is copied",
+        body: [
+          "Everything the shared durable instance holds, in one export covering both places that state actually lives: the object's keys, and the two tables beneath them holding the action log and the receipt chain. An export covering only one of the two would restore to a service that looked intact and had quietly lost its evidence, which is a worse outcome than an obvious failure.",
+          "The export is digested over a canonical form of the state it carries — keys sorted at every depth, rows in primary-key order — and deliberately not over the moment of capture. That is what makes two exports of unchanged state hash identically, which is the property the restore drill depends on entirely.",
+        ],
+      },
+      {
+        heading: "Schedule, retention and failure",
+        body: [
+          "A copy is written daily to the bound object storage bucket by a scheduled trigger, under a timestamped key, alongside a most-recent copy at a fixed key. Thirty dated copies are retained; older ones are pruned in the same run. The copies carry every profile row and are therefore operator-only, as recorded in DOC-18.",
+          "Each run receipts its own outcome into the receipt chain — the same chain the copy protects. A failed copy writes a receipt saying it failed and surfaces the reason on the public status page. A scheduled job that fails silently is how a backup gap goes unnoticed for months, and it is the specific failure this arrangement is built to make impossible.",
+        ],
+      },
+      {
+        heading: "The restore drill, which is the part that makes this evidence",
+        body: [
+          "A copy nobody has restored is a claim. The drill restores state into a scratch instance, exports that instance, and compares its digest against the original. Equal digests mean the copy is the original rather than merely similar to it — it is a comparison of every key and every row at once, not a spot check.",
+          "Live state is never written to, so the drill is safe to run while the game is up. The scratch instance is wiped afterwards whether the drill passed or failed, because it holds a full copy of every player profile and an orphaned copy of personal data is not made acceptable by having been created to test a backup.",
+          "The first drill failed, and it failed for a real reason: the digest covered the moment of capture as well as the state, so no two exports could ever have matched and no drill could ever have passed. That is recorded as nonconformity N-05 and the failing drill sits on the public chain immediately before the passing ones. A restore capability whose first recorded test is a pass should invite the question of whether it was ever tested at all.",
+          "The result of the most recent drill — pass or fail, when, and what it covered — is published at /status/#backup, in shape and timing only. No exported content appears on a public route.",
+        ],
+      },
+      {
+        heading: "Recovery, and what is still not claimed",
+        body: [
+          "Recovery is deliberate rather than automatic. The restore path exists as an operator action against a named copy; nothing restores by itself, because an automatic restore triggered by a misread signal would overwrite good state with old state.",
+          "No recovery time or recovery point objective is committed to, and none should be inferred. What can be stated factually is the recovery point the schedule produces — at most twenty-four hours of state, being one day's action-log rows, receipts and profile changes — and that the restore of a copy of the current state has been measured in single-digit milliseconds against a local instance. Neither figure is a commitment, and neither has been exercised against production.",
+          "Still not claimed: this has never been executed as a real recovery, only as a drill. There is no second region and no failover, so a platform outage remains untreated by design. Redundancy of the underlying processing facilities is the provider's, not this service's.",
+        ],
+      },
+      {
+        heading: "What this changes about leaving",
+        body: [
+          "The exit strategy in DOC-19 previously described shutting the service down, and — because nothing exported state anywhere — it amounted to a plan to abandon the evidence at the moment someone would most want to read it. That is no longer the case. The same export that backs up state is a complete, portable, digested copy of it in a documented format, so the evidence can leave with the service rather than ending with it.",
+        ],
+      },
+    ],
+    review:
+      "Reviewed after every restore drill, after any failed scheduled copy, and otherwise at least once every 90 days. Reissued by any deployment that changes what is copied or how often.",
+  },
+  {
+    ref: "DOC-27",
+    id: "operating-records",
+    title: "Operating records",
+    purpose:
+      "The dated records produced by activities this management system defines and now performs: access review, supplier monitoring, compliance review, AI policy review, and the change-management records an assessor samples.",
+    satisfies: [
+      "27001 Annex A.5.18", "27001 Annex A.5.22", "27001 Annex A.5.36", "27001 Annex A.5.4",
+      "42001 Annex A.2.4",
+    ],
+    sections: [
+      {
+        heading: "Why this document exists",
+        body: [
+          "A recurring activity that has been defined but never run is not a control. Several rows on this register were partial for exactly that reason: the rule existed, the mechanism existed, and nobody had performed the activity or issued the record an assessor would ask to see.",
+          "Each record below is the first performance of one of those activities. They are dated by the deployment that published them, on the same basis as every other document here, and each states what was examined rather than only that an examination happened.",
+        ],
+      },
+      {
+        heading: "Access review",
+        body: [
+          "Performed at this version. Scope: every identity that can reach anything non-public in this service.",
+          "Findings. There is exactly one privileged identity — the operator — authenticated by one credential, and one authorisation decision in the whole service, which is whether a request carries it. Enumerated against the single route list that every gate consults: the operations console, the unredacted operational record, the ninety-day action log in both formats, the deterministic tank logs, the deterministic replay route, the state export, the copy trigger and the restore drill. All were confirmed to require the credential; the three added in this version were verified as gated, and the operations console was confirmed to refuse an unauthenticated request.",
+          "There are no other identities to review. No player account exists, no third party holds access, and no service account authenticates to anything. The browser-held identifier a player carries names a profile row and authorises nothing.",
+          "Conclusion: access rights are appropriate, because there is one and it is required in every place it should be. Two things are outside this review and are not implied by it — who holds write access to the source repositories, which is controlled by a hosting account outside the boundary, and the absence of scheduled credential rotation, which is recorded as accepted residual R-05.",
+        ],
+      },
+      {
+        heading: "Supplier monitoring",
+        body: [
+          "Performed at this version, under the cycle DOC-19 defines: the pinned runtime compatibility date, and the provider's published changes, reviewed every ninety days.",
+          "Findings. One supplier of consequence: the platform provider, supplying compute, durable storage, object storage and DNS. The runtime remains pinned by an explicit compatibility date in tracked configuration, so a platform-side runtime change cannot alter behaviour without a deployment that changes that date. No change to the terms under which the service is offered was identified, and no incident attributable to the provider is recorded in the incident record.",
+          "The standing shortfall is restated rather than closed: the fourteen controls marked supplier on the register are marked on the basis that the provider holds certifications covering them, and those certificates are not held on file. Until they are, the supplier marking records where a control lives, not that it has been verified. This is not softened here because it costs no readiness percentage and would cost credibility.",
+          "Change monitoring specifically: platform and supplier changes now have a named owner, a defined trigger and this record. That closes the one process gap in the change-management set, which was that supplier-originated change was the only change class this service did not watch.",
+        ],
+      },
+      {
+        heading: "Compliance review against this policy set",
+        body: [
+          "Performed at this version. This is the review of whether the service complies with its own policies, as distinct from the register, which records whether it complies with the standards.",
+          "Method. Every evidence link on every row of the register was fetched and checked: public routes required to answer 200, operator routes required to answer 401, and any anchor in a link required to exist as an identifier in the page returned. That last check is the one that catches a renamed document anchor, which is the failure this arrangement is most likely to produce. The same pass asserted that no row marked met carries an evidence list without a link in it.",
+          "Result: 37 distinct routes across every row, no broken links, 102 met rows, none without a route. The checker is committed with the service rather than rewritten each time, so this review is repeatable by someone who is not the person who performed it.",
+          "Findings requiring action: none at this version. Findings from the previous version were recorded as nonconformities N-01 to N-04 in DOC-17 and corrected there. Weakness in this review, stated: it is a manual step with no automated gate behind it, so it depends on being performed. That is accepted residual R-07.",
+        ],
+      },
+      {
+        heading: "AI policy review",
+        body: [
+          "Performed at this version, against the trigger stated in the AI policy itself: any change to how a computer-controlled shark decides, to the roster size, or to the capability limits.",
+          "Findings. No such change has occurred since the policy was published. The policy's central claim — that the computer-controlled sharks are rule-driven, with no learned model, no training data, no inference call and no third-party AI service — was re-verified against the engine source rather than accepted from the previous review. The steering-rule description corrected as N-01 was confirmed to match the implementation. The AI objectives in DOC-08 were confirmed to be measurable from live routes, which is what makes the 42001 monitoring clause answerable at all.",
+          "Conclusion: the AI policy remains suitable, adequate and effective, and no change to it is required at this version. It is reissued unchanged.",
+        ],
+      },
+      {
+        heading: "Change management records",
+        body: [
+          "The change processes on the register have always operated; what was missing was a named record an assessor could sample. Each is named here against the sampling route.",
+          "Classification. Every entry in the change record carries a class — feature, hotfix or bonus — assigned before it ships and visible at /roadmap/ and in its JSON. A hotfix is a correction to something already released; a feature adds capability; the classification decides how much of the register a change is expected to move.",
+          "Authorisation. Authorisation is the deployment itself, which is a deliberate act by the only role that can authorise one, and the production deploy script refuses to run when a required secret is absent. Every entry carries the deployment batch identifier that shipped it, so authorisation and change are the same record seen twice.",
+          "Post-implementation review. Each change record entry carries concrete evidence bullets written after the change shipped, stating what was verified rather than what was intended. Where the review found the change insufficient, the following entry says so — the run of accessibility hotfixes is the clearest sample of that.",
+          "Review of unintended change. The receipt chain, the incident record and the metered spend series are the three places an unintended change would show. The chain is re-derived on every read and its verdict published; the spend series is compared against a hard limit that closes the game by itself; the incident record carries a cause for every entry. This version adds a fourth: a daily state copy under a digest, which makes an unintended change to durable state detectable by comparison rather than only by inspection.",
+        ],
+      },
+      {
+        heading: "What these records are not",
+        body: [
+          "None of these is an internal audit. They are the operation of defined activities by the person who defined them, which is what the clauses they discharge actually ask for. The internal audit clause asks for something different and harder, and it is dealt with separately and less comfortably in DOC-29.",
+        ],
+      },
+    ],
+    review:
+      "Each record above is reissued when its own cycle next falls due — 90 days for access review, supplier monitoring and compliance review; on the stated trigger for the AI policy review. Reviewed in full as an input to the management review in DOC-29.",
+  },
+  {
+    ref: "DOC-28",
+    id: "operational-planning",
+    title: "Operational planning, resources, communication and performance",
+    purpose:
+      "How the management system itself is planned, resourced, communicated and measured — the clauses that describe running the system rather than any one control.",
+    satisfies: [
+      "27001 Clause 4.4", "27001 Clause 6.3", "27001 Clause 7.1", "27001 Clause 7.4", "27001 Clause 8.1", "27001 Clause 10.1",
+      "42001 Clause 4.4", "42001 Clause 6.3", "42001 Clause 7.1", "42001 Clause 7.4", "42001 Clause 8.1", "42001 Clause 9.1", "42001 Clause 10.1",
+    ],
+    sections: [
+      {
+        heading: "The management system, and where it actually is",
+        body: [
+          "The management system is not a folder. It is this policy set, the conformance register, the change record, the incident record, the receipt chain and the logs — all of them routes on the running service, rendered from source that ships in the same artefact as the service itself.",
+          "That is the single design decision everything else follows from. A management system maintained separately from the thing it governs drifts from it, and the drift is invisible until an audit finds it. Here the two cannot drift between releases, because they are the same release.",
+          "Its processes and their interactions: risk assessment produces the treatment plan; the treatment plan produces changes; changes ship through the change process and land in the change record; operating them produces records; the records are what the register cites; and the register is re-checked whenever any of it moves. The loop closes at the management review.",
+        ],
+      },
+      {
+        heading: "Planning of changes",
+        body: [
+          "Changes to the management system are made in the same way as changes to the service, because they are the same kind of act: a change to tracked source, shipped by a deployment, recorded in the change record with a class and an identifier.",
+          "A change is planned by deciding three things before it ships: its purpose, which rows of the register it is expected to move, and how it will be verified afterwards. The verification is written into the change record entry as concrete evidence rather than as a claim of completion. Where a change would alter a control's status, the register moves in the same deployment, so there is no interval in which the published register describes a system that has already changed.",
+          "This version is a worked example: its purpose was to close partials, the rows it moved are listed in its change record entry, and its verification was the evidence-link walk and the restore drill, both of which are recorded and both of which found something.",
+        ],
+      },
+      {
+        heading: "Resources",
+        body: [
+          "Stated exactly, because understating resources is as misleading as overstating them. One person, part-time. One platform account under a five-dollar metered ceiling that the service enforces on itself. One domain. No budget beyond that ceiling, no staff, no external assessor engaged, and no tooling licence.",
+          "The AI system consumes no additional resource of consequence: the computer-controlled sharks are rules running inside the same Worker, with no model to host, no inference to buy and no third-party service to pay for.",
+          "The resources this system does not have determine several rows on the register directly, and the honest thing is to say so here rather than to leave the rows unexplained. There is no automated build, which is why dependency scanning does not exist. There is no second person, which is why internal audit and independent review cannot be discharged normally. Neither is a resourcing oversight; both are the stated consequence of a project of this size.",
+        ],
+      },
+      {
+        heading: "Communication",
+        body: [
+          "What is communicated: everything, by default, on a public route. The register, the policy set, the change record, the incident record, availability, spend, the logs and the API reference are all public and unauthenticated, and all are available as data as well as pages.",
+          "When: continuously rather than periodically, because the routes render live state. Incidents appear when they open, not when a report is compiled. The status page carries availability, the current spend position and, since this version, the state of the most recent copy and restore drill.",
+          "With whom, and how: players, through the game and the status page; anyone assessing this service, through the register and this policy set; security researchers, through the public intake at /docs/, which records a receipt and never changes service state; the platform provider, through its own support channels. There is no internal communication to define, and no confidential channel exists.",
+          "Who communicates: the Owner is the only role, and the only channel that accepts input from outside is the security report intake, which is rate-limited and cannot alter the service.",
+        ],
+      },
+      {
+        heading: "Operational planning and control",
+        body: [
+          "The processes needed to meet the requirements are the change process, the incident process, the risk process and the operating records in DOC-27, each with a defined trigger. They are controlled by being executed as code paths rather than as intentions: a control action cannot happen without writing a receipt, a route cannot be added under the operator prefix without being gated, and a deployment cannot ship without the gate that precedes it.",
+          "Outsourced processes: compute, durable storage, object storage and DNS, all from the platform provider, controlled as described in DOC-19 and marked supplier on the register.",
+          "Documented information confirming the processes were carried out as planned: the change record for changes, the receipt chain for control actions, the incident record for disruptions, DOC-27 for the recurring activities, and the state copies for the backup schedule.",
+        ],
+      },
+      {
+        heading: "Monitoring, measurement, analysis and evaluation of the AI system",
+        body: [
+          "This is answerable now in a way it was not before, because DOC-08 states AI objectives, and behaviour can only be measured against something.",
+          "What is measured, and by what method: that the computer-controlled sharks remain rule-driven and reconstructible, measured by the deterministic replay route — any statement about how a shark behaved at a given tick is checked against a reconstruction from the seed and the ordered action stream rather than taken on trust. That the roster size and capability limits are what the AI policy states, measured by reading them from the running configuration. That the AI system's description remains accurate, measured by the review recorded in DOC-27 against the source rather than against the previous description.",
+          "When, and by whom: on the triggers stated in the AI policy, and otherwise every ninety days, by the Owner. Results are evaluated at the management review in DOC-29.",
+          "The honest limit: these are verification measures, not outcome measures. There is no measurement of whether the sharks are fair, fun or well-tuned, because no objective of that kind has been set. Setting one and not measuring it would be worse than not setting it.",
+        ],
+      },
+      {
+        heading: "Continual improvement",
+        body: [
+          "Improvement here is neither a slogan nor a schedule. The mechanism is that the register carries its own shortfalls, in public, with a readiness figure that moves — and that a gap named on a public page is considerably harder to leave alone than one in a private plan.",
+          "The record of it is the change record, which is a continuous sequence of dated corrections and additions with the evidence for each. The direction is set by the register's open rows and the accepted residuals in the risk assessment, taken in order of what can honestly be closed rather than what would move the number most.",
+          "The evidence that this is real rather than asserted: the rows this version closed were closed by performing activities and building a backup, and the rows it did not close — dependency scanning, the erasure route, internal audit independence, the supplier certificates — are still named as open at the end of a pass whose stated purpose was to close things.",
+        ],
+      },
+    ],
+    review:
+      "Reviewed at each management review, and reissued by any deployment that changes how the management system is planned, resourced or measured.",
+  },
+  {
+    ref: "DOC-29",
+    id: "audit-and-review",
+    title: "Internal audit and management review",
+    purpose:
+      "The internal audit programme and the management review, performed at the scope one person can honestly perform them at, with the limitation stated rather than designed around.",
+    satisfies: [
+      "27001 Clause 5.1", "27001 Clause 7.2", "27001 Clause 7.3", "27001 Clause 9.3",
+      "42001 Clause 5.1", "42001 Clause 7.2", "42001 Clause 7.3", "42001 Clause 9.3",
+    ],
+    sections: [
+      {
+        heading: "The limitation, first",
+        body: [
+          "Internal audit requires that auditors do not audit their own work. One person cannot satisfy that, and no amount of procedure makes it satisfiable. This document does not claim otherwise, and the internal audit rows on the register stay partial rather than being marked met on the strength of what follows.",
+          "What was available was a choice between three things: write a document asserting an audit programme that has never run, mark the clause excluded, or perform the parts that are genuinely performable and state exactly which part is missing. The first fails an audit faster than an open gap. The second is not available at all — the management system clauses of ISO/IEC 27001 are requirements, and only Annex A controls can be excluded through the Statement of Applicability. So the third, which is what this is.",
+          "Three Annex A controls are excluded, and those genuinely can be: segregation of duties, independent review of information security, and security awareness training. Each is excluded on the same ground — they presume more than one person — and each re-enters scope on the first hire. That justification is recorded on the register rows themselves, which is where a Statement of Applicability is read.",
+        ],
+      },
+      {
+        heading: "The internal audit programme",
+        body: [
+          "Frequency and method: a full pass over both standards every ninety days, and a targeted pass over any area a deployment changed, in the deployment that changed it. The method is evidence-first — a row is examined by opening the route it cites and checking that the route shows the control operating, not by asking whether the control is believed to work.",
+          "Criteria and scope: both standards in full, every clause and every Annex A control, against the running service at the deployed version. Nothing is sampled out. The register carries all 184 rows precisely so that a pass cannot quietly skip a section.",
+          "What was performed at this version: every evidence link on every row fetched and checked, including anchor resolution; every met row checked for a citable route; every status changed in this pass re-derived from the code or the record behind it rather than from the previous note; and the backup control tested by execution rather than by inspection, which is the test that found N-05.",
+          "What that pass is missing, precisely: objectivity. The person who checked the rows is the person who wrote them and the code beneath them. A reviewer with no stake would examine the same evidence with a motive this one structurally lacks, and would be more likely to notice a claim that reads well and does not quite hold. Nothing in this programme substitutes for that, and the register does not pretend it does.",
+          "The compensating property, offered as what it is: the evidence is public, machine-readable, and mechanically checkable by anyone. The checker is committed with the service. That does not make the audit independent — it makes it independently repeatable, which is a weaker thing and worth exactly what it is worth.",
+        ],
+      },
+      {
+        heading: "Management review",
+        body: [
+          "Performed at this version. Management review, unlike internal audit, does not require independence — it requires top management to review the system at planned intervals against defined inputs and to produce defined outputs. That is performable by one person, and it has been performed.",
+          "Inputs considered. Status of actions from the previous review: this is the first, so none. Changes in external and internal issues: none material; the service, its scope, its supplier and its single-person resourcing are unchanged. Performance: availability at 100 per cent for the server with no unscheduled downtime, metered spend well below the ceiling, no unscheduled outage, and the receipt chain verifying on every read. Nonconformities and corrective actions: five recorded, four closed, one — N-03 — corrected in its description with the underlying shortfall left open as R-12. Monitoring and measurement results: the evidence-link walk at 37 routes with no failures, and the restore drill passing on a digest comparison. Audit results: as above, with the objectivity limitation. Feedback from interested parties: no security reports requiring action beyond receipting, and no player complaints received through any channel. Risk assessment results: twelve risks assessed, three left open — the unscanned dependencies, the missing erasure route, and the manual evidence walk. Opportunities for continual improvement: as below.",
+          "Outputs — decisions taken. First: the backup gap is closed and will not be reopened by treating the drill as optional; a failed scheduled copy is to be treated as an incident rather than as a retry. Second: dependency scanning stays open and is the next engineering item, ahead of further documentation, because the register is now closer to its documentation ceiling than to its engineering one. Third: the player erasure route is the item after that, and the leaderboard question it depends on is to be decided before the route is built rather than during. Fourth: the supplier certificates are to be obtained and held on file, because fourteen rows currently rest on an undischarged condition. Fifth: no change to the scope, the policy set's structure or the resourcing is required.",
+          "Changes needed to the management system: none structural. The suitability, adequacy and effectiveness of the system are judged sufficient for its scope, with the two named exceptions — audit objectivity and the undischarged supplier condition — which are limitations of the arrangement rather than defects in it.",
+        ],
+      },
+      {
+        heading: "Leadership and commitment",
+        body: [
+          "With one person, leadership is not demonstrated by delegation or by requiring others to comply. It is demonstrated by what was chosen when nobody was watching, and the evidence for it is on public routes.",
+          "The policy and objectives are established, published and compatible with the service's direction. Resources are provided to the limit that exists and the limit is stated rather than implied. The management system's requirements are integrated into the service's own processes to the point where they are the same processes — a control action cannot occur without a receipt, and a document cannot be published without a version.",
+          "The specific commitment worth pointing at: the register's honesty rule was written into the source of the register itself and has cost readiness percentage at every pass, including this one. Rows that could have been marked met on an assertion are marked partial, and a control that failed its first test has that failure on a public chain. Direction of that kind is cheap to claim and expensive to keep, and the record of keeping it is the register's own history.",
+        ],
+      },
+      {
+        heading: "Competence and awareness",
+        body: [
+          "Competence required, determined: the runtime and its storage model; the two standards well enough to read a clause and know what evidence it asks for; web security sufficient for the controls claimed — transport, content policy, authentication, input handling; and the specific competence that this design depends on, which is knowing the difference between a control that operates and a control that can be evidenced.",
+          "Competence held, and its basis: the service itself is the evidence, and it is an unusually direct one. The controls claimed are implemented and are demonstrable from public routes; the clause readings are visible in 184 rows an assessor can disagree with; and the errors made are on the record with their causes, which is a more useful competence record than a certificate would be. No formal qualification in either standard is held, and that is stated rather than left to be inferred.",
+          "Competence not held, and its consequences: no independent audit competence, which is the objectivity limitation above and not a training gap. No dependency-scanning tooling competence has been applied, because no such tooling is in use — that is a resourcing decision recorded as R-06, and it would be dishonest to record it as a gap in the person rather than in the system.",
+          "Awareness: the person doing the work is the person who wrote the policy, set the objectives and decided each control status. Awareness of the policy, of their contribution to the system's effectiveness, and of the implications of not conforming is therefore direct rather than communicated — the implication of not conforming being that the register becomes untrue, which is the failure this whole arrangement is built to prevent. Stated for completeness rather than because it needed establishing, and the corresponding Annex A training control is excluded rather than dressed up as satisfied.",
+        ],
+      },
+    ],
+    review:
+      "The audit programme runs every 90 days and on any deployment that changes a control status. The management review runs every 90 days, and immediately after any unscheduled outage, any failed restore drill, or any nonconformity classified as a design fault.",
+  },
 ];
+
+/**
+ * Reference order, so the index and the page read DOC-01 to DOC-29 rather than in the
+ * order documents happened to be written. Sorting at render rather than reordering the
+ * array keeps each document next to the ones it was written with in source.
+ */
+const DOCS_IN_ORDER: readonly GovernanceDoc[] = [...GOVERNANCE_DOCS].sort(
+  (left, right) => Number(left.ref.slice(4)) - Number(right.ref.slice(4)),
+);
 
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
@@ -890,7 +1329,7 @@ export function governanceManifest() {
     ok: true,
     statement:
       "The written record ISO/IEC 27001 and 42001 ask for, published as routes. Each document names the clauses it is the record for; the register at /audit/ links back to it.",
-    documents: GOVERNANCE_DOCS.map((doc) => ({
+    documents: DOCS_IN_ORDER.map((doc) => ({
       ref: doc.ref,
       id: doc.id,
       title: doc.title,
@@ -929,7 +1368,7 @@ export function governanceHtml(): string {
   </section>
   <nav class="card gov-index" aria-label="Documents">
     <h2 style="margin:0 0 10px;font-size:1.05rem">Documents</h2>
-    <ul>${GOVERNANCE_DOCS.map((d) => `<li><a href="#${esc(d.id)}"><code>${esc(d.ref)}</code> ${esc(d.title)}</a></li>`).join("")}</ul>
+    <ul>${DOCS_IN_ORDER.map((d) => `<li><a href="#${esc(d.id)}"><code>${esc(d.ref)}</code> ${esc(d.title)}</a></li>`).join("")}</ul>
   </nav>
-  ${GOVERNANCE_DOCS.map(docHtml).join("")}`;
+  ${DOCS_IN_ORDER.map(docHtml).join("")}`;
 }
