@@ -36,7 +36,7 @@ export const OPENAPI = {
       get: {
         tags: ["tank"],
         summary: "List joinable tanks",
-        description: "Stable catalog of ocean-named tanks with live player counts and top score.",
+        description: "Stable catalog of ocean-named tanks with live player counts and top score. One earlier path name still reaches this same handler.",
         responses: { "200": jsonResponse("Tank list", "TankResponse") },
       },
     },
@@ -65,6 +65,9 @@ export const OPENAPI = {
         },
         responses: { "200": jsonResponse("Saved profile", "ProfileResponse") },
       },
+    },
+    "/api/audit": {
+      post: { tags: ["system"], summary: "Record a public gameplay event", description: "The only unauthenticated write into the 90-day service action log, and the reason that log carries two limits the trusted server-side callers do not. Accepts exactly two event types: `play` (which requires a `room` from the fixed tank list) and `customize` (whose `detail` must match `skin <id>` or is replaced with a fixed phrase). Bodies over 16 KiB are refused unread. Writes are bucketed per edge connection and, separately, under a global ceiling across every public caller at once; publicly written rows are then trimmed to their own floor before the whole-log trim runs, so a flood can only evict other public rows and never server-recorded evidence. The display name attached to the row is resolved on the server behind that rate limit, never taken from the request.", responses: { "200": jsonResponse("Event recorded"), "400": { description: "Unsupported public event type, or a play event without a valid tank" }, "413": { description: "Payload too large" }, "429": { description: "Rate limited, per connection or across all public callers" } } },
     },
     "/api/security-report": {
       post: { tags: ["system"], summary: "Report a security issue", description: "Same-origin public white-hat intake. One request creates a linked report, a retained audit event, and an append-only SHA-256 control-history receipt, and raises the report to operations. It does not change service state: the game stays online, no incident is opened, and no tank is disconnected. Whether a report warrants downtime is a separate authenticated operator decision made at /admin/security-report. Accepted reports are throttled globally to one per minute. Returned metadata is limited to environment, deployment, colo, and country; it contains no secrets or IP data. A report is not confirmation of compromise.", parameters: [{ name: "X-WG-Security-Report", in: "header", required: true, schema: { type: "string", enum: ["white-hat"] } }], responses: { "200": jsonResponse("Security report receipt"), "403": { description: "Same-origin report required" }, "429": { description: "A security report was accepted moments ago" }, "502": { description: "Report could not be persisted" } } },
@@ -97,6 +100,7 @@ export const OPENAPI = {
       get: {
         tags: ["ops"],
         summary: "OpenAPI document",
+        description: "This document. Also served at `/openapi.json`, which is the path the conformance register's evidence index links to.",
         responses: { "200": jsonResponse("OpenAPI 3.0 document") },
       },
     },
@@ -165,6 +169,22 @@ export const OPENAPI = {
         summary: "Conformance register (JSON)",
         description: "The same register as machine-readable data, for independent scoring or import into a compliance tool.",
         responses: { "200": jsonResponse("Standards, status meanings, readiness summary, change processes, mandatory documents, control registers, and the evidence index") },
+      },
+    },
+    "/policies/": {
+      get: {
+        tags: ["ops"],
+        summary: "Governance policy set",
+        description: "The written record ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed: context and scope, the information security policy, roles and authorities, the risk assessment and treatment processes, the Statement of Applicability cover, the risk treatment plan, the security and AI objectives, the AI policy with its impact assessment, and the AI system life cycle. Each document names the clauses it is the record for, and the conformance register links back to it.",
+        responses: { "200": htmlResponse("Policy set") },
+      },
+    },
+    "/policies.json": {
+      get: {
+        tags: ["ops"],
+        summary: "Governance policy set (JSON)",
+        description: "The same documents as machine-readable data: reference, identifier, title, purpose, the clauses each satisfies, its sections, and what triggers its review.",
+        responses: { "200": jsonResponse("Governance documents with their clause coverage and review triggers") },
       },
     },
     "/admin/": {
