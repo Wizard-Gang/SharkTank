@@ -1229,6 +1229,19 @@ const PAGE_CSS = `
     .key-dot,.incident-dot,.meter-bar i{forced-color-adjust:none}
     svg a:focus-visible{outline:3px solid Highlight}
   }
+  /* Estate footer. The top nav stays six items for the common path; this carries the
+     whole estate so that no page is a dead end. Overrides the bare "nav a" pill rules
+     above by specificity (0,1,2 against 0,0,2), not by order. */
+  .site-footer{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:0 20px 56px}
+  .site-footer-inner{border-top:1px solid var(--border);padding-top:22px}
+  .site-footer nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 24px;justify-content:stretch}
+  .footer-col{display:grid;gap:8px;align-content:start}
+  .footer-head{color:var(--cyan);font-size:.68rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+  .site-footer ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+  .site-footer nav a{min-height:26px;display:inline-flex;align-items:center;padding:3px 2px;border:0;border-radius:6px;background:none;color:var(--muted);font-size:.82rem;font-weight:700;text-decoration:none;backdrop-filter:none}
+  .site-footer nav a:hover{border-color:transparent;background:none;color:var(--text);text-decoration:underline}
+  .footer-note{margin:20px 0 0;color:var(--muted);font-size:.76rem;max-width:76ch}
+  @media(max-width:760px){.site-footer{padding:0 12px 44px}.site-footer nav{grid-template-columns:1fr 1fr}}
 `;
 
 const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy Shark Tank mascot"><path d="M35 55 4 26l8 30-8 29 31-25c12 26 67 35 112 4 12-8 20-8 29-9-9-2-17-4-29-12C102 13 47 27 35 55Z" fill="#22e6ff" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M76 29 91 5l19 28M76 75 90 102l14-29" fill="#0891b2" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M41 48c24-15 62-22 106-5-43-8-79 1-105 19Z" fill="#fff" opacity=".18"/><circle cx="137" cy="40" r="13" fill="#fff" stroke="#070b14" stroke-width="4"/><circle cx="142" cy="43" r="5" fill="#070b14"/><path d="M119 66q21 16 42-2-21 31-42 2Z" fill="#47142a" stroke="#070b14" stroke-width="4" stroke-linejoin="round"/><path d="m126 69 5 10 6-8 6 8 5-11" fill="#fff" stroke="#070b14" stroke-width="2" stroke-linejoin="round"/><circle cx="158" cy="48" r="3" fill="#070b14"/></svg>`;
@@ -1255,6 +1268,35 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
  * document the client hydrates into. This is only ever the trust side's own contents.
  * The way back to the game is the brand mark, which is a link to `/` on every page.
  */
+/**
+ * The whole estate, in the footer of every page the trust shell renders.
+ *
+ * The split left /spend/ and /docs/ in neither the nav nor the brand link. Measured across
+ * the estate afterwards, /policies/, each of the twenty policy documents, /logs/, /docs/
+ * and /spend/ itself carried no link to either page -- five of the seven trust surfaces
+ * with no route at all to two of the estate's own pages. /spend/ is the cited evidence for
+ * A.8.6, 7.1, A.5.9, A.5.23, 9.1 and 6.2, so an assessor following any of those rows landed
+ * somewhere with no way onward except the brand mark back to the game.
+ *
+ * A footer rather than two more nav items: the nav is the common path and the split existed
+ * to make it short, so widening it to eight would undo the thing it was for. This is emitted
+ * from shell(), which every trust page and all twenty policy documents render through, so
+ * the index cannot be complete on some pages and missing on others.
+ */
+const ESTATE_FOOTER: ReadonlyArray<readonly [string, ReadonlyArray<readonly [string, string]>]> = [
+  ["Trust", [["/trust/", "Overview"], ["/audit/", "Register"], ["/policies/", "Policies"]]],
+  ["Operations", [["/status/", "Operations"], ["/spend/", "Spend"], ["/logs/", "Evidence"]]],
+  ["Interfaces", [["/docs/", "API"], ["/admin/", "Admin"], ["/", "Game"]]],
+];
+
+function footerHtml(): string {
+  return `<footer class="site-footer"><div class="site-footer-inner"><nav aria-label="All pages on this service">${
+    ESTATE_FOOTER.map(([head, links]) => `<div class="footer-col"><span class="footer-head">${head}</span><ul>${
+      links.map(([href, label]) => `<li><a href="${href}">${label}</a></li>`).join("")
+    }</ul></div>`).join("")
+  }</nav><p class="footer-note">Every page here is public except the operations console, which answers 401 to an unauthenticated request. The register links each control to the route that demonstrates it.</p></div></footer>`;
+}
+
 function navHtml(): string {
   return `<nav aria-label="Trust and operations">${
     TRUST_NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
@@ -1268,7 +1310,7 @@ function navHtml(): string {
  */
 function shell(title: string, inner: string, description = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main><script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
