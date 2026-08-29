@@ -66,10 +66,10 @@ export function MainMenu({
           One link, not seven. This nav listed seven of the site's ten routes and left out
           the policy set entirely, so the game and the pages it linked to disagreed about
           how many destinations the site had. The governance estate has its own table of
-          contents at /trust/; the game needs exactly one way into it.
+          contents in the portfolio case study; the game needs exactly one way into it.
         */}
         <nav className="shark-menu__nav" aria-label="Site">
-          <a href="https://wizardgang.ai/work/sharktank/" target="_blank" rel="noopener noreferrer">Engineering case study →</a>
+          <a href="https://wizardgang.ai/projects/sharktank/" target="_blank" rel="noopener noreferrer">Engineering case study →</a>
         </nav>
       </div>
     </div>

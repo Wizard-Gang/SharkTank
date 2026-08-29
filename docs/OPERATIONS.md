@@ -2,7 +2,7 @@
 
 ## Routine signals
 
-The public `/` governance overview and `/evidence/` index link to the owner of each operational figure. `/trust/` remains a compatibility route for existing evidence references. `/status/` carries availability, incidents, room capacity, backup results, control-history integrity, and delivery records. `/spend/` owns the metered ceiling. `/logs/` owns retained service and game capture records. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
+The public `/` governance overview links every operational figure to its source. `/evidence/` owns availability, incidents, continuity, control receipts, spend, controlled degradation, logs, and change records. `/controls/` owns both standards' complete registers and every maintained governance document. Legacy human routes such as `/trust/`, `/status/`, `/spend/`, `/logs/`, `/audit/`, and `/policies/` redirect directly to the relevant canonical section; their machine-readable JSON and text evidence routes remain stable. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
 
 ## Operator boundary
 
@@ -14,4 +14,4 @@ Confirm the signal, contain with the smallest appropriate control, preserve the 
 
 ## Local verification
 
-Run `npm run verify`, start `npm run dev`, then run `npm run check:evidence -- http://127.0.0.1:8787`. Production verification uses the same evidence walk against the canonical origin after an authorized tagged deployment.
+Run `npm run verify`, start `npm run dev`, then run `npm run check:public-ia -- http://127.0.0.1:8787` and `npm run check:evidence -- http://127.0.0.1:8787`. The public information-architecture check covers canonical pages, navigation, IDs, anchors, assets, direct redirects, query preservation, and the sitemap. Production verification uses both checks against the canonical origin after an authorized tagged deployment.

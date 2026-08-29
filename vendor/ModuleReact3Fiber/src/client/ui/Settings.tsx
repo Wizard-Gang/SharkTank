@@ -98,13 +98,14 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint?: stri
   );
 }
 
-function Slider({ label, value, onChange, min = 0, max = 1, step = 0.05 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number }) {
+function Slider({ label, value, onChange, min = 0, max = 1, step = 0.05, formatValue }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; formatValue?: (v: number) => string }) {
   const id = useId();
   const pct = Math.round(((value - min) / (max - min)) * 100);
+  const displayValue = formatValue ? formatValue(value) : `${pct}%`;
   return (
     <div className="field">
-      <label htmlFor={id}>{label}: {pct}%</label>
-      <input id={id} className="range" type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-valuetext={`${pct}%`} />
+      <label htmlFor={id}>{label}: {displayValue}</label>
+      <input id={id} className="range" type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-valuetext={displayValue} />
     </div>
   );
 }
@@ -224,7 +225,7 @@ function AccessibilityPanel() {
       <Choice label="Theme" value={a.theme} onChange={(v) => update("a11y", { theme: v })} options={[{ v: "system", l: "System" }, { v: "dark", l: "Dark" }, { v: "light", l: "Light" }]} />
       <Choice label="Contrast" value={a.contrast} onChange={(v) => update("a11y", { contrast: v })} options={[{ v: "normal", l: "Normal" }, { v: "high", l: "High" }]} />
       <Choice label="Motion" value={a.motion} onChange={(v) => update("a11y", { motion: v })} options={[{ v: "full", l: "Full" }, { v: "reduced", l: "Reduced" }]} />
-      <Slider label="Text size" value={a.fontScale} min={0.9} max={1.6} step={0.1} onChange={(v) => update("a11y", { fontScale: v })} />
+      <Slider label="Text size" value={a.fontScale} min={0.9} max={1.6} step={0.1} formatValue={(value) => `${Math.round(value * 100)}%`} onChange={(v) => update("a11y", { fontScale: v })} />
       <Toggle label="Show shark name labels" hint="Adds text names above sharks so colors aren't the only cue." checked={a.colorblindLabels} onChange={(v) => update("a11y", { colorblindLabels: v })} />
       <div>
         <button className="btn btn--ghost" onClick={reset}>Reset all settings to defaults</button>

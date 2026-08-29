@@ -8,7 +8,7 @@
 import { API } from "module-react3fiber/protocol";
 import { OPENAPI, openApiToHtml } from "./openapi.js";
 import { conformanceHtml, conformanceManifest, summarise, ALL_CONTROLS } from "./conformance.js";
-import { governanceIndexHtml, governanceDocPageHtml, governanceMissingHtml, findGovernanceDoc, governanceManifest } from "./governance.js";
+import { governanceControlsHtml, findGovernanceDoc, governanceManifest } from "./governance.js";
 
 export { Room } from "./room-do.js";
 export { Lobby } from "./lobby-do.js";
@@ -98,7 +98,7 @@ function redactDeep(value: unknown): unknown {
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS },
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex", ...SECURITY_HEADERS },
   });
 }
 
@@ -146,7 +146,40 @@ function html(body: string, status = 200): Response {
  * right — so the old names keep working rather than being deleted.
  */
 function movedTo(url: URL, target: string): Response {
-  return new Response(null, { status: 301, headers: { location: target, "cache-control": "no-store", ...SECURITY_HEADERS } });
+  const destination = new URL(target, url);
+  if (url.search && !destination.search) destination.search = url.search;
+  return new Response(null, { status: 301, headers: { location: `${destination.pathname}${destination.search}${destination.hash}`, "cache-control": "no-store", ...SECURITY_HEADERS } });
+}
+
+/** One-hop compatibility map for the former public information architecture. */
+export const HUMAN_REDIRECTS: Readonly<Record<string, string>> = Object.freeze({
+  "/trust": "/", "/trust/": "/",
+  "/iso-27001": "/controls/#iso-27001", "/iso-27001/": "/controls/#iso-27001",
+  "/iso-42001": "/controls/#iso-42001", "/iso-42001/": "/controls/#iso-42001",
+  "/audit": "/controls/#registers", "/audit/": "/controls/#registers",
+  "/policies": "/controls/#policies", "/policies/": "/controls/#policies",
+  "/status": "/evidence/#availability", "/status/": "/evidence/#availability",
+  "/incidents": "/evidence/#incidents", "/incidents/": "/evidence/#incidents",
+  "/logs": "/evidence/#logs", "/logs/": "/evidence/#logs",
+  "/spend": "/evidence/#spend", "/spend/": "/evidence/#spend",
+  "/inquiry": "/evidence/#spend", "/inquiry/": "/evidence/#spend",
+  "/roadmap": "/evidence/#changes", "/roadmap/": "/evidence/#changes",
+});
+
+function canonicalPublicHref(href: string): string {
+  if (href === "/trust/" || href === "/trust") return "/";
+  if (href === "/status/#delivery") return "/evidence/#changes";
+  if (href === "/status/#control-history") return "/evidence/#receipts";
+  if (href === "/status/#backup") return "/evidence/#continuity";
+  if (href.startsWith("/status/#incidents")) return href.replace("/status/", "/evidence/");
+  if (href === "/status/" || href === "/status") return "/evidence/#availability";
+  if (href === "/logs/" || href === "/logs") return "/evidence/#logs";
+  if (href === "/spend/" || href === "/spend") return "/evidence/#spend";
+  if (href === "/audit/" || href === "/audit") return "/controls/#registers";
+  if (href === "/policies/" || href === "/policies") return "/controls/#policies";
+  const policy = href.match(/^\/policies\/([a-z0-9-]+)\/?$/);
+  if (policy) return `/controls/#${policy[1]}`;
+  return href;
 }
 
 /**
@@ -401,6 +434,7 @@ function maintenanceBypass(path: string, method: string): boolean {
     path === "/inquiry" || path.startsWith("/inquiry/") || path === "/inquiry.json" ||
     path === "/spend" || path.startsWith("/spend/") || path === "/spend.json" ||
     path === "/trust" || path.startsWith("/trust/") ||
+    path === "/controls" || path.startsWith("/controls/") ||
     path === "/iso-27001" || path.startsWith("/iso-27001/") ||
     path === "/iso-42001" || path.startsWith("/iso-42001/") ||
     path === "/evidence" || path.startsWith("/evidence/") ||
@@ -413,7 +447,7 @@ function maintenanceBypass(path: string, method: string): boolean {
 function downtimeResponse(state: MaintenanceState): Response {
   const tick = nextDowntimeTick(), headline = tickPick(DOWNTIME_HEADLINES, tick, 0), quip = tickPick(DOWNTIME_QUIPS, tick, 7);
   const trigger = state.reason || "Safety control active";
-  const response = html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game offline — Wizard Gang</title><style>${PAGE_CSS}body{display:grid;min-height:100vh;place-items:center;overflow-x:hidden;text-align:center}.downtime{width:min(720px,calc(100% - 24px));min-width:0;padding:24px}.downtime .card{width:100%;min-width:0;padding:clamp(26px,7vw,52px)}.downtime-mark{width:min(210px,64vw);margin:0 auto 12px;filter:drop-shadow(0 16px 34px rgba(34,230,255,.2))}.downtime-quip{margin:0 auto 22px;color:var(--muted)}.downtime-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:0 auto 22px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(11,10,20,.52);overflow:hidden}.downtime-trigger span{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.downtime-trigger strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.downtime .action-link{max-width:100%;justify-content:center;text-align:center;white-space:normal}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}</style></head><body><main class="downtime"><div class="card hero-card"><div class="downtime-mark">${SHARK_MARK_SVG}</div><div class="eyebrow">Controlled outage · ${esc(headline)}</div><h1>The game is offline right now</h1><p class="downtime-quip">${esc(quip)}</p><div class="downtime-trigger"><span>Current trigger</span><strong>${esc(trigger)}</strong></div><p><a class="action-link" href="/status/">Check live status and incident history →</a></p></div></main></body></html>`, 503);
+  const response = html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game offline — Wizard Gang</title><style>${PAGE_CSS}body{display:grid;min-height:100vh;place-items:center;overflow-x:hidden;text-align:center}.downtime{width:min(720px,calc(100% - 24px));min-width:0;padding:24px}.downtime .card{width:100%;min-width:0;padding:clamp(26px,7vw,52px)}.downtime-mark{width:min(210px,64vw);margin:0 auto 12px;filter:drop-shadow(0 16px 34px rgba(34,230,255,.2))}.downtime-quip{margin:0 auto 22px;color:var(--muted)}.downtime-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:0 auto 22px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(11,10,20,.52);overflow:hidden}.downtime-trigger span{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.downtime-trigger strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.downtime .action-link{max-width:100%;justify-content:center;text-align:center;white-space:normal}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}</style></head><body><main class="downtime"><div class="card hero-card"><div class="downtime-mark">${SHARK_MARK_SVG}</div><div class="eyebrow">Controlled outage · ${esc(headline)}</div><h1>The game is offline right now</h1><p class="downtime-quip">${esc(quip)}</p><div class="downtime-trigger"><span>Current trigger</span><strong>${esc(trigger)}</strong></div><p><a class="action-link" href="/evidence/#availability">Check live status and incident history →</a></p></div></main></body></html>`, 503);
   response.headers.set("retry-after", "60");
   response.headers.set("cache-control", "no-store");
   return response;
@@ -892,12 +926,12 @@ function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRe
   const samples = Array.isArray(billing.spendHistory) ? billing.spendHistory as Array<{ ts: number; usd: number }> : [];
   const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now };
   const batchCount = deploymentBatches(all).length;
-  const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(entry.reference.href)}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
+  const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(canonicalPublicHref(entry.reference.href))}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
   const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60, velocity = (entries.length / elapsedHours).toFixed(1);
-  return `<section id="delivery" tabindex="-1" aria-labelledby="delivery-heading">
+  return `<section id="changes" class="evidence-block" tabindex="-1" aria-labelledby="delivery-heading">
     <div class="eyebrow">Project record</div>
     <h2 id="delivery-heading" style="margin:6px 0 10px">Delivery</h2>
-    <p class="sub">Every feature update, the deployment batch that carried it, and how those batches line up against the availability above and the <a href="/spend/">metered spend</a>. The same record is available as <a href="/roadmap.json">data</a>.</p>
+    <p class="sub">Every feature update, the deployment batch that carried it, and how those batches line up against the availability above and the <a href="#spend">metered spend</a>. The same record is available as <a href="/roadmap.json">data</a>.</p>
     <div class="card hero-card">
       <div class="metric-grid showcase-metrics">
         ${metricCard(batchCount, "Deployment batches", `${all.length} feature updates shipped`, "rooms", "tone-cyan")}
@@ -1194,7 +1228,16 @@ const PAGE_CSS = `
   .governance-hero,.standard-hero{max-width:980px;padding:clamp(54px,10vw,112px) 0 clamp(36px,7vw,72px)}
   .governance-hero h1,.standard-hero h1{max-width:16ch;margin:12px 0 20px;font-size:clamp(3rem,8vw,7rem);line-height:.9;letter-spacing:-.065em}
   .standard-hero h1{max-width:18ch;font-size:clamp(2.8rem,7vw,6rem)}
+  .standard-hero>h2{max-width:18ch;margin:12px 0 20px;font-size:clamp(2.5rem,6vw,5.25rem);line-height:.92;letter-spacing:-.055em}
   .governance-hero>p,.standard-hero>p{max-width:760px;margin:0 0 24px;color:var(--muted);font-size:clamp(1.05rem,2vw,1.35rem)}
+  .home-hero{max-width:none;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr);gap:clamp(28px,6vw,80px);align-items:center}
+  .home-hero__copy>p{max-width:760px;margin:0 0 24px;color:var(--muted);font-size:clamp(1.05rem,2vw,1.35rem)}
+  .proof-row{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
+  .proof-row span{padding:7px 10px;border:1px solid var(--strong);border-radius:999px;background:rgba(22,20,42,.72);color:var(--text);font-size:.72rem;font-weight:850;letter-spacing:.04em}
+  .governance-art{position:relative;min-height:340px;margin:0;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--surface-1);box-shadow:0 32px 90px rgba(0,0,0,.38)}
+  .governance-art:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,10,20,.05),rgba(11,10,20,.76))}
+  .governance-art img{width:100%;height:100%;min-height:340px;display:block;object-fit:cover;filter:blur(7px) saturate(.78) brightness(.72);transform:scale(1.05)}
+  .governance-art figcaption{position:absolute;z-index:1;left:20px;bottom:18px;color:var(--text);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
   .governance-flow{display:grid;align-items:center;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:10px;margin:0 0 clamp(50px,9vw,94px)}
   .governance-flow>div{min-height:150px;padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface-1)}
   .governance-flow strong{display:block;margin-bottom:28px;color:var(--cyan);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase}
@@ -1210,17 +1253,18 @@ const PAGE_CSS = `
   .standard-card>strong{color:var(--text)}
   .case-principle,.register-cta,.workload-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.7fr);gap:clamp(28px,7vw,90px);align-items:end;margin:0 0 clamp(50px,9vw,94px);padding:clamp(30px,6vw,58px) 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
   .case-principle h2,.register-cta h2,.workload-card h2,.section-head h2{max-width:18ch;margin:8px 0 0;font-size:clamp(2rem,4.5vw,4rem);line-height:.96;letter-spacing:-.05em}
-  .case-principle>p,.register-cta p,.workload-card p{margin:0;color:var(--muted);font-size:1.03rem}
+  .case-principle>p,.case-principle>div:last-child p,.register-cta p,.workload-card p{margin:0;color:var(--muted);font-size:1.03rem}
+  .case-principle>div:last-child{display:grid;gap:12px}
   .section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:0 0 20px}
   .workload-card>div:last-child{display:grid;justify-items:center;gap:18px}
   .workload-card svg{width:min(220px,70%);filter:drop-shadow(0 16px 34px rgba(34,230,255,.16))}
   .governance-topics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0 0 clamp(50px,9vw,94px);border:1px solid var(--border);background:var(--border)}
   .governance-topics article{min-width:0;padding:clamp(22px,4vw,38px);background:var(--bg)}
   .governance-topics article>span{display:block;margin-bottom:42px;color:var(--cyan);font-size:.7rem;font-weight:900}
-  .governance-topics h2{margin:0 0 10px;font-size:clamp(1.6rem,3vw,2.4rem)}
+  .governance-topics :is(h2,h3){margin:0 0 10px;font-size:clamp(1.6rem,3vw,2.4rem)}
   .governance-topics p{margin:0 0 20px;color:var(--muted)}
   .control-example{display:grid;grid-template-columns:minmax(220px,.65fr) minmax(0,1fr);gap:clamp(26px,7vw,90px);margin:0 0 clamp(50px,9vw,94px);padding:clamp(24px,5vw,48px);border:1px solid var(--border);border-radius:18px;background:var(--surface-1)}
-  .control-example h2{margin:8px 0 18px;font-size:clamp(2rem,5vw,4rem);line-height:.92}
+  .control-example :is(h2,h3){margin:8px 0 18px;font-size:clamp(2rem,5vw,4rem);line-height:.92}
   .control-example dl{display:grid;grid-template-columns:9rem minmax(0,1fr);gap:14px 20px;margin:0}
   .control-example dt{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
   .control-example dd{margin:0;color:var(--muted)}
@@ -1236,6 +1280,38 @@ const PAGE_CSS = `
   .evidence-grid p{margin:0 0 20px;color:var(--muted);font-size:.88rem}
   @media(max-width:900px){.governance-flow{grid-template-columns:1fr}.governance-flow>i{justify-self:center;transform:none}.standard-pair,.ai-definition,.evidence-grid{grid-template-columns:1fr 1fr}.ai-definition article:last-child{grid-column:1/-1}}
   @media(max-width:700px){.standard-pair,.case-principle,.register-cta,.workload-card,.governance-topics,.control-example,.ai-definition,.evidence-grid{grid-template-columns:1fr}.standard-card{min-height:300px}.control-example dl{grid-template-columns:1fr;gap:4px}.control-example dd{margin-bottom:14px}.ai-definition article:last-child{grid-column:auto}.section-head{align-items:flex-start;flex-direction:column}}
+
+  /* ── Consolidated controls and evidence ── */
+  .controls-intro{padding:clamp(48px,9vw,96px) 0 38px}
+  .controls-intro h1,.evidence-intro h1{max-width:18ch}
+  .controls-block,.evidence-block{scroll-margin-top:18px}
+  .controls-block{margin-top:clamp(48px,9vw,100px);padding-top:clamp(32px,6vw,68px);border-top:1px solid var(--border)}
+  .standard-hero.controls-block{max-width:none;padding-bottom:42px}
+  .gov-control-doc{margin:12px 0;padding:0;overflow:hidden}
+  .gov-control-doc>summary{min-height:68px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;list-style:none}
+  .gov-control-doc>summary::-webkit-details-marker{display:none}
+  .gov-control-doc>summary:after{content:"+";color:var(--cyan);font-size:1.35rem;font-weight:900}
+  .gov-control-doc[open]>summary{border-bottom:1px solid var(--border)}
+  .gov-control-doc[open]>summary:after{content:"−"}
+  .gov-control-doc .gov-body{padding:10px 20px 24px}
+  .iso-register{padding:0;overflow:hidden}
+  .iso-register>summary{min-height:76px;padding:18px;cursor:pointer;list-style:none}
+  .iso-register>summary::-webkit-details-marker{display:none}
+  .iso-register>summary:after{content:"+";margin-left:10px;color:var(--cyan);font-size:1.35rem;font-weight:900}
+  .iso-register[open]>summary{border-bottom:1px solid var(--border)}
+  .iso-register[open]>summary:after{content:"−"}
+  .iso-register__body{padding:18px}
+  .evidence-intro{padding:clamp(48px,9vw,96px) 0 26px}
+  .evidence-jump{justify-content:flex-start;margin-top:22px}
+  .evidence-block{margin:clamp(42px,8vw,84px) 0 0;padding-top:clamp(28px,5vw,52px);border-top:1px solid var(--border)}
+  .card.evidence-block{padding:clamp(20px,4vw,34px)}
+  .degradation-ladder{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;margin:22px 0;padding:1px;background:var(--border);list-style:none}
+  .degradation-ladder li{min-width:0;padding:18px;background:var(--surface-1)}
+  .degradation-ladder strong,.degradation-ladder span{display:block}
+  .degradation-ladder strong{color:var(--cyan);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+  .degradation-ladder span{margin-top:12px;color:var(--muted);font-size:.82rem}
+  @media(max-width:900px){.home-hero{grid-template-columns:1fr}.governance-art{min-height:280px}.degradation-ladder{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}.governance-art img{transform:none}.trust-tile,tbody tr{transition:none}}
 
   /* ── Policy index and documents ── */
   .gov-breadcrumb{margin:0 0 8px;color:var(--muted);font-size:.8rem;font-weight:700}
@@ -1361,10 +1437,9 @@ const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy 
  */
 const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
   ["/", "Overview"],
-  ["/iso-27001/", "ISO 27001"],
-  ["/iso-42001/", "ISO 42001"],
+  ["/controls/", "Controls"],
   ["/evidence/", "Evidence"],
-  ["/play/", "Workload"],
+  ["/play/", "Play"],
 ];
 /**
  * The game's single link out is not emitted here — the game is not served by this
@@ -1389,9 +1464,9 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
  * the index cannot be complete on some pages and missing on others.
  */
 const ESTATE_FOOTER: ReadonlyArray<readonly [string, ReadonlyArray<readonly [string, string]>]> = [
-  ["Management system", [["/", "Overview"], ["/iso-27001/", "ISO 27001"], ["/iso-42001/", "ISO 42001"], ["/evidence/", "Evidence"]]],
-  ["Operational evidence", [["/status/", "Status, incidents & recovery"], ["/logs/", "Logs"], ["/spend/", "Resource use"]]],
-  ["Appendix", [["/audit/", "Control register"], ["/policies/", "Policy set"], ["/docs/", "API"], ["/admin/", "Admin"]]],
+  ["Public", [["/", "Overview"], ["/controls/", "Controls"], ["/evidence/", "Evidence"], ["/play/", "Play"]]],
+  ["Machine evidence", [["/status.json", "Status JSON"], ["/incidents.json", "Incidents JSON"], ["/spend.json", "Spend JSON"], ["/logs.json", "Logs JSON"], ["/policies.json", "Policies JSON"], ["/audit/manifest.json", "Register JSON"]]],
+  ["Technical", [["/docs/", "Developer API"], ["/openapi.json", "OpenAPI JSON"], ["https://github.com/Wizard-Gang/SharkTank", "GitHub source"]]],
 ];
 
 function footerHtml(): string {
@@ -1403,7 +1478,7 @@ function footerHtml(): string {
 }
 
 function navHtml(): string {
-  return `<nav aria-label="Trust and operations">${
+  return `<nav aria-label="Primary">${
     TRUST_NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
   }</nav>`;
 }
@@ -1413,9 +1488,11 @@ function navHtml(): string {
  * are the evidence an assessor is pointed at, and a result with no description is a result
  * that has to be opened to be identified.
  */
-function shell(title: string, inner: string, description = ""): string {
+function shell(title: string, inner: string, description = "", canonicalPath = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>SharkTank</strong><small>Governance system</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  const canonical = canonicalPath ? `https://sharktank.wizardgang.ai${canonicalPath}` : "";
+  const social = canonical ? `<link rel="canonical" href="${canonical}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${canonical}"><meta property="og:type" content="website"><meta property="og:image" content="https://sharktank.wizardgang.ai/sharktank-art.jpg"><meta name="twitter:card" content="summary_large_image">` : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}${social}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>SharkTank</strong><small>Production evidence</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;var disclosure=el.matches("details")?el:el.closest("details");if(disclosure&&!disclosure.open)disclosure.open=true;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});el.scrollIntoView({block:"start"});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
@@ -1590,7 +1667,7 @@ function meterRowHtml(row: MeterRow): string {
     + `<td class="meter-daily"><div class="meter-stack"><span class="meter-daily__value">${row.daily}</span>${row.averageShare == null ? "" : `<span class="meter-share">${meterPercentLabel(row.averageShare)}% of daily limit</span>`}</div></td></tr>`;
 }
 
-function spendHtml(billing: Record<string, unknown>): string {
+function spendHtml(billing: Record<string, unknown>, embedded = false): string {
   const allTime = recordValue(billing.allTime), services = recordValue(allTime.services);
   const durable = recordValue(services.durableObjects), d1 = recordValue(services.d1), r2 = recordValue(services.r2);
   const currentServices = recordValue(billing.services), workers = recordValue(currentServices.workers);
@@ -1732,7 +1809,8 @@ function spendHtml(billing: Record<string, unknown>): string {
     },
   ];
 
-  return `<section class="page-intro"><div class="eyebrow">Shark Tank cost control</div><h1>Every bite leaves a receipt.</h1><a class="action-link" href="/spend.json">Raw spend JSON →</a></section>
+  const heading = embedded ? "h2" : "h1";
+  return `<section class="page-intro${embedded ? " evidence-block" : ""}"${embedded ? ' id="spend" tabindex="-1"' : ""}><div class="eyebrow">Shark Tank cost control</div><${heading}>Every bite leaves a receipt.</${heading}><a class="action-link" href="/spend.json">Raw spend JSON →</a></section>
     <div class="spend-hero">
       <div class="card hero-card gauge-card">${billingGaugeSvg("spend", monthly, measured, "All-time list-price meter")}</div>
       <div class="card hero-card trend-card">
@@ -1802,7 +1880,7 @@ async function securityReport(request: Request, url: URL, env: Env, lockdown: bo
 
 function ndjson(events: unknown[]): Response {
   const body = events.map((e) => JSON.stringify(e)).join("\n") + (events.length ? "\n" : "");
-  return new Response(body, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
+  return new Response(body, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex" } });
 }
 
 /** Fetch a path on the Room DO instance for `roomId` (game log / replay). */
@@ -1916,7 +1994,7 @@ function timelineLegend(incidents: IncidentRecord[], history: ControlHistoryEntr
     ${group("Server", [`<span><i class="key-green"></i>Available <b>100%</b></span>`])}
     ${group("Tank · scheduled", scheduled.map(entry))}
     ${group("Tank · unscheduled", unscheduled.map(entry))}
-    <p class="timeline-key-note">Every legend entry links to the record that produced it. Chart markers are pointer shortcuts to the same records; by keyboard, reach them through the legend above or the incident list on <a href="/status/#incidents">Incidents</a>.</p>
+    <p class="timeline-key-note">Every legend entry links to the record that produced it. Chart markers are pointer shortcuts to the same records; by keyboard, reach them through the legend above or the incident list under <a href="#incidents">Incidents</a>.</p>
   </div>`;
 }
 
@@ -2164,7 +2242,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   // The green base runs the whole strip and events sit on top of it, so an inset mark still
   // has uptime behind it instead of a hole punched through the bar.
   const strip = (y: number, name: string) =>
-    `<a href="/status/" aria-label="${esc(name)}"><title>${esc(name)}</title>`
+    `<a href="/evidence/#availability" aria-label="${esc(name)}"><title>${esc(name)}</title>`
     // The coloured band is 20 units tall by design, which leaves the strip's own link 4 px
     // short of the 24 px minimum. The marks that sit on it are drawn afterwards and so keep
     // their own hit areas; this only makes the bare stretches of strip reachable.
@@ -2239,7 +2317,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
       ? `<path d="M${left + 48} ${sy(first.usd).toFixed(1)} L${x(first.ts).toFixed(1)} ${sy(first.usd).toFixed(1)}" fill="none" stroke="#f0abfc" stroke-width="2" stroke-dasharray="4 4" opacity=".5"/>`
       : "";
     series = `${ticks.join("")}${baseline}`
-      + `<g role="listitem"><a href="/spend/" aria-label="${esc(`Metered spend $${last.usd.toFixed(4)}, from $${lo.toFixed(4)} across ${samples.length} hourly samples; the dashed stretch is the baseline for the days before sampling began`)}"><title>${esc(`$${last.usd.toFixed(4)} metered`)}</title>`
+      + `<g role="listitem"><a href="/evidence/#spend" aria-label="${esc(`Metered spend $${last.usd.toFixed(4)}, from $${lo.toFixed(4)} across ${samples.length} hourly samples; the dashed stretch is the baseline for the days before sampling began`)}"><title>${esc(`$${last.usd.toFixed(4)} metered`)}</title>`
       + `<rect x="${left}" y="${spendTop}" width="${plot}" height="${spendH}" fill="transparent"/>`
       + `<path d="${line}" fill="none" stroke="#f0abfc" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`
       + `<circle cx="${x(last.ts).toFixed(1)}" cy="${sy(last.usd).toFixed(1)}" r="3.5" fill="#f0abfc"/></a></g>`;
@@ -2248,7 +2326,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   }
   const used = Math.max(0, Math.min(1, spendUsd / Math.max(hardLimitUsd, 1e-9)));
   const capBar = `<rect x="${left}" y="${capY}" width="${plot}" height="${capH}" rx="4" fill="#2b2750"/>`
-    + `<g role="listitem"><a href="/spend/" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
+    + `<g role="listitem"><a href="/evidence/#spend" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
     + `<rect x="${left}" y="${(capY + capH / 2 - 12).toFixed(1)}" width="${Math.max(24, used * plot).toFixed(1)}" height="24" fill="transparent"/>`
     + `<rect x="${left}" y="${capY}" width="${Math.max(3, used * plot).toFixed(1)}" height="${capH}" rx="4" fill="#f0abfc"/></a></g>`
     + `<text x="${left + 10}" y="${(capY + 11).toFixed(1)}" class="sc-note">${esc(`$${spendUsd.toFixed(4)} used · ${(used * 100).toFixed(2)}% of the $${hardLimitUsd.toFixed(2)} hard stop`)}</text>`
@@ -2300,9 +2378,9 @@ function backupPanelHtml(backup?: BackupState): string {
   const failure = state.lastBackupError
     ? `<p class="sub" style="margin:8px 0 0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
     : "";
-  return `<div class="card" id="backup"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
+  return `<section class="card evidence-block" id="continuity" tabindex="-1"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
     <p class="sub" style="margin:0 0 10px">Everything the tank holds — the control receipt chain, the 90-day action log, player profiles and spend history — is copied to object storage on a daily schedule. A restore drill reads the most recent copy back out of object storage, restores that copy into a scratch instance, and compares the scratch instance&rsquo;s export digest against the copy&rsquo;s; equal digests mean the stored copy reconstitutes the state it was taken from rather than merely something like it. If no copy can be read, the drill fails and says so rather than testing the live object instead. <span class="key-dot ${drillTone}"></span>${esc(drillWord)}.</p>
-    <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</div>`;
+    <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</section>`;
 }
 
 /**
@@ -2478,7 +2556,7 @@ function controlHistoryListHtml(history: ControlHistoryEntry[], integrity: Contr
   const items = ordered.map((entry) => historyItemHtml(entry, true)).join("");
   const codes = [...new Set(history.map((entry) => entry.code))].sort().map((code) => `<option value="${esc(code)}">${esc(code)}</option>`).join("");
   const head = integrity.headHash ? `<code>${esc(integrity.headHash)}</code>` : "No receipt yet";
-  return `<section class="card" id="control-history" tabindex="-1"><div class="eyebrow">Control receipts</div><h2 style="margin-top:0">Append-only control history</h2><div class="integrity-line"><span class="integrity-badge">${esc(integrity.algorithm)}</span><span>${integrity.entryCount} entries · chain head ${head}</span></div><div class="integrity-line">${integrityVerdict(integrity)}</div>
+  return `<section class="card evidence-block" id="receipts" tabindex="-1"><div class="eyebrow">Control receipts</div><h2 style="margin-top:0">Append-only control history</h2><div class="integrity-line"><span class="integrity-badge">${esc(integrity.algorithm)}</span><span>${integrity.entryCount} entries · chain head ${head}</span></div><div class="integrity-line">${integrityVerdict(integrity)}</div>
     <div class="log-toolbar"><label><span>Search</span><input type="search" id="history-search" placeholder="Title, actor, reference, detail" autocomplete="off"></label><label><span>Control code</span><select id="history-code"><option value="">All codes</option>${codes}</select></label><span class="log-visible-count" id="history-count" role="status" aria-live="polite" aria-atomic="true">${esc(historyCountText(ordered.length, ordered.length, 1, controlHistoryPageCount(ordered.length)))}</span></div>
     <div class="history-list" id="history-list">${items || '<p class="sub">No control events recorded.</p>'}</div>
     <div class="history-pager"><button type="button" class="pager-btn" id="history-prev" aria-disabled="true">← Newer</button><span id="history-page" aria-hidden="true">Page 1 of ${controlHistoryPageCount(ordered.length)}</span><button type="button" class="pager-btn" id="history-next"${ordered.length > CONTROL_HISTORY_PAGE_SIZE ? "" : ' aria-disabled="true"'}>Older →</button></div></section>${controlHistoryScript(ordered.length)}`;
@@ -2536,51 +2614,54 @@ interface TrustInput {
   lastDeployment: { id: string; title: string } | null;
 }
 function trustHtml(input: TrustInput): string {
-  const { portal, incidents, integrity, spendUsd, hardLimitUsd, lastDeployment } = input;
-  const unscheduled = incidents.filter((incident) => incident.cause !== "Test alert" && !SCHEDULED_INCIDENT_CAUSES.has(incident.cause)).length;
+  const { portal, integrity, spendUsd, hardLimitUsd, lastDeployment } = input;
   const chainOk = integrity.chainStatus === "verified";
   const tile = (href: string, label: string, value: string, detail: string, tone: string) =>
     `<a class="trust-tile ${tone}" href="${href}"><span class="trust-tile__label">${esc(label)}</span><span class="trust-tile__value">${value}</span><span class="trust-tile__detail">${esc(detail)}</span><span class="trust-tile__go" aria-hidden="true">→</span></a>`;
-  return `<section class="governance-hero">
-    <div class="eyebrow">SharkTank · technical governance case study</div>
-    <h1>Governance implemented against a running software system.</h1>
-    <p>SharkTank explores how ISO/IEC 27001:2022 and ISO/IEC 42001:2023 requirements can map to controls, operational behavior, and evidence that can be inspected in the live service.</p>
-    <div class="action-links"><a class="button" href="/iso-27001/">Explore ISO 27001 →</a><a class="button secondary" href="/iso-42001/">Explore ISO 42001 →</a></div>
+  const uptimeClaim = portal.availabilityPercent === 100 ? "100% uptime maintained" : `${portal.availabilityPercent}% server availability`;
+  return `<section class="governance-hero home-hero">
+    <div class="home-hero__copy"><div class="eyebrow">SharkTank · governed realtime production workload</div>
+    <h1>Governance you can inspect.</h1>
+    <p>SharkTank is a running realtime application that demonstrates how ISO/IEC 27001, ISO/IEC 42001, reliability, accessibility, operational continuity, and spend governance become measurable production requirements.</p>
+    <div class="proof-row" aria-label="Demonstrated production capabilities"><span>ISO 27001</span><span>ISO 42001</span><span>${esc(uptimeClaim)}</span><span>WCAG 2.0 AA</span><span>Controlled spend</span><span>Live evidence</span></div>
+    <div class="action-links"><a class="button" href="/controls/">Explore Controls →</a><a class="button secondary" href="/evidence/">Inspect Evidence →</a><a class="button secondary" href="/play/">Play →</a><a class="button secondary" href="https://github.com/Wizard-Gang/SharkTank">GitHub →</a></div></div>
+    <figure class="governance-art"><img src="/sharktank-art.jpg" width="1280" height="720" alt="SharkTank main menu showing the interactive production workload"><figcaption>Live workload · the system behind the evidence</figcaption></figure>
   </section>
   <section class="governance-flow" aria-label="SharkTank governance evidence model"><div><strong>Running system</strong><span>Realtime software with users, agents, state, change, and failure modes.</span></div><i aria-hidden="true">↓</i><div><strong>Operational evidence</strong><span>Status, incidents, logs, receipts, backups, recovery, and resource use.</span></div><i aria-hidden="true">↓</i><div><strong>Controls</strong><span>Technical and operational responses tied to requirements.</span></div><i aria-hidden="true">↓</i><div><strong>Management system</strong><span>Scope, risk, policy, objectives, review, and continuous improvement.</span></div></section>
   <section class="standard-pair" aria-label="Implemented management systems">
-    <a class="standard-card" href="/iso-27001/"><span>ISO/IEC 27001:2022</span><h2>Information Security Management</h2><p>Scope, risk treatment, Annex A applicability, secure development, operations, recovery, and improvement.</p><strong>Inspect implementation →</strong></a>
-    <a class="standard-card" href="/iso-42001/"><span>ISO/IEC 42001:2023</span><h2>AI Management System</h2><p>Purpose, intended use, impact, human authority, monitoring, transparency, change, and known limitations.</p><strong>Inspect implementation →</strong></a>
+    <a class="standard-card" href="/controls/#iso-27001"><span>ISO/IEC 27001:2022</span><h2>Information Security Management</h2><p>Scope, risk treatment, Annex A applicability, secure development, operations, recovery, and improvement.</p><strong>Inspect implementation →</strong></a>
+    <a class="standard-card" href="/controls/#iso-42001"><span>ISO/IEC 42001:2023</span><h2>AI Management System</h2><p>Purpose, intended use, impact, human authority, monitoring, transparency, change, and known limitations.</p><strong>Inspect implementation →</strong></a>
   </section>
+  <section class="case-principle accessibility-case" id="accessibility"><div><div class="eyebrow">Accessibility · production requirement</div><h2>WCAG-oriented interfaces are part of the control model.</h2></div><div><p>The public evidence estate and the game’s menus and settings target WCAG 2.0 AA: complete keyboard paths, visible focus, semantic controls, readable contrast, scalable layouts, reduced-motion handling, and screen-reader status announcements.</p><p>The claim is deliberately scoped. The governance pages and primary game interfaces are covered; the realtime spatial game is not presented as universally accessible for every nonvisual interaction.</p></div></section>
   <section class="case-principle"><div><div class="eyebrow">Evidence rule</div><h2>Requirement → meaning → implementation → proof.</h2></div><p>A control is not treated as evidenced merely because it is described. Each supported position resolves to a live route or operational record. Partial implementations and gaps stay visible rather than being flattened into a compliance score.</p></section>
   <section aria-labelledby="live-snapshot"><div class="section-head"><div><div class="eyebrow">Live system snapshot</div><h2 id="live-snapshot">Current operational evidence.</h2></div><a class="action-link" href="/evidence/">Open the evidence index →</a></div>
     <div class="trust-grid">
-      ${tile("/status/", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
-      ${tile("/status/#incidents", "Incident record", String(incidents.length), `${unscheduled} unscheduled`, unscheduled ? "tone-violet" : "tone-green")}
-      ${tile("/spend/", "Metered resource cost", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
-      ${tile("/status/#delivery", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
-      ${tile("/status/#control-history", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
+      ${tile("/evidence/#availability", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
+      ${tile("/evidence/#spend", "Metered resource cost", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
+      ${tile("/evidence/#changes", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
+      ${tile("/evidence/#receipts", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
     </div>
   </section>
-  <section class="workload-card"><div><div class="eyebrow">Running workload</div><h2>The game gives the controls something real to govern.</h2><p>Authentication, authorization, availability, application state, secure development, change control, monitoring, incidents, recovery, operational logging, resource consumption, and AI-system governance are exercised against a live realtime application.</p></div><div>${SHARK_MARK_SVG}<a class="button" href="/play/">Launch workload →</a></div></section>`;
+  <section class="workload-card"><div><div class="eyebrow">Running workload</div><h2>The game gives the controls something real to govern.</h2><p>Authentication, authorization, availability, application state, secure development, change control, monitoring, incidents, recovery, operational logging, resource consumption, and AI-system governance are exercised against a live realtime application.</p></div><div>${SHARK_MARK_SVG}<a class="button" href="/play/">Play →</a></div></section>`;
 }
 
-function iso27001Html(): string {
-  return `<section class="standard-hero"><div class="eyebrow">ISO/IEC 27001:2022</div><h1>Information Security Management System</h1><p>The implementation starts with the governed system and its risks, then maps requirements to controls and evidence. The register is available, but it is not the first explanation.</p><div class="action-links"><a class="button" href="/audit/#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="/policies/statement-of-applicability/">Statement of Applicability →</a></div></section>
+function iso27001Html(embedded = false): string {
+  const heading = embedded ? "h2" : "h1";
+  return `<section class="standard-hero controls-block" id="iso-27001" tabindex="-1"><div class="eyebrow">ISO/IEC 27001:2022</div><${heading}>Information Security Management System</${heading}><p>The implementation starts with the governed system and its risks, then maps requirements to controls and evidence. The register is available, but it is not the first explanation.</p><div class="action-links"><a class="button" href="#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="#statement-of-applicability">Statement of Applicability →</a></div></section>
   <section class="governance-topics">
-    <article id="scope"><span>01</span><h2>Scope</h2><p>The governed system is the SharkTank production service: its Worker routes, realtime tank state, Durable Objects, stored copies, operational interfaces, and computer-controlled actors. Provider infrastructure remains a supplier boundary.</p><a href="/policies/context/">Scope and context →</a></article>
-    <article id="risk-management"><span>02</span><h2>Risk management</h2><p>Risks are identified, scored, treated, accepted, and revisited on a defined interval and when material system changes occur. Open positions remain explicit.</p><a href="/policies/risk-assessment/">Risk assessment →</a></article>
-    <article id="applicability"><span>03</span><h2>Statement of Applicability</h2><p>Every Annex A control carries an applicability decision and justification. Supplier-inherited, partial, excluded, and gap states are preserved instead of converted into a badge.</p><a href="/policies/statement-of-applicability/">Inspect applicability →</a></article>
-    <article id="secure-development"><span>04</span><h2>Secure development</h2><p>Changes are classified, reviewed, tested, version-controlled, released through an authenticated path, and tied to a visible change and evidence record.</p><a href="/policies/secure-development/">Secure development process →</a></article>
-    <article id="operations-recovery"><span>05</span><h2>Operations &amp; recovery</h2><p>Availability, incidents, state copies, restore drills, resource ceilings, and append-only receipts are recorded by the service they describe.</p><a href="/status/">Operational record →</a></article>
-    <article id="improvement"><span>06</span><h2>Continuous improvement</h2><p>Findings, nonconformities, corrective action, management review, and system evolution remain part of the public record, including known limits in independent assurance.</p><a href="/policies/audit-and-review/">Audit and review →</a></article>
+    <article><span>01</span><h3>Scope</h3><p>The governed system is the SharkTank production service: its Worker routes, realtime tank state, Durable Objects, stored copies, operational interfaces, and computer-controlled actors. Provider infrastructure remains a supplier boundary.</p><a href="#context">Scope and context →</a></article>
+    <article><span>02</span><h3>Risk management</h3><p>Risks are identified, scored, treated, accepted, and revisited on a defined interval and when material system changes occur. Open positions remain explicit.</p><a href="#risk-assessment">Risk assessment →</a></article>
+    <article><span>03</span><h3>Statement of Applicability</h3><p>Every Annex A control carries an applicability decision and justification. Supplier-inherited, partial, excluded, and gap states are preserved instead of converted into a badge.</p><a href="#statement-of-applicability">Inspect applicability →</a></article>
+    <article><span>04</span><h3>Secure development</h3><p>Changes are classified, reviewed, tested, version-controlled, released through an authenticated path, and tied to a visible change and evidence record.</p><a href="#secure-development">Secure development process →</a></article>
+    <article><span>05</span><h3>Operations &amp; recovery</h3><p>Availability, incidents, state copies, restore drills, resource ceilings, and append-only receipts are recorded by the service they describe.</p><a href="/evidence/#continuity">Operational record →</a></article>
+    <article><span>06</span><h3>Continuous improvement</h3><p>Findings, nonconformities, corrective action, management review, and system evolution remain part of the public record, including known limits in independent assurance.</p><a href="#audit-and-review">Audit and review →</a></article>
   </section>
-  <section class="control-example"><div><div class="eyebrow">Example control</div><h2>A.8.32<br>Change management</h2><span class="iso-pill is-met">Evidenced</span></div><dl><dt>Purpose</dt><dd>Production changes are assessed, authorized, tested, and recorded.</dd><dt>Implementation</dt><dd>Git-based controlled change workflow, required verification, an authenticated deployment path, and append-only operational receipts.</dd><dt>Evidence</dt><dd><a href="/status/#delivery">Deployment record</a> · <a href="/status/#control-history">Control receipts</a> · <a href="/policies/secure-development/">Secure development procedure</a></dd><dt>Current gaps</dt><dd>Independent assurance remains outside the project’s current boundary; the public register does not claim certification.</dd></dl></section>
-  <section class="register-cta"><div><div class="eyebrow">Control mapping</div><h2>Inspect the full ISO 27001 position.</h2></div><div><p>Search the clauses and all 93 Annex A controls only when you need row-level detail.</p><a class="button" href="/audit/#iso27001-clauses">Open searchable register →</a></div></section>`;
+  <section class="control-example"><div><div class="eyebrow">Example control</div><h3>A.8.32<br>Change management</h3><span class="iso-pill is-met">Evidenced</span></div><dl><dt>Purpose</dt><dd>Production changes are assessed, authorized, tested, and recorded.</dd><dt>Implementation</dt><dd>Git-based controlled change workflow, required verification, an authenticated deployment path, and append-only operational receipts.</dd><dt>Evidence</dt><dd><a href="/evidence/#changes">Deployment record</a> · <a href="/evidence/#receipts">Control receipts</a> · <a href="#secure-development">Secure development procedure</a></dd><dt>Current gaps</dt><dd>Independent assurance remains outside the project’s current boundary; the public register does not claim certification.</dd></dl></section>`;
 }
 
-function iso42001Html(): string {
-  return `<section class="standard-hero"><div class="eyebrow">ISO/IEC 42001:2023</div><h1>AI Management System</h1><p>The AI-system definition comes before the control mapping. SharkTank governs a deliberately bounded, low-impact system whose behavior is inspectable and reproducible.</p><div class="action-links"><a class="button" href="/audit/#iso42001-clauses">Open 42001 register →</a><a class="button secondary" href="/policies/ai-policy/">AI policy &amp; impact →</a></div></section>
+function iso42001Html(embedded = false): string {
+  const heading = embedded ? "h2" : "h1";
+  return `<section class="standard-hero controls-block" id="iso-42001" tabindex="-1"><div class="eyebrow">ISO/IEC 42001:2023</div><${heading}>AI Management System</${heading}><p>The AI-system definition comes before the control mapping. SharkTank governs a deliberately bounded, low-impact system whose behavior is inspectable and reproducible.</p><div class="action-links"><a class="button" href="#iso42001-clauses">Open 42001 register →</a><a class="button secondary" href="#ai-policy">AI policy &amp; impact →</a></div></section>
   <section class="ai-definition" aria-label="SharkTank AI system definition">
     <article><span>System purpose</span><h2>Computer-controlled actors operate inside the game.</h2><p>The system creates autonomous sharks that steer, select targets, move, and interact inside the same realtime simulation as human players.</p></article>
     <article><span>Intended use</span><h2>Gameplay simulation only.</h2><p>The actors provide a populated, dynamic workload for play and for exercising system governance.</p></article>
@@ -2592,21 +2673,12 @@ function iso42001Html(): string {
     <article><span>Change management</span><h2>Behavior changes are auditable.</h2><p>Changes are version-controlled, verified, deployed through the controlled path, and recorded with their evidence.</p></article>
     <article><span>Known limitations</span><h2>No claim beyond the evidence.</h2><p>The project has no independent audit objectivity, no certification, and no claim that low-impact deterministic agents represent every AI risk profile.</p></article>
   </section>
-  <section class="register-cta"><div><div class="eyebrow">Control mapping</div><h2>Inspect the ISO 42001 implementation.</h2></div><div><p>The searchable register covers management-system clauses and all 38 Annex A controls, including partial and excluded positions.</p><a class="button" href="/audit/#iso42001-clauses">Open searchable register →</a></div></section>`;
+  <section class="register-cta"><div><div class="eyebrow">Control mapping</div><h2>Inspect the ISO 42001 implementation.</h2></div><div><p>The searchable register below covers management-system clauses and all 38 Annex A controls, including partial and excluded positions.</p><a class="button" href="#iso42001-clauses">Open searchable register →</a></div></section>`;
 }
 
-function evidenceOverviewHtml(): string {
-  const cards: ReadonlyArray<readonly [string, string, string]> = [
-    ["/status/", "Operations & recovery", "Availability, incidents, backups, restore drills, the change record, and the verified receipt chain."],
-    ["/logs/", "Operational logs", "Reason-coded service activity and per-tank captures with defined retention and downloads."],
-    ["/spend/", "Resource controls", "Measured platform usage and the hard cost gate that closes the workload before variable spend exceeds its limit."],
-    ["/audit/", "Control register", "Every clause and control across both standards with its status, implementation position, and evidence links."],
-    ["/policies/", "Management-system documents", "Scope, risk, applicability, objectives, AI impact, secure development, continuity, audit, review, and records."],
-    ["/docs/", "Developer appendix", "The public and protected interfaces, request limits, response contracts, and operational endpoints."],
-  ];
-  return `<section class="standard-hero"><div class="eyebrow">Live evidence</div><h1>Proof from the running system.</h1><p>This index exposes the records behind the control positions. Dense operational surfaces remain available here without competing with the management-system explanation.</p></section>
-  <section class="evidence-grid">${cards.map(([href, title, copy]) => `<a href="${href}"><span>Inspect</span><h2>${title}</h2><p>${copy}</p><strong>Open evidence →</strong></a>`).join("")}</section>
-  <section class="case-principle"><div><div class="eyebrow">Evidence path</div><h2>The claim and the proof share a route.</h2></div><p>Control rows link here or directly to a specific record. Machine-readable JSON remains available alongside the human pages for independent inspection and automated checks.</p></section>`;
+function controlsHtml(): string {
+  return `<section class="page-intro controls-intro"><div class="eyebrow">Controls · standards · policy record</div><h1>One control surface, with the detail intact.</h1><p class="sub">The management-system narrative, complete conformance register, and all maintained governance documents live here. ISO/IEC references describe implementation readiness and do not claim certification.</p><div class="action-links"><a class="button" href="#iso-27001">ISO 27001 →</a><a class="button secondary" href="#iso-42001">ISO 42001 →</a><a class="button secondary" href="#registers">Register →</a><a class="button secondary" href="#policies">Policies →</a></div></section>
+  ${iso27001Html(true)}${iso42001Html(true)}${conformanceHtml(metricCard, true)}${governanceControlsHtml()}`;
 }
 
 
@@ -2667,7 +2739,7 @@ function logPager(tableId: string, records: number): string {
   return `<div class="history-pager"><button type="button" class="pager-btn" data-log-prev="${tableId}" aria-disabled="true">← Newer</button><span data-log-page="${tableId}" aria-hidden="true">Page 1 of ${pages}</span><button type="button" class="pager-btn" data-log-next="${tableId}"${pages > 1 ? "" : ' aria-disabled="true"'}>Older →</button></div>`;
 }
 
-function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], caps: { serviceTruncated: boolean; captureTruncated: boolean }): string {
+function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], caps: { serviceTruncated: boolean; captureTruncated: boolean }, embedded = false): string {
   const serviceRecords = events.map(normalizeServiceLogEvent).reverse(), serviceTableId = "service-log-table";
   const rows = serviceRecords.map((record) => { const search = `${record.timestamp} ${record.reasonCode} ${record.action} ${record.subject} ${record.details}`.toLowerCase(); return `<tr data-log-row="1" data-search="${esc(search)}" data-reason="${esc(record.reasonCode)}"><td class="cell-time" title="${esc(record.timestamp)}"><time datetime="${esc(record.timestamp)}">${esc(record.timestamp)}</time></td><td class="cell-code"><code>${esc(record.reasonCode)}</code></td><td class="cell-code" title="${esc(record.action)}"><code>${esc(record.action)}</code></td><td class="cell-key" title="${esc(record.subject)}">${esc(record.subject)}</td><td class="cell-detail" title="${esc(record.details)}"><span>${esc(record.details)}</span></td></tr>`; }).join("");
   const tanks = gameLogs.map(({ room, records }) => {
@@ -2681,7 +2753,8 @@ function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], cap
   const truncationNote = caps.serviceTruncated || caps.captureTruncated
     ? `<p class="table-note" style="margin:0">Showing the newest ${caps.serviceTruncated ? `${serviceRecords.length} service records` : ""}${caps.serviceTruncated && caps.captureTruncated ? " and " : ""}${caps.captureTruncated ? "captures per tank" : ""} — the retained record is larger than one page can carry. The JSON and TXT exports carry the rest.</p>`
     : "";
-  return `<section class="page-intro"><div class="eyebrow">Public Shark Tank evidence</div><h1>Every operational move leaves a reason.</h1><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
+  const heading = embedded ? "h2" : "h1";
+  return `<section class="page-intro${embedded ? " evidence-block" : ""}"${embedded ? ' id="logs" tabindex="-1"' : ""}><div class="eyebrow">Public Shark Tank evidence</div><${heading}>Every operational move leaves a reason.</${heading}><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
     <details class="card log-room"><summary><span class="log-summary"><strong>Service evidence</strong><code>90-day retention</code><span class="log-count">${serviceRecords.length} records</span></span></summary><div class="log-room-body">${logToolbar(serviceTableId, serviceRecords, "service evidence")}<div class="table-scroll" role="region" aria-label="Service evidence" tabindex="0"><table class="events-table" id="${serviceTableId}"><caption class="sr-only">Service evidence</caption><thead><tr><th scope="col">Timestamp</th><th scope="col">Reason</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No public events recorded.</td></tr>'}</tbody></table></div>${serviceRecords.length > LOG_PAGE_SIZE ? logPager(serviceTableId, serviceRecords.length) : ""}<p class="table-note">Reason codes are one letter plus three digits. Full detail remains available in JSON.</p></div></details>
     <section><h2>Tank captures · past 24 hours</h2><p class="sub">${captureTotal} ${captureTotal === 1 ? "capture" : "captures"} across four ocean tanks. Records older than 24 hours are purged at the source, so this is the complete window. Expand a tank to search, filter, sort, or download it.</p>${tanks}</section>${truncationNote}${gameLogSortScript()}`;
 }
@@ -2759,6 +2832,61 @@ async function publicLogData(env: Env) {
       captureTruncated: tanks.some((tank) => tank.records.length >= LOG_FETCH_CAPTURES),
     },
   };
+}
+
+interface PublicEvidenceStatus {
+  maintenance?: MaintenanceState;
+  usage?: { uptimeMs?: number; durableObjects?: { tank?: number; rooms?: number; total?: number } };
+  rooms?: Array<{ name: string; players: number; bots: number; capacity: number; topScore: number; topName: string }>;
+  maintenanceIncidents?: IncidentRecord[];
+  history?: ControlHistoryEntry[];
+  historyIntegrity?: ControlHistoryIntegrity;
+  backup?: BackupState;
+  billingWindow?: Record<string, unknown>;
+}
+
+function evidenceDashboardHtml(
+  data: PublicEvidenceStatus,
+  incidentRecord: { incidents: IncidentRecord[]; history: ControlHistoryEntry[]; historyIntegrity: ControlHistoryIntegrity },
+  logs: Awaited<ReturnType<typeof publicLogData>>,
+): string {
+  const rooms = data.rooms ?? [];
+  const players = rooms.reduce((n, room) => n + room.players, 0);
+  const agents = rooms.reduce((n, room) => n + room.bots, 0);
+  const incidents = incidentRecord.incidents;
+  const availability = incidentSummary(incidents);
+  const portalAvailability = incidentSummary([]);
+  const history = data.history ?? incidentRecord.history;
+  const integrity = data.historyIntegrity ?? incidentRecord.historyIntegrity;
+  const billing = publicBillingWindow(data.billingWindow ?? {});
+  const gateClosed = billing.hardLimitExceeded === true;
+  const roomRows = rooms.map((room) => `<tr><td><strong>${esc(room.name)}</strong></td><td>${room.players}</td><td>${room.bots}</td><td>${room.topScore}</td><td>${esc(room.topName)}</td></tr>`).join("");
+
+  return `<section class="page-intro evidence-intro"><div class="eyebrow">Evidence · generated by the running service</div><h1>Production claims, with inspectable proof.</h1><p class="sub">Availability, incidents, continuity, spend, degradation, reason-coded logs, control receipts, and changes share this dashboard. The raw endpoints remain available for independent checks.</p><nav class="evidence-jump" aria-label="Evidence sections"><a href="#availability">Availability</a><a href="#incidents">Incidents</a><a href="#continuity">Continuity</a><a href="#spend">Spend</a><a href="#degradation">Degradation</a><a href="#logs">Logs</a><a href="#changes">Changes</a><a href="#machine-data">JSON</a></nav></section>
+  <section class="evidence-block" id="availability" tabindex="-1" aria-labelledby="availability-heading">
+    <div class="eyebrow">Reliability · live</div><h2 id="availability-heading">Availability and workload state</h2>
+    <p class="sub">Server availability is derived from the project-start window and the incident record below; it is not a copied marketing number. ${portalAvailability.availabilityPercent === 100 ? "The current evidence supports the statement <strong>100% uptime maintained</strong>." : `The current measured server availability is <strong>${portalAvailability.availabilityPercent}%</strong>.`}</p>
+    <p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a><a class="action-link" href="/incidents.json">Incident JSON →</a></p>
+    <div class="live-controls"><button type="button" id="status-autoupdate" class="secondary">Pause auto-update</button><p class="sub">Live figures refresh every 15 seconds in place. Last updated <time id="status-updated-at">just now</time>.</p></div>
+    <p class="sr-only" id="status-live" role="status" aria-live="polite"></p>
+    <div class="metric-grid status-metrics">
+      ${metricCard(`${portalAvailability.availabilityPercent}%`, "Server availability", `${portalAvailability.unscheduledDowntimePercent}% unscheduled downtime`, "availability", "tone-green", "status-portal-availability")}
+      ${metricCard(`${availability.availabilityPercent}%`, "Tank availability", `${availability.unscheduledDowntimePercent}% unscheduled downtime`, "availability", "tone-green", "status-tank-availability")}
+      ${metricCard(formatCompactDuration(availability.scheduledDowntimeMs), "Scheduled downtime", "excluded from availability", "uptime", "tone-violet", "status-scheduled-downtime")}
+      ${metricCard(data.maintenance?.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance?.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance?.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
+    </div>
+    <div class="card hero-card"><h3 style="margin-top:0;font-size:1.1rem">Availability since project start</h3>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
+    <div class="card"><h3 style="margin-top:0;font-size:1.1rem">Tank activity</h3><p class="sub" style="margin:0 0 12px">${players} human ${players === 1 ? "player" : "players"} and ${agents} computer-controlled ${agents === 1 ? "agent" : "agents"} across the four tanks. Agents are deterministic rules: fixed steering and target selection, with no model or inference call.</p><div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div></div>
+  </section>
+  ${incidentsSection(incidents, history)}
+  ${backupPanelHtml(data.backup)}
+  ${controlHistoryListHtml(history, integrity)}
+  ${spendHtml(billing, true)}
+  <section class="card evidence-block degradation-card" id="degradation" tabindex="-1" aria-labelledby="degradation-heading"><div class="eyebrow">Controlled degradation · ${gateClosed ? "active" : "standing by"}</div><h2 id="degradation-heading">The service sheds variable-cost work before it sheds evidence.</h2><ol class="degradation-ladder"><li><strong>Normal</strong><span>Gameplay, public reads, and bounded public writes operate.</span></li><li><strong>Hard threshold reached</strong><span>The measured billing window reaches its configured spend stop.</span></li><li><strong>Variable-cost traffic gated</strong><span>Gameplay and metered public writes close; an append-only receipt records why.</span></li><li><strong>Evidence preserved</strong><span>Read-only status and evidence, security-report intake, and protected administration and recovery remain available.</span></li><li><strong>Controlled recovery</strong><span>An authenticated billing reset restores normal operation and records the change.</span></li></ol><p class="sub">Current state: <strong>${gateClosed ? "hard threshold exceeded; the cost gate is active" : "normal; the hard threshold has not been reached"}</strong>.</p></section>
+  ${publicLogsHtml(logs.serviceEvents, logs.tanks, logs.caps, true)}
+  ${deliverySection(ROADMAP_MANIFEST, incidents, history, billing)}
+  <section class="card evidence-block" id="machine-data" tabindex="-1"><div class="eyebrow">Machine-readable evidence</div><h2>Raw endpoints</h2><p class="sub">The human dashboard and machine responses are two views over the same records.</p><div class="action-links"><a class="action-link" href="/status.json">Status JSON</a><a class="action-link" href="/incidents.json">Incidents JSON</a><a class="action-link" href="/spend.json">Spend JSON</a><a class="action-link" href="/logs.json">Logs JSON</a><a class="action-link" href="/roadmap.json">Changes JSON</a><a class="action-link" href="/audit/manifest.json">Control register JSON</a><a class="action-link" href="/policies.json">Policies JSON</a></div></section>
+  ${statusLiveScript()}`;
 }
 
 function gameLogText(roomId: string, events: GameLogWireEvent[]): Response {
@@ -3032,11 +3160,20 @@ export default {
       if (path === "/play") return movedTo(url, "/play/");
       if (/^\/(?:arena|uno|x4|21|game|checkers|battleship|3d|shark-?run)(?:\/.*)?$/i.test(path)) return movedTo(url, "/play/");
       if (path === "/favicon.ico") return new Response(null, { status: 404, headers: { "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
-      if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: https://sharktank.wizardgang.ai/sitemap.xml\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
+      if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /docs/\nDisallow: /logs/game/\nDisallow: /*.json$\nDisallow: /*.jsonl$\nSitemap: https://sharktank.wizardgang.ai/sitemap.xml\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
       if (path === "/sitemap.xml") {
-        const routes = ["/", "/iso-27001/", "/iso-42001/", "/evidence/", "/play/", "/audit/", "/policies/", "/status/", "/logs/", "/spend/", "/docs/"];
+        const routes = ["/", "/controls/", "/evidence/", "/play/"];
         const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map((route) => `<url><loc>https://sharktank.wizardgang.ai${route}</loc></url>`).join("")}</urlset>`;
         return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
+      }
+
+      const compatibilityTarget = HUMAN_REDIRECTS[path];
+      if (compatibilityTarget) return movedTo(url, compatibilityTarget);
+      const legacyPolicy = path.match(/^\/policies\/([a-z0-9-]+)\/?$/);
+      if (legacyPolicy) {
+        const doc = findGovernanceDoc(legacyPolicy[1]);
+        if (doc) return movedTo(url, `/controls/#${doc.id}`);
+        return html(shell("SharkTank — Policy not found", `<section class="page-intro"><div class="eyebrow">Not found</div><h1>Policy record not found.</h1><p class="sub">There is no maintained control document with the identifier <code>${esc(legacyPolicy[1])}</code>. <a href="/controls/#policies">Browse the complete policy record →</a></p></section>`), 404);
       }
 
       // Same-origin facade keeps the TypeScript ⇄ PHP proof-of-concept toggle usable
@@ -3223,7 +3360,34 @@ export default {
         return json(OPENAPI);
       }
       if (path === "/docs" || path === "/docs/") {
-        return html(shell("Shark — API Docs", openApiToHtml(OPENAPI)));
+        const response = html(shell("Shark — API Docs", openApiToHtml(OPENAPI)));
+        response.headers.set("x-robots-tag", "noindex");
+        return response;
+      }
+
+      if (path === "/controls") return movedTo(url, "/controls/");
+      if (path === "/controls/") {
+        return html(shell(
+          "SharkTank — ISO 27001, ISO 42001, and production controls",
+          controlsHtml(),
+          "SharkTank's information-security, AI-management, accessibility, continuity, change, and operational controls with complete registers and policy records.",
+          "/controls/",
+        ));
+      }
+      if (path === "/evidence") return movedTo(url, "/evidence/");
+      if (path === "/evidence/") {
+        const [statusRes, incidentRecord, logs] = await Promise.all([
+          lobbyStub(env).fetch("https://lobby/status"),
+          incidentData(env),
+          publicLogData(env),
+        ]);
+        const data = (await statusRes.json()) as PublicEvidenceStatus;
+        return html(shell(
+          "SharkTank — Live production evidence",
+          evidenceDashboardHtml(data, incidentRecord, logs),
+          "Live availability, incidents, continuity, spend governance, controlled degradation, logs, receipts, and delivery evidence from the running SharkTank production workload.",
+          "/evidence/",
+        ));
       }
 
       if (path === "/roadmap.json") { const availability = await roadmapAvailability(env), elapsedHours = ROADMAP_ELAPSED_MINUTES / 60; return json({ ok: true, elapsedMinutes: ROADMAP_ELAPSED_MINUTES, elapsedHours, commitVelocity: { perHour: Number((ROADMAP_MANIFEST.length / elapsedHours).toFixed(1)), featureUpdates: ROADMAP_MANIFEST.length, productionDeployments: ROADMAP_DEPLOYMENT_COUNT, updatesPerDeployment: Number((ROADMAP_MANIFEST.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)) }, nextGoal: { name: "ISO/IEC 42001 + ISO/IEC 27001 certification", status: "in-progress" }, availability, license: "MIT", entries: ROADMAP_MANIFEST, postDelivery: { note: "Excluded from every metric above.", hotfixMinutes: POST_DELIVERY_HOTFIX_MINUTES, entries: POST_DELIVERY_ENTRIES } }); }
@@ -3283,7 +3447,7 @@ export default {
         const billing = publicBillingWindow(data.billingWindow ?? {});
         const summary = summarise(ALL_CONTROLS);
         const lastEntry = [...ROADMAP_MANIFEST, ...POST_DELIVERY_ENTRIES].at(-1) ?? null;
-        return html(shell("SharkTank — Governance implemented against a running system", trustHtml({
+        return html(shell("SharkTank — Governed realtime production engineering", trustHtml({
           portal: incidentSummary([]),
           tank: incidentSummary(incidents),
           incidents,
@@ -3292,35 +3456,11 @@ export default {
           hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
           readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
           lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
-        }), "A technical case study showing how ISO/IEC 27001 and ISO/IEC 42001 governance maps to controls, operational behavior, and evidence from a running software system."));
+        }), "A running realtime production system demonstrating ISO/IEC 27001, ISO/IEC 42001, WCAG-oriented accessibility, reliability, continuity, and controlled spend through live evidence.", "/"));
       }
 
-      if (path === "/iso-27001") return movedTo(url, "/iso-27001/");
-      if (path === "/iso-27001/") return html(shell("SharkTank — ISO/IEC 27001 implementation", iso27001Html(), "How SharkTank implements information-security scope, risk management, control applicability, secure development, operations, recovery, and continuous improvement."));
-      if (path === "/iso-42001") return movedTo(url, "/iso-42001/");
-      if (path === "/iso-42001/") return html(shell("SharkTank — ISO/IEC 42001 implementation", iso42001Html(), "The governed AI system, intended use, model boundary, impact, human authority, monitoring, transparency, change management, and limitations."));
-      if (path === "/evidence") return movedTo(url, "/evidence/");
-      if (path === "/evidence/") return html(shell("SharkTank — Live governance evidence", evidenceOverviewHtml(), "An index of live operational evidence, control mappings, management-system documents, logs, recovery records, resource controls, and developer interfaces."));
-
-      // Public conformance register. Fixed content, no binding read: the evidence is the
-      // routes it links to, so the page has nothing to fetch and nothing to get wrong.
       if (path === "/policies.json") return json(governanceManifest());
-      if (path === "/policies" || path === "/policies/") return html(shell("Shark — Policies", governanceIndexHtml(), "Index of the governance documents ISO/IEC 27001 and 42001 require, each published as its own route."));
-      // One route per document. The set was 201 KB on a single page with 21 h2, 123 h3 and
-      // not one id on any of them, so nothing in it could be cited, linked or found. The
-      // old fragment names keep working: /policies/#risk-assessment redirects to the
-      // document that owns that anchor rather than 404ing an evidence link.
-      const policyDoc = path.match(/^\/policies\/([a-z0-9-]+)\/?$/);
-      if (policyDoc) {
-        const doc = findGovernanceDoc(policyDoc[1]);
-        if (!doc) return html(shell("Shark — Policy not found", governanceMissingHtml(policyDoc[1])), 404);
-        if (!path.endsWith("/")) return movedTo(url, `/policies/${doc.id}/`);
-        return html(shell(`Shark — ${doc.title}`, governanceDocPageHtml(doc), doc.purpose));
-      }
       if (path === "/audit/manifest.json") return json(conformanceManifest());
-      if (path === "/audit" || path === "/audit/") {
-        return html(shell("Shark — ISO 27001 and 42001 register", conformanceHtml(metricCard)));
-      }
 
       if (path === "/admin/status.json" || path === "/audit/status.json") {
         const res = await lobbyStub(env).fetch("https://lobby/status");
@@ -3465,7 +3605,7 @@ export default {
     // unknown path — including retired UNO, X4, 21 and Checkers URLs — returned the same
     // Shark Tank document with a 200, which made distinct public routes appear duplicated.
     const gameShell = path === "/play/" || path === "/ts" || path === "/ts/" || path === "/php" || path === "/php/";
-    const staticAsset = path.startsWith("/assets/");
+    const staticAsset = path.startsWith("/assets/") || path === "/sharktank-art.jpg";
     if (!gameShell && !staticAsset) {
       return html(shell("Shark Tank — Route not found", `<section><p class="eyebrow">404</p><h1>Route not found</h1><p>This Shark Tank route does not exist.</p><p><a class="button" href="/play/">Play Shark Tank</a></p></section>`, "The requested Shark Tank route does not exist."), 404);
     }

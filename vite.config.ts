@@ -26,6 +26,6 @@ export default defineConfig({
     // Keep warnings focused on accidental growth beyond the known game-runtime boundary.
     chunkSizeWarningLimit: 900,
   },
-  // We output to dist/ and serve via the worker's ASSETS binding; no Vite publicDir.
-  publicDir: false,
+  // Static portfolio imagery is copied into dist/ and served by the Worker's ASSETS binding.
+  publicDir: "public",
 });

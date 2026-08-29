@@ -38,7 +38,7 @@ const withBust = (path) => `${base}${path}${path.includes("?") ? "&" : "?"}${bus
  * the SPA serves. If the trust nav is ever renamed this check fails everywhere at once,
  * which is the right failure: it is load-bearing for the register's central guarantee.
  */
-const TRUST_MARKER = '<nav aria-label="Trust and operations">';
+const TRUST_MARKER = '<nav aria-label="Primary">';
 /** The mount point in index.html. `/play/` is evidence that the game is served, and the shell is it. */
 const GAME_SHELL_MARKER = '<div id="root"';
 
