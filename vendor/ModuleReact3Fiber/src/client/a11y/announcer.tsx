@@ -3,7 +3,7 @@
 // leaderboard shifts, screen transitions) — satisfying WCAG 4.1.3 Status Messages
 // without moving focus.
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 type Politeness = "polite" | "assertive";
 
@@ -16,20 +16,22 @@ const Ctx = createContext<AnnouncerApi>({ announce: () => {} });
 export function AnnouncerProvider({ children }: { children: ReactNode }) {
   const [polite, setPolite] = useState("");
   const [assertive, setAssertive] = useState("");
-  const lastRef = useRef<string>("");
 
+  // Clearing the region and setting it again on the next frame is what makes a live
+  // region re-fire. There used to be a `message === last` guard in front of this, which
+  // meant an identical consecutive message was dropped instead of re-announced — so a
+  // second death at the same score, or a second disconnect, was silent. Every caller
+  // announces on a state transition rather than per frame, so repeats are real events
+  // and are worth speaking.
   const announce = useCallback((message: string, politeness: Politeness = "polite") => {
-    if (!message || message === lastRef.current) return;
-    lastRef.current = message;
-    // Toggle via a leading zero-width space so identical consecutive messages re-fire.
-    const stamped = message;
-    if (politeness === "assertive") {
-      setAssertive("");
-      requestAnimationFrame(() => setAssertive(stamped));
-    } else {
-      setPolite("");
-      requestAnimationFrame(() => setPolite(stamped));
-    }
+    if (!message) return;
+    const set = politeness === "assertive" ? setAssertive : setPolite;
+    // Clear, then set on a later task: the empty render is what makes the region fire
+    // again for a message identical to the last one. A timer rather than
+    // requestAnimationFrame because rAF does not run at all while the document is
+    // hidden, which silently swallowed the announcement instead of delaying it.
+    set("");
+    setTimeout(() => set(message), 60);
   }, []);
 
   const api = useMemo(() => ({ announce }), [announce]);

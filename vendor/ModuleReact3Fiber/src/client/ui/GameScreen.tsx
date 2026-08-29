@@ -17,7 +17,7 @@ import { useAnnouncer } from "../a11y/announcer.js";
 import { useGameAudio } from "../audio/useGameAudio.js";
 import { Hud } from "./Hud.js";
 import { Leaderboard } from "./Leaderboard.js";
-import { Minimap } from "./Minimap.js";
+import { Minimap, MinimapSummary } from "./Minimap.js";
 import { DeathOverlay } from "./DeathOverlay.js";
 import { Settings } from "./Settings.js";
 import { QuickA11y } from "./QuickA11y.js";
@@ -67,7 +67,10 @@ export function GameScreen({ room, identity, onQuit }: GameScreenProps) {
   // Help is keyboard-addressable; Escape closes a tool first, then exits the tank.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "?") {
+      const target = e.target as HTMLElement | null;
+      const typing = !!target && (target.isContentEditable
+        || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (e.key === "?" && settings.controls.singleKeyShortcuts && !typing) {
         e.preventDefault();
         setHelpOpen((h) => !h);
         return;
@@ -102,6 +105,7 @@ export function GameScreen({ room, identity, onQuit }: GameScreenProps) {
       <Leaderboard socket={socket} />
       <FrenzyBanner socket={socket} />
       {settings.graphics.showMinimap && <Minimap socket={socket} />}
+      <MinimapSummary socket={socket} />
       <QuickA11y onQuit={handleQuit} onHelp={openHelp} onSettings={openSettings} onDebug={toggleDebug} debugOpen={debugOpen} collapsed={touch} />
       <div className="ability-rail">
         <DashButton socket={socket} compact={touch} />
@@ -110,12 +114,10 @@ export function GameScreen({ room, identity, onQuit }: GameScreenProps) {
       {touch && <TouchControls stickRef={stickRef} side={stickSide} enabled={inputEnabled} />}
       {settings.audio.captions && <Captions caption={caption} />}
 
-      {/* Connection banner */}
-      {socket.status !== "open" && (
-        <div role="status" className="conn-banner">
-          {socket.status === "connecting" ? "Connecting…" : "Reconnecting…"}
-        </div>
-      )}
+      {/* Connection banner. Always mounted — see conn-banner:empty in theme.css. */}
+      <div role="status" className="conn-banner">
+        {socket.status === "open" ? "" : socket.status === "connecting" ? "Connecting…" : "Reconnecting…"}
+      </div>
 
       {socket.death && (
         <DeathOverlay death={socket.death} onRespawn={socket.respawn} onQuit={handleQuit} />

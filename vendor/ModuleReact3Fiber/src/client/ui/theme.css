@@ -353,6 +353,9 @@ body {
    pinned above the minimap, so on a short window the two used to meet. Cap the board to
    the space that is actually free rather than letting rows run under the pads. */
 .game-leaderboard { max-height: calc(100dvh - 400px); overflow: hidden; }
+/* The region stays mounted so a screen reader can observe it fill; with no text
+   there is nothing to draw. */
+.conn-banner:empty { display:none; }
 .conn-banner { position:absolute; z-index:12; bottom:calc(12px + var(--safe-b)); left:50%; transform:translateX(-50%); max-width:calc(100% - 24px); padding:8px 16px; border:1px solid var(--warning-on-dark); border-radius:var(--radius); background:var(--overlay-scrim); color:var(--text); text-align:center; }
 
 /* ── Tools rail ── */

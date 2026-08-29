@@ -33,6 +33,11 @@ export interface Settings {
     touchControls: "auto" | "on" | "off";
     /** Which thumb drives. "right" puts the stick right and the ability pads left. */
     stickSide: "right" | "left";
+    /**
+     * Single-key shortcuts (currently "?" for help). WCAG 2.1.4 requires a single-character
+     * shortcut to be switchable, remappable, or focus-scoped — this is the off switch.
+     */
+    singleKeyShortcuts: boolean;
   };
   a11y: {
     theme: "system" | "dark" | "light";
@@ -53,6 +58,7 @@ export const DEFAULT_SETTINGS: Settings = {
     invertSteer: false,
     touchControls: "auto",
     stickSide: "right",
+    singleKeyShortcuts: true,
   },
   a11y: { theme: "system", contrast: "normal", motion: "full", fontScale: 1, colorblindLabels: true },
 };

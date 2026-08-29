@@ -20,7 +20,14 @@ export function Customize({
   const [draftName, setDraftName] = useState(name);
   const [draftSkin, setDraftSkin] = useState(skin);
   const dirty = draftName !== name || draftSkin !== skin;
-  const validName = isFamilyFriendlyName(draftName);
+  // Judge what the server will actually store, not what was typed. This used to check the
+  // raw draft while Confirm committed the sanitised string, so the gate and the saved value
+  // could disagree — a draft could be accepted here and land as something else, or be
+  // refused here despite sanitising to a perfectly good name.
+  const trimmedName = draftName.trim();
+  const storedName = sanitizeDisplayName(draftName);
+  const nameRejected = trimmedName.length > 0 && trimmedName !== storedName && storedName === "Player";
+  const validName = !nameRejected && isFamilyFriendlyName(storedName);
 
   return (
     <div className="center-screen">
@@ -40,7 +47,7 @@ export function Customize({
             aria-invalid={!validName}
             aria-describedby={!validName ? "cz-name-error" : undefined}
           />
-          {!validName && <span id="cz-name-error" role="alert" style={{ color: "var(--danger, #ff7b7b)" }}>Choose a family-friendly name.</span>}
+          {!validName && <span id="cz-name-error" role="alert" style={{ color: "var(--danger, #ff7b7b)" }}>That name can&rsquo;t be used. Try letters and numbers.</span>}
         </div>
 
         <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
@@ -62,7 +69,7 @@ export function Customize({
 
         <div className="row" style={{ justifyContent: "flex-end" }}>
           <button className="btn" onClick={onExit}>Exit</button>
-          <button className="btn btn--primary" onClick={() => onConfirm(sanitizeDisplayName(draftName), draftSkin)} disabled={!dirty || !validName}>
+          <button className="btn btn--primary" onClick={() => onConfirm(storedName, draftSkin)} disabled={!dirty || !validName}>
             Confirm
           </button>
         </div>

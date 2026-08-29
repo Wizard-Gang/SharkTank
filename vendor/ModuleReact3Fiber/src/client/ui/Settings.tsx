@@ -199,6 +199,7 @@ function ControlsPanel() {
       </ul>
       <Toggle label="Turn assist" hint="Gentler, slower steering." checked={settings.controls.turnAssist} onChange={(v) => update("controls", { turnAssist: v })} />
       <Toggle label="Invert steering" checked={settings.controls.invertSteer} onChange={(v) => update("controls", { invertSteer: v })} />
+      <Toggle label="Single-key shortcuts" hint="Press ? to open help. Turn off if a speech or switch device sends stray keys." checked={settings.controls.singleKeyShortcuts} onChange={(v) => update("controls", { singleKeyShortcuts: v })} />
       <Choice
         label="On-screen controls"
         value={settings.controls.touchControls}

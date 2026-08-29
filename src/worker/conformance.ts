@@ -753,7 +753,7 @@ function registerHtml(register: Register): string {
   return `<section class="card iso-register" id="${esc(register.id)}" data-register>
     <div class="iso-register__head"><div><div class="eyebrow">${esc(register.standard)}</div><h3>${esc(register.title)}</h3></div><span class="iso-count" data-register-count>${summary.total} controls</span></div>
     <p class="sub">${esc(register.intro)}</p>
-    <div class="table-scroll" role="region" aria-label="${esc(register.title)}" tabindex="0"><table class="iso-table"><thead><tr><th>Ref</th><th>Control</th><th>What an assessor asks for</th><th>Status</th><th>Position</th><th>Evidence</th></tr></thead><tbody>${register.controls.map((control) => controlRow(control, register.standard)).join("")}</tbody></table></div>
+    <div class="table-scroll" role="region" aria-label="${esc(register.title)}" tabindex="0"><table class="iso-table"><caption class="sr-only">${esc(register.title)}</caption><thead><tr><th scope="col">Ref</th><th scope="col">Control</th><th scope="col">What an assessor asks for</th><th scope="col">Status</th><th scope="col">Position</th><th scope="col">Evidence</th></tr></thead><tbody>${register.controls.map((control) => controlRow(control, register.standard)).join("")}</tbody></table></div>
     <p class="iso-empty" data-register-empty hidden>No rows in this register match the current filter.</p>
   </section>`;
 }
@@ -815,7 +815,7 @@ export function conformanceHtml(metricCard: MetricCard): string {
 
   <div class="card">
     <h2 style="margin:0 0 10px;font-size:1.05rem">How to read a row</h2>
-    <div class="table-scroll" role="region" aria-label="Status meanings" tabindex="0" style="margin:0"><table class="iso-key-table"><thead><tr><th>Status</th><th>What it means here</th></tr></thead><tbody>
+    <div class="table-scroll" role="region" aria-label="Status meanings" tabindex="0" style="margin:0"><table class="iso-key-table"><caption class="sr-only">Status meanings</caption><thead><tr><th scope="col">Status</th><th scope="col">What it means here</th></tr></thead><tbody>
       ${STATUSES.map((value) => `<tr><td>${statusPill(value)}</td><td>${esc(STATUS_MEANING[value])}</td></tr>`).join("")}
     </tbody></table></div>
     <p class="sub" style="margin:12px 0 0">Readiness counts only the controls this organisation has to close — supplier-inherited and excluded rows are removed from the denominator, and a partial row counts as half. Rows marked <span class="iso-lock">auth</span> need operations credentials; an assessor is given them for the engagement.</p>
@@ -828,7 +828,7 @@ export function conformanceHtml(metricCard: MetricCard): string {
   <h2 class="iso-section" id="documents">Mandatory documented information</h2>
   <p class="sub">The Stage 1 document review. An assessor works down a list very close to this one and will not schedule Stage 2 until each item exists. ${documents.byStatus.met} of these ${MANDATORY_DOCUMENTS.length} are held today, ${documents.byStatus.partial} exist in substance but are not issued as controlled documents, and ${documents.byStatus.gap} have to be written.</p>
   <div class="card">
-    <div class="table-scroll" role="region" aria-label="Mandatory documented information" tabindex="0"><table class="iso-table iso-doc-table"><thead><tr><th>Ref</th><th>Document</th><th>Clause</th><th>Status</th><th>Position</th><th>Evidence</th></tr></thead><tbody>${MANDATORY_DOCUMENTS.map(documentRow).join("")}</tbody></table></div>
+    <div class="table-scroll" role="region" aria-label="Mandatory documented information" tabindex="0"><table class="iso-table iso-doc-table"><caption class="sr-only">Mandatory documented information</caption><thead><tr><th scope="col">Ref</th><th scope="col">Document</th><th scope="col">Clause</th><th scope="col">Status</th><th scope="col">Position</th><th scope="col">Evidence</th></tr></thead><tbody>${MANDATORY_DOCUMENTS.map(documentRow).join("")}</tbody></table></div>
   </div>
 
   <h2 class="iso-section" id="registers">Clause and control registers</h2>
@@ -847,7 +847,7 @@ export function conformanceHtml(metricCard: MetricCard): string {
   <h2 class="iso-section" id="evidence">Evidence index</h2>
   <p class="sub">Every route this service publishes and what it proves. An assessor should be able to work down this list without asking for anything that is not already here.</p>
   <div class="card">
-    <div class="table-scroll" role="region" aria-label="Evidence index" tabindex="0"><table class="iso-table iso-evidence-table"><thead><tr><th>Route</th><th>Access</th><th>What it proves</th><th>Controls</th></tr></thead><tbody>
+    <div class="table-scroll" role="region" aria-label="Evidence index" tabindex="0"><table class="iso-table iso-evidence-table"><caption class="sr-only">Evidence index</caption><thead><tr><th scope="col">Route</th><th scope="col">Access</th><th scope="col">What it proves</th><th scope="col">Controls</th></tr></thead><tbody>
       ${EVIDENCE_INDEX.map((route) => `<tr><td class="cell-code"><code>${esc(route.route)}</code></td><td>${route.access === "operator" ? `<span class="iso-pill is-supplier">Operator</span>` : `<span class="iso-pill is-met">Public</span>`}</td><td class="iso-note">${esc(route.proves)}</td><td class="iso-clauses">${esc(route.controls)}</td></tr>`).join("")}
     </tbody></table></div>
   </div>

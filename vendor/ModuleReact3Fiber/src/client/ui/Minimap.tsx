@@ -1,5 +1,9 @@
-// Radar minimap. Decorative canvas (aria-hidden) sampling the live snapshot; a
-// concise textual position summary is provided for screen readers alongside it.
+// Radar minimap. Decorative canvas (aria-hidden) sampling the live snapshot.
+//
+// The position summary lives in its own component because it is not part of the
+// picture: it used to sit inside Minimap, so switching off a *visual* aid also
+// removed the only non-visual statement of where you are. GameScreen renders
+// MinimapSummary whether or not the canvas is shown.
 
 import { useEffect, useRef, useState } from "react";
 import { SKINS } from "../../engine/index.js";
@@ -10,7 +14,6 @@ const skinColor = (id: string) => SKINS.find((s) => s.id === id)?.color ?? "#33b
 
 export function Minimap({ socket }: { socket: RoomSocket }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [summary, setSummary] = useState("");
 
   useEffect(() => {
     let drawTimer: ReturnType<typeof setInterval> | null = null;
@@ -53,7 +56,23 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
     draw();
     drawTimer = setInterval(draw, 125);
 
-    // Low-rate textual summary for AT.
+    return () => {
+      if (drawTimer) clearInterval(drawTimer);
+    };
+  }, [socket]);
+
+  return (
+    <div className="game-minimap" style={wrap}>
+      <canvas ref={canvasRef} width={SIZE} height={SIZE} aria-hidden="true" style={{ display: "block" }} />
+    </div>
+  );
+}
+
+/** Spoken position, independent of whether the radar canvas is drawn. */
+export function MinimapSummary({ socket }: { socket: RoomSocket }) {
+  const [summary, setSummary] = useState("");
+
+  useEffect(() => {
     const id = setInterval(() => {
       const s = socket.stateRef.current;
       const me = s?.snakes.find((x) => x.id === socket.youId && x.alive);
@@ -64,19 +83,10 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
         setSummary(`You are near tank ${[dir, dir2].filter(Boolean).join("-") || "center"}.`);
       }
     }, 2000);
-
-    return () => {
-      if (drawTimer) clearInterval(drawTimer);
-      clearInterval(id);
-    };
+    return () => clearInterval(id);
   }, [socket]);
 
-  return (
-    <div className="game-minimap" style={wrap}>
-      <canvas ref={canvasRef} width={SIZE} height={SIZE} aria-hidden="true" style={{ display: "block" }} />
-      <p className="sr-only" role="status">{summary}</p>
-    </div>
-  );
+  return <p className="sr-only" role="status">{summary}</p>;
 }
 
 const wrap: React.CSSProperties = {
