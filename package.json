@@ -14,6 +14,8 @@
     "test:php": "php packages/php-runtime/bin/selftest.php",
     "typecheck": "tsc --noEmit && tsc --noEmit -p vendor/ModuleReact3Fiber/tsconfig.json",
     "build": "vite build",
+    "deploy:wizardgangprod": "node scripts/deploy-prod.mjs",
+    "deploy:wizardgangprod:dry-run": "node scripts/deploy-prod.mjs --dry-run",
     "dev": "wrangler dev --port 8787",
     "start": "wrangler dev --port 8787"
   },

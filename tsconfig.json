@@ -11,6 +11,8 @@
     "esModuleInterop": true,
     "types": ["node", "@cloudflare/workers-types", "vite/client"],
     "paths": {
+      "module-react3fiber/app": ["./vendor/ModuleReact3Fiber/src/client/App.tsx"],
+      "module-react3fiber/backend": ["./vendor/ModuleReact3Fiber/src/client/net/backend.ts"],
       "module-react3fiber/*": ["./vendor/ModuleReact3Fiber/src/*/index.ts"]
     }
   },

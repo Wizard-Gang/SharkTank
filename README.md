@@ -32,6 +32,18 @@ npm run build
 
 No test suite exists at this point in the reconstructed history.
 
+## Production staging
+
+The historical production environment is named `wizardgangprod`. Its name and
+Durable Object migration identities remain stable because changing them would create
+new state namespaces rather than migrate the existing product. The deployment script
+requires the Cloudflare account identifier from ignored local configuration and refuses
+to deploy unless the operator secret is configured.
+
+```bash
+npm run deploy:wizardgangprod:dry-run
+```
+
 ## Layout
 
 - `src/worker/index.ts` — Worker routes and blob-store API.

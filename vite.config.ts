@@ -11,6 +11,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "module-react3fiber/app": sub("client/App.tsx"),
+      "module-react3fiber/backend": sub("client/net/backend.ts"),
       "module-react3fiber/client": sub("client/index.ts"),
       "module-react3fiber/engine": sub("engine/index.ts"),
       "module-react3fiber/store": sub("store/index.ts"),
@@ -20,6 +22,9 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // The 3D arena is intentionally lazy-loaded; its ~230 kB gzip payload includes Three.js.
+    // Keep warnings focused on accidental growth beyond the known game-runtime boundary.
+    chunkSizeWarningLimit: 900,
   },
   // We output to dist/ and serve via the worker's ASSETS binding; no Vite publicDir.
   publicDir: false,

@@ -5,14 +5,16 @@
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-06-28",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": { "ENVIRONMENT": "development", "AUDIT_GENERATION": "2026-08-18-wizardgang-ai-shark-reset-3", "GAME_LOG_GENERATION": "2026-08-18-shark-capture-reset-2", "BILLING_HARD_LIMIT_USD": "5", "R2_BUCKET_NAME": "wizardgang-3d-assets-dev" },
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
     // serve index.html for client-side routes...
     "not_found_handling": "single-page-application",
-    // ...but let the Worker handle the API, realtime WS, and ops pages (otherwise SPA
-    // fallback would swallow them).
-    "run_worker_first": ["/api/*", "/room/*", "/docs", "/docs/*", "/openapi.json", "/status", "/status/*", "/status.json", "/audit", "/audit/*", "/audit.json", "/audit.jsonl"]
+    // Every request must pass through the Worker so global maintenance mode can also
+    // replace the SPA shell and immutable asset requests with the downtime response.
+    "run_worker_first": true
   },
   // Authoritative realtime: Room hosts one arena's sim over a WebSocket; Lobby is a
   // single presence/leaderboard aggregator (addressed by idFromName("global")).
@@ -22,5 +24,27 @@
       { "name": "LOBBY", "class_name": "Lobby" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room", "Lobby"] }]
+  "r2_buckets": [{ "binding": "R2_ASSETS", "bucket_name": "wizardgang-3d-assets-dev" }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room", "Lobby"] }],
+  "env": {
+    "wizardgangprod": {
+      "name": "wizardgangprod",
+      // account_id is deliberately absent: it is an account identifier and this file is
+      // tracked. It comes from CLOUDFLARE_ACCOUNT_ID in .env (gitignored), which
+      // scripts/deploy-prod.mjs loads before invoking wrangler.
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [{ "pattern": "wizardgang.ai", "custom_domain": true }],
+      "vars": { "ENVIRONMENT": "production", "AUDIT_GENERATION": "2026-08-18-wizardgang-ai-shark-reset-3", "GAME_LOG_GENERATION": "2026-08-18-shark-capture-reset-2", "BILLING_HARD_LIMIT_USD": "5", "R2_BUCKET_NAME": "wizardgang-3d-assets-prod" },
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "r2_buckets": [{ "binding": "R2_ASSETS", "bucket_name": "wizardgang-3d-assets-prod" }],
+      // Durable Object bindings are non-inheritable and must be repeated per env.
+      "durable_objects": {
+        "bindings": [
+          { "name": "ROOM", "class_name": "Room" },
+          { "name": "LOBBY", "class_name": "Lobby" }
+        ]
+      }
+    }
+  }
 }
