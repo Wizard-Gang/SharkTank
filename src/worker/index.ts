@@ -1085,7 +1085,7 @@ const PAGE_CSS = `
   .meter-legend b{display:inline-block;width:2px;height:13px;border-radius:1px;background:#e9e6ff}
   .meter-none,.meter-note{color:var(--faint);font-style:italic}
   @media(max-width:860px){.spend-hero{grid-template-columns:1fr}}
-  .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.availability-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:900px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+  .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.availability-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:2400px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
   .log-room{padding:0;overflow:hidden}.log-room>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:14px 18px;cursor:pointer;list-style:none}.log-room>summary::-webkit-details-marker{display:none}.log-room>summary:after{content:"+";color:var(--cyan);font-size:1.35rem;font-weight:900}.log-room[open]>summary{border-bottom:1px solid var(--border)}.log-room[open]>summary:after{content:"−"}.log-summary{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.log-count{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.72rem;font-weight:800}.log-room-body{padding:16px 18px 4px}.log-actions{display:flex;justify-content:flex-end;margin-bottom:10px}.log-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(150px,.42fr) auto;gap:10px;align-items:end;margin:0 0 14px}.log-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.06em;text-transform:uppercase}.log-toolbar :is(input,select){width:100%;min-height:42px;border:1px solid var(--strong);border-radius:9px;background:var(--surface-1);color:var(--text);padding:8px 10px;font:inherit}.log-visible-count{padding:10px 0;color:var(--faint);font-size:.74rem;white-space:nowrap}.table-sort{min-height:0;padding:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;box-shadow:none}.table-sort:active{transform:none;box-shadow:none}.table-sort:after{content:" ↕";color:var(--faint)}.table-sort[data-direction="asc"]:after{content:" ↑";color:var(--cyan)}.table-sort[data-direction="desc"]:after{content:" ↓";color:var(--cyan)}
   pre{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto}
   /* ── Conformance register (/audit/) ──────────────────────────────────────────
@@ -2019,7 +2019,13 @@ interface ShowcaseInput {
 function showcaseChartSvg(input: ShowcaseInput): string {
   const { entries, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now } = input;
   const start = PROJECT_START_MS, span = Math.max(1, now - start);
-  const width = 1000, left = 132, right = 20, plot = width - left - right;
+  // 2400 units wide, not 1000, and pinned by .showcase-chart to render at least that many
+  // pixels -- so one unit is one pixel and a time bucket is 26.8 px across. At the old width
+  // a bucket was 10 px, and SC 2.5.8's 24 px minimum was unreachable for the deployment marks
+  // however they were padded: eight of them sit in consecutive buckets, so any 24 px target
+  // overlapped its neighbour. Only the horizontal unit count changed; the heights are as they
+  // were, so the chart got wider rather than taller and still scrolls inside .timeline-scroll.
+  const width = 2400, left = 132, right = 20, plot = width - left - right;
   const x = (ts: number) => left + ((Math.max(start, Math.min(now, ts)) - start) / span) * plot;
   const batches = deploymentBatches(entries);
   const buildEnd = start + ROADMAP_ELAPSED_MINUTES * 60_000;
@@ -2051,6 +2057,21 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   const segX = (index: number) => left + index * tickW;
   const seg = (index: number, y: number, fill: string, inset = 0) =>
     `<rect x="${segX(index).toFixed(1)}" y="${(y + inset).toFixed(1)}" width="${segW.toFixed(1)}" height="${(bandH - inset * 2).toFixed(1)}" rx="2" fill="${fill}"/>`;
+  /**
+   * The transparent hit area behind a mark, one bucket wide and 24 units tall.
+   *
+   * The coloured slice is 20 units at most and a hotfix slice is 10, so the visible mark never
+   * reaches the 24 px minimum on its own. Adjacent buckets meet edge to edge and never overlap,
+   * so this clears SC 2.5.8 outright rather than leaning on the spacing exception -- which the
+   * marks would not qualify for anyway, being closer together than 24 px before the widening.
+   */
+  const HIT = 24;
+  // A hair under one bucket wide: x and width are each emitted to one decimal, and rounding
+  // them independently can push a rect 0.1 units past its neighbour's edge. Trimming 0.4
+  // guarantees a gap at every bucket while leaving the target comfortably over 24.
+  const hitW = Math.max(HIT, tickW - 0.4);
+  const hit = (index: number, y: number) =>
+    `<rect x="${segX(index).toFixed(1)}" y="${(y + bandH / 2 - HIT / 2).toFixed(1)}" width="${hitW.toFixed(1)}" height="${HIT}" fill="transparent"/>`;
 
   const isHotfix = (batch: DeploymentBatch) => entries.filter((entry) => entry.deployment === batch.id).every((entry) => entry.label === "hotfix");
   const deployBuckets = new Map<number, { batches: DeploymentBatch[]; release: boolean }>();
@@ -2079,6 +2100,10 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   // has uptime behind it instead of a hole punched through the bar.
   const strip = (y: number, name: string) =>
     `<a href="/status/" aria-label="${esc(name)}"><title>${esc(name)}</title>`
+    // The coloured band is 20 units tall by design, which leaves the strip's own link 4 px
+    // short of the 24 px minimum. The marks that sit on it are drawn afterwards and so keep
+    // their own hit areas; this only makes the bare stretches of strip reachable.
+    + `<rect x="${left}" y="${(y + bandH / 2 - HIT / 2).toFixed(1)}" width="${plot}" height="${HIT}" fill="transparent"/>`
     + Array.from({ length: TICKS }, (_, index) => seg(index, y, "#4ade80")).join("") + `</a>`;
 
   const deployMarks = [...deployBuckets.entries()].sort((a, b) => a[0] - b[0]).map(([index, entry]) => {
@@ -2087,7 +2112,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
     const when = first.recorded ? `${new Date(first.to).toISOString().replace("T", " ").slice(0, 16)}Z` : `${formatElapsed(first.elapsedMinutes)} into the build`;
     const name = esc(`${entry.batches.map((batch) => batch.id).join(" and ")} · ${kind} · ${updates} update${updates === 1 ? "" : "s"} · ${when}`);
     return `<g role="listitem"><a href="#${roadmapRowAnchor(first.firstEntry)}" aria-label="${name}"><title>${name}</title>`
-      + seg(index, serverY, "#22e6ff", entry.release ? 0 : 5) + `</a></g>`;
+      + hit(index, serverY) + seg(index, serverY, "#22e6ff", entry.release ? 0 : 5) + `</a></g>`;
   }).join("");
 
   const incidentMarks = [...incidentBuckets.entries()].sort((a, b) => a[0] - b[0]).map(([index, entry]) => {
@@ -2099,7 +2124,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
     const kind = scheduled ? "scheduled, excluded from availability" : lasted ? "unscheduled outage" : "no impact";
     const name = esc(`${tone.label} · ${incident.title} · ${when} · ${formatCompactDuration(Math.max(0, to - from))} · ${kind}`);
     return `<g role="listitem"><a href="#${anchor}" aria-label="${name}"><title>${name}</title>`
-      + seg(index, tankY, colour, entry.rank === 3 ? 0 : 5) + `</a></g>`;
+      + hit(index, tankY) + seg(index, tankY, colour, entry.rank === 3 ? 0 : 5) + `</a></g>`;
   }).join("");
 
   // The percentage lives beside the name, so the strip itself carries nothing but its slices.
@@ -2159,6 +2184,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   const used = Math.max(0, Math.min(1, spendUsd / Math.max(hardLimitUsd, 1e-9)));
   const capBar = `<rect x="${left}" y="${capY}" width="${plot}" height="${capH}" rx="4" fill="#2b2750"/>`
     + `<g role="listitem"><a href="/spend/" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
+    + `<rect x="${left}" y="${(capY + capH / 2 - 12).toFixed(1)}" width="${Math.max(24, used * plot).toFixed(1)}" height="24" fill="transparent"/>`
     + `<rect x="${left}" y="${capY}" width="${Math.max(3, used * plot).toFixed(1)}" height="${capH}" rx="4" fill="#f0abfc"/></a></g>`
     + `<text x="${left + 10}" y="${(capY + 11).toFixed(1)}" class="sc-note">${esc(`$${spendUsd.toFixed(4)} used · ${(used * 100).toFixed(2)}% of the $${hardLimitUsd.toFixed(2)} hard stop`)}</text>`
     + `<text x="${(left + plot).toFixed(1)}" y="${(capY - 4).toFixed(1)}" class="sc-axis" text-anchor="end">$${hardLimitUsd.toFixed(2)}</text>`;
