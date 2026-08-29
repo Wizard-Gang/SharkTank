@@ -2603,8 +2603,8 @@ export class Lobby implements DurableObject {
       actor: "operator",
       title: ok ? "Restore drill passed" : "Restore drill failed",
       summary: ok
-        ? "A copy of service state was restored into a scratch instance and its export digest matched the original."
-        : "A restore drill did not reproduce the original state. The backup path is not proven until this passes.",
+        ? "The most recent copy in object storage was read back, restored into a scratch instance, and its export digest matched the copy's."
+        : "A restore drill did not read back and reproduce the most recent stored copy. The backup path is not proven until this passes.",
       reference: "/status/#backup",
       detail: detail || null,
     });

@@ -2128,7 +2128,7 @@ function backupPanelHtml(backup?: BackupState): string {
     ? `<p class="sub" style="margin:8px 0 0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
     : "";
   return `<div class="card" id="backup"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
-    <p class="sub" style="margin:0 0 10px">Everything the tank holds — the control receipt chain, the 90-day action log, player profiles and spend history — is copied to object storage on a daily schedule. A restore drill restores the most recent copy into a scratch instance and compares its digest against the original; equal digests mean the copy is the original rather than merely similar to it. <span class="key-dot ${drillTone}"></span>${esc(drillWord)}.</p>
+    <p class="sub" style="margin:0 0 10px">Everything the tank holds — the control receipt chain, the 90-day action log, player profiles and spend history — is copied to object storage on a daily schedule. A restore drill reads the most recent copy back out of object storage, restores that copy into a scratch instance, and compares the scratch instance&rsquo;s export digest against the copy&rsquo;s; equal digests mean the stored copy reconstitutes the state it was taken from rather than merely something like it. If no copy can be read, the drill fails and says so rather than testing the live object instead. <span class="key-dot ${drillTone}"></span>${esc(drillWord)}.</p>
     <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</div>`;
 }
 
@@ -2711,9 +2711,19 @@ async function runBackup(env: Env): Promise<Record<string, unknown>> {
 }
 
 /**
- * Restore drill. Exports live state, restores it into a scratch Durable Object addressed
- * by a name nothing else uses, exports the scratch copy, and compares digests. A matching
- * digest means the restore reproduced the original exactly, not merely something like it.
+ * Restore drill. Reads the most recent copy back out of object storage, restores that copy
+ * into a scratch Durable Object addressed by a name nothing else uses, exports the scratch
+ * instance and compares digests. A matching digest means the stored copy reconstitutes the
+ * state it was taken from exactly, not merely something like it.
+ *
+ * The stored copy is deliberately the thing under test. An earlier version of this drill
+ * exported the live object and restored that, which proved the object could round-trip its
+ * own state and proved nothing whatever about object storage -- while /status/ went on
+ * saying the most recent copy was what had been restored. If no bucket is bound, or there
+ * is no copy in it, the drill fails and says which: it must never quietly fall back to the
+ * live export, because that silent fallback is precisely how the published claim became
+ * untrue in the first place.
+ *
  * Live state is never written to, so this is safe to run against production.
  */
 /** The drill detail is rendered on the public status panel, so it has to read as English. */
@@ -2725,8 +2735,18 @@ async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
   // holding a full copy of every profile behind after every drill.
   const scratch = env.LOBBY.get(env.LOBBY.idFromName("state-restore-drill"));
   try {
-    const source = await fetchStateExport(env);
-    if (!source) throw new Error("could not export live state");
+    // No bucket, or nothing in it, is a failed drill and not a reason to test something else.
+    if (!env.R2_ASSETS) throw new Error("no object storage bound, so there is no stored copy to restore");
+    const stored = await env.R2_ASSETS.get(BACKUP_LATEST_KEY);
+    if (!stored) throw new Error(`no copy at ${BACKUP_LATEST_KEY} to restore; take one before drilling`);
+    let source: StateExportShape | null = null;
+    try { source = (await stored.json()) as StateExportShape; }
+    catch { throw new Error(`the copy at ${BACKUP_LATEST_KEY} is not readable JSON`); }
+    if (!source || typeof source !== "object") throw new Error("the stored copy is not an export");
+    // Without a digest on the copy there is nothing to compare the restore against, and a
+    // drill that cannot compare must not report a pass.
+    if (!source.digest) throw new Error("the stored copy carries no digest to compare against");
+
     const restore = await scratch.fetch(new Request("https://lobby/restore", { method: "POST", body: JSON.stringify({ export: source }), headers: { "content-type": "application/json" } }));
     const restored = (await restore.json()) as { ok?: boolean; error?: string };
     if (!restore.ok || !restored.ok) throw new Error(restored.error ?? "restore refused");
@@ -2736,12 +2756,26 @@ async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
     if (!copy) throw new Error("scratch instance would not export");
     // The digest covers state only, deliberately excluding takenAt and generation, so two
     // exports of the same data hash the same however far apart they were taken.
-    const match = Boolean(source.digest) && source.digest === copy.digest;
+    const match = source.digest === copy.digest;
+
+    // Second assertion, reported rather than asserted. Whether the stored copy still matches
+    // the live object says how old the copy is, not whether the restore path works: every
+    // request moves spend and the action log on, so the two digests differ most of the time
+    // by design. Failing the drill on that would make it fail daily for the expected reason
+    // and teach the reader to ignore it.
+    const live = await fetchStateExport(env);
+    const drift = !live?.digest
+      ? "live state could not be exported to compare"
+      : live.digest === source.digest ? "live state unchanged since the copy" : "live state has moved on since the copy";
+
+    const takenLabel = Number.isFinite(source.takenAt) && source.takenAt > 0
+      ? new Date(source.takenAt).toISOString().slice(0, 16).replace("T", " ") + "Z"
+      : "unknown time";
     const detail = match
-      ? `digest ${String(source.digest).slice(0, 16)}…; ${countOf(source.counts?.kv ?? 0, "key")}, ${countOf(source.counts?.controlHistory ?? 0, "receipt")}, ${countOf(source.counts?.audit ?? 0, "log row")}`
-      : `source ${String(source.digest).slice(0, 16)}… vs restored ${String(copy.digest).slice(0, 16)}…`;
+      ? `copy of ${takenLabel} read back from ${BACKUP_LATEST_KEY}; digest ${String(source.digest).slice(0, 16)}…; ${countOf(source.counts?.kv ?? 0, "key")}, ${countOf(source.counts?.controlHistory ?? 0, "receipt")}, ${countOf(source.counts?.audit ?? 0, "log row")}; ${drift}`
+      : `stored copy ${String(source.digest).slice(0, 16)}… vs restored ${String(copy.digest).slice(0, 16)}…`;
     await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: match, detail }), headers: { "content-type": "application/json" } }));
-    return { ok: match, detail, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
+    return { ok: match, detail, restoredFrom: BACKUP_LATEST_KEY, storedTakenAt: source.takenAt ?? null, storedBytes: stored.size, storedDigest: source.digest, liveDigest: live?.digest ?? null, liveMatchesStored: Boolean(live?.digest) && live?.digest === source.digest, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
   } catch (e) {
     const detail = e instanceof Error ? e.message : "unknown failure";
     await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: false, detail }), headers: { "content-type": "application/json" } }));
