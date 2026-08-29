@@ -95,7 +95,7 @@ const E = {
   docAudit: ev("Internal audit and management review", "/policies/audit-and-review/"),
   backupStatus: ev("State copies and restore drills", "/status/#backup"),
   adminBackup: ev("Full state export", "/admin/backup.json", true),
-  game: ev("The service itself", "/"),
+  game: ev("Live Shark Tank demo", "/play/"),
 };
 
 /* ── Change management ────────────────────────────────────────────────────────

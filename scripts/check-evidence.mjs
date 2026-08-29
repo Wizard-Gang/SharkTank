@@ -8,17 +8,15 @@
  * must exist as an id= in the returned HTML -- that is the check that catches a renamed
  * document anchor, which is the failure this register is most likely to produce.
  *
- * A 200 is not on its own evidence that a route exists. Every unrouted path on this service
- * answers 200 with the game shell, because that is what the single-page-application asset
- * fallback is for -- so the check that is meant to catch a deleted route could not, and
- * against the pre-split production deployment this checker would have passed /trust/ and
- * /spend/ while neither was served. Each response is therefore required to carry something
- * only the real page emits:
+ * A 200 is not on its own evidence that a route exists. An earlier deployment sent every
+ * unrouted path through the game shell, so the check that was meant to catch a deleted route
+ * could not. Unknown routes now answer 404, and each successful response is still required
+ * to carry something only the real page emits:
  *
  *   - server-rendered pages: the trust nav landmark, which the SPA shell does not contain;
  *   - JSON routes: an application/json content-type, which the HTML fallback cannot claim;
  *   - operator routes: nothing beyond the 401, which is already the whole assertion;
- *   - `/`: the game shell itself, which is the one route whose correct answer IS the shell.
+ *   - `/play/`: the game shell itself, which is the one route whose correct answer IS the shell.
  *
  * Deliberately no table of per-route expected strings: that would have to be maintained
  * alongside every page and would rot into a second source of truth.
@@ -41,7 +39,7 @@ const withBust = (path) => `${base}${path}${path.includes("?") ? "&" : "?"}${bus
  * which is the right failure: it is load-bearing for the register's central guarantee.
  */
 const TRUST_MARKER = '<nav aria-label="Trust and operations">';
-/** The mount point in index.html. `/` is evidence that the game is served, and the shell is it. */
+/** The mount point in index.html. `/play/` is evidence that the game is served, and the shell is it. */
 const GAME_SHELL_MARKER = '<div id="root"';
 
 const failures = [];
@@ -96,7 +94,7 @@ async function main() {
     }
 
     /* HTML evidence. Require the marker the real page emits, or the 200 proves nothing. */
-    if (path === "/") {
+    if (path === "/play/") {
       if (!body.includes(GAME_SHELL_MARKER)) fail(`${entry.href} -- answered 200 without the game shell mount point [${entry.sources[0]}]`);
       continue;
     }

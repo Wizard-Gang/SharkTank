@@ -392,7 +392,8 @@ function maintenanceBypass(path: string, method: string): boolean {
   // The stylesheet the bypassed trust pages link. Without this it would answer with the
   // downtime page under a text/css request and every bypassed page would render unstyled.
   if (path.startsWith("/styles/")) return true;
-  return path === "/api" || path.startsWith("/api/") ||
+  return path === "/" || path === "/robots.txt" || path === "/sitemap.xml" ||
+    path === "/api" || path.startsWith("/api/") ||
     path === "/docs" || path.startsWith("/docs/") || path === "/openapi.json" ||
     path === "/status" || path.startsWith("/status/") || path === "/status.json" ||
     path === "/incidents" || path.startsWith("/incidents/") || path === "/incidents.json" ||
@@ -575,7 +576,7 @@ const FOCUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Stop dialogs stealing keyboard focus",
   summary: `Closed in ${FOCUS_HOTFIX_MINUTES} minutes. The in-game dialogs re-armed their focus trap on every re-render, throwing keyboard users back to the Close button twice a minute. The trap now arms once per dialog.`,
   evidence: ["focus trap arms once, not per render", "Escape and Tab cycling unchanged", "fix applies to every dialog"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 const CONTRAST_HOTFIX_MINUTES = 5;
 const CONTRAST_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -586,7 +587,7 @@ const CONTRAST_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Fix unreadable overlay text in light mode",
   summary: `Closed in ${CONTRAST_HOTFIX_MINUTES} minutes. The light theme turned overlay text near-black but left the panels behind it dark, hiding the score at 1.05:1. On-canvas overlays now keep one palette in both themes.`,
   evidence: ["1.05:1 to 18:1 in light mode", "dark mode unchanged", "covers heads-up display, leaderboard, banner, tools rail", "contrast preferences still honoured"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 /** Running total through WG-027. The three high-severity fixes below share the clock. */
 const POST_DELIVERY_MINUTES_THROUGH_WG027 =
@@ -672,7 +673,7 @@ const GAMEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Stop the tank list reading itself aloud",
   summary: `Closed in ${GAMEA11Y_HOTFIX_MINUTES} minutes. The tank list read every tank's counts aloud every three seconds, because a moving top score rewrote the whole sentence. It now speaks only what changed, and the same pass fixed the light theme's status colours.`,
   evidence: ["score movement no longer announces anything", "full and open transitions still spoken", "light-theme status colours clear 4.5:1 on every surface", "Feeding Frenzy small print from 2.2:1 to 5.9:1"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 /** Running total through WG-034. The four security fixes below share the clock. */
 const POST_DELIVERY_MINUTES_THROUGH_WG034 =
@@ -719,7 +720,7 @@ const ABUSE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Strip invisible characters from display names",
   summary: `Closed in ${ABUSE_HOTFIX_MINUTES} minutes. A display name could carry invisible characters that reversed the leaderboard around it or impersonated another player, and saved players had no ceiling. Those characters are stripped, and new saved entries are bounded without evicting a real player.`,
   evidence: ["text-reversing and invisible characters removed", "look-alike names collapse to the same text", "names in every other script still work", "existing players never evicted, at any load"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 /** Running total through WG-038. */
 const POST_DELIVERY_MINUTES_THROUGH_WG038 =
@@ -770,7 +771,7 @@ const GAMEA11Y2_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "The game stops going quiet at the moments that matter",
   summary: `Closed in ${GAMEA11Y2_HOTFIX_MINUTES} minutes. Anything said twice in a row was only said once: a second death at the same score, or a second disconnect, passed in silence. Losing the connection was drawn on screen but never spoken. Turning off the on-screen radar also removed the spoken description of where you are, so a visual setting silenced a non-visual aid. The help shortcut fired from one keypress with no way to switch it off, including while typing.`,
   evidence: ["a repeated message is spoken again", "losing the connection is announced, not only drawn", "spoken position survives turning the radar off", "the single-key shortcut can be switched off and ignores typing"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 /** Running total through WG-042. */
 const POST_DELIVERY_MINUTES_THROUGH_WG042 =
@@ -784,7 +785,7 @@ const NAMES_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Players can use their own name",
   summary: `Closed in ${NAMES_HOTFIX_MINUTES} minutes. A name written entirely in Chinese, Cyrillic, Greek, Hebrew, Korean or emoji was refused and the player was renamed to Player, while a name mixing one of those with Latin letters was fine. The name check compared against Latin letters only, so a name containing none of them looked empty rather than unscreenable. Names are now accepted on what they actually contain.`,
   evidence: ["names in any script are kept as typed", "the existing word list still blocks what it blocked before", "names built only from invisible characters are still refused", "spoofing defences and the length limit are unchanged"],
-  reference: { label: "Play the game", href: "/" },
+  reference: { label: "Play the game", href: "/play/" },
 };
 /** Running total through WG-043. */
 const POST_DELIVERY_MINUTES_THROUGH_WG043 = POST_DELIVERY_MINUTES_THROUGH_WG042 + NAMES_HOTFIX_MINUTES;
@@ -1319,7 +1320,8 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
  * The game's single link out is not emitted here — the game is not served by this
  * template. It is one link in the menu the React client renders, and one link in the
  * document the client hydrates into. This is only ever the trust side's own contents.
- * The way back to the game is the brand mark, which is a link to `/` on every page.
+ * The brand mark returns to the WizardGang portfolio; the estate footer carries the
+ * explicit route back to the live game.
  */
 /**
  * The whole estate, in the footer of every page the trust shell renders.
@@ -1329,7 +1331,7 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
  * and /spend/ itself carried no link to either page -- five of the seven trust surfaces
  * with no route at all to two of the estate's own pages. /spend/ is the cited evidence for
  * A.8.6, 7.1, A.5.9, A.5.23, 9.1 and 6.2, so an assessor following any of those rows landed
- * somewhere with no way onward except the brand mark back to the game.
+ * somewhere with no way onward except the brand mark back to the public root.
  *
  * A footer rather than two more nav items: the nav is the common path and the split existed
  * to make it short, so widening it to eight would undo the thing it was for. This is emitted
@@ -1339,7 +1341,7 @@ const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
 const ESTATE_FOOTER: ReadonlyArray<readonly [string, ReadonlyArray<readonly [string, string]>]> = [
   ["Trust", [["/trust/", "Overview"], ["/audit/", "Register"], ["/policies/", "Policies"]]],
   ["Operations", [["/status/", "Operations"], ["/spend/", "Spend"], ["/logs/", "Evidence"]]],
-  ["Interfaces", [["/docs/", "API"], ["/admin/", "Admin"], ["/", "Game"]]],
+  ["Interfaces", [["/docs/", "API"], ["/admin/", "Admin"], ["/play/", "Game"]]],
 ];
 
 function footerHtml(): string {
@@ -1363,7 +1365,7 @@ function navHtml(): string {
  */
 function shell(title: string, inner: string, description = ""): string {
   const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="https://wizardgang.ai/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml()}</header><main id="main" tabindex="-1">${inner}</main>${footerHtml()}<script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
@@ -2940,6 +2942,17 @@ export default {
       if (path === PAGE_CSS_PATH) return pageCssResponse();
       if (path.startsWith("/styles/")) return new Response("Not found", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS } });
 
+      if (path === "/") return movedTo(url, "/play/");
+      if (path === "/play") return movedTo(url, "/play/");
+      if (/^\/(?:arena|uno|x4|21|game|checkers|battleship|3d|shark-?run)(?:\/.*)?$/i.test(path)) return movedTo(url, "/play/");
+      if (path === "/favicon.ico") return new Response(null, { status: 404, headers: { "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
+      if (path === "/robots.txt") return new Response("User-agent: *\nAllow: /\nDisallow: /admin/\nSitemap: https://sharktank.wizardgang.ai/sitemap.xml\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
+      if (path === "/sitemap.xml") {
+        const routes = ["/play/", "/docs/", "/trust/", "/status/", "/spend/", "/logs/", "/audit/", "/policies/"];
+        const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map((route) => `<url><loc>https://sharktank.wizardgang.ai${route}</loc></url>`).join("")}</urlset>`;
+        return new Response(body, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600", ...SECURITY_HEADERS } });
+      }
+
       // Same-origin facade keeps the TypeScript ⇄ PHP proof-of-concept toggle usable
       // on HTTPS production. PHP itself runs on a separately hosted Workerman origin.
       if (path === "/php-room") {
@@ -3189,7 +3202,7 @@ export default {
           hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
           readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
           lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
-        }), "Availability, incidents, spend, conformance readiness and the control receipt chain for wizardgang.ai — each figure linking to the page that owns it."));
+        }), "Availability, incidents, spend, conformance readiness and the control receipt chain for sharktank.wizardgang.ai — each figure linking to the page that owns it."));
       }
 
       // Public conformance register. Fixed content, no binding read: the evidence is the
@@ -3286,7 +3299,7 @@ export default {
              ${controlHistoryListHtml(history, integrity)}
              ${deliverySection(ROADMAP_MANIFEST, incidents, history, publicBillingWindow(data.billingWindow ?? {}))}
              ${statusLiveScript()}`,
-            "Live availability, the full incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record for wizardgang.ai.",
+            "Live availability, the full incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record for sharktank.wizardgang.ai.",
           ),
         );
       }
@@ -3351,7 +3364,16 @@ export default {
       return json({ ok: false, error: "internal error" }, 500);
     }
 
-    // Non-API, non-WS: static assets.
+    // The SPA fallback is deliberately limited to the current game route. Previously every
+    // unknown path — including retired UNO, X4, 21 and Checkers URLs — returned the same
+    // Shark Tank document with a 200, which made distinct public routes appear duplicated.
+    const gameShell = path === "/play/" || path === "/ts" || path === "/ts/" || path === "/php" || path === "/php/";
+    const staticAsset = path.startsWith("/assets/");
+    if (!gameShell && !staticAsset) {
+      return html(shell("Shark Tank — Route not found", `<section><p class="eyebrow">404</p><h1>Route not found</h1><p>This Shark Tank route does not exist.</p><p><a class="button" href="/play/">Play Shark Tank</a></p></section>`, "The requested Shark Tank route does not exist."), 404);
+    }
+
+    // Game shell and immutable static assets.
     const asset = await env.ASSETS.fetch(request);
     const secured = new Response(asset.body, asset); for (const [key, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(key, value); secured.headers.set("content-security-policy", assetCsp(mintNonce())); return secured;
   },

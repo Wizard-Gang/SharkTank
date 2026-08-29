@@ -69,7 +69,7 @@ export function MainMenu({
           contents at /trust/; the game needs exactly one way into it.
         */}
         <nav className="shark-menu__nav" aria-label="Site">
-          <a href={`${backend.apiBase}/trust/`} target="_blank" rel="noopener noreferrer">Trust &amp; operations →</a>
+          <a href="https://wizardgang.ai/work/sharktank/" target="_blank" rel="noopener noreferrer">Engineering case study →</a>
         </nav>
       </div>
     </div>
