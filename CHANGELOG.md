@@ -2,6 +2,11 @@
 
 All notable reconstructed phases and forward public-repository changes are recorded here. Dates in source provenance are historical; public commits retain their real reconstruction timestamps.
 
+## Unreleased
+
+- ST-036 Shorten public change and evidence copy, remove the game case-study link, and refresh repository commit metrics during each production deploy.
+- Align the README and package metadata with the current project and release.
+
 ## v1.0.2 — 2026-08-28
 
 - Recorded the successful v1.0.1 production cutover from the public repository.
