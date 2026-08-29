@@ -32,6 +32,19 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEsc
     const initial = focusables()[0] ?? container;
     initial.focus();
 
+    /**
+     * Bound to the document, not to the container.
+     *
+     * A keydown listener on the container only fires while focus is inside the container.
+     * One click on the scrim — which has no click handler of its own — moves focus to
+     * `<body>`, and from there the listener never runs again: Escape does not close a
+     * dialog marked `aria-modal="true"`, and Tab walks the page behind it. That is a
+     * keyboard trap in the exact situation the trap exists to prevent (SC 2.1.2).
+     *
+     * On the document, Escape always closes, and the Tab logic runs whether or not focus
+     * escaped — a Tab from outside the container is pulled back to the first control
+     * rather than continuing into the page underneath.
+     */
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -47,18 +60,21 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEsc
       const first = items[0];
       const last = items[items.length - 1];
       const activeEl = document.activeElement as HTMLElement | null;
-      if (e.shiftKey && (activeEl === first || !container.contains(activeEl))) {
+      const outside = !container.contains(activeEl);
+      // The shift branch already handled `outside`; the forward branch did not, so a Tab
+      // from the scrim fell through to the browser's own order and left the dialog.
+      if (e.shiftKey && (activeEl === first || outside)) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && activeEl === last) {
+      } else if (!e.shiftKey && (activeEl === last || outside)) {
         e.preventDefault();
         first.focus();
       }
     };
 
-    container.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      container.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown);
       previouslyFocused?.focus?.();
     };
   }, [ref, active]);

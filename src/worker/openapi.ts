@@ -105,12 +105,20 @@ export const OPENAPI = {
         responses: { "200": jsonResponse("OpenAPI 3.0 document") },
       },
     },
+    "/trust/": {
+      get: {
+        tags: ["ops"],
+        summary: "Trust and operations overview",
+        description: "The entry point to the published evidence: availability, incidents, metered spend, conformance readiness, the last deployment and the receipt chain verdict. Every figure is computed from the same source the owning page uses and links to it; none is stored a second time.",
+        responses: { "200": htmlResponse("Trust overview") },
+      },
+    },
     "/roadmap/": {
       get: {
         tags: ["ops"],
-        summary: "Mission, availability, and feature-to-deployment map",
-        description: "Presents the one-day Portal Framework mission, project goals, independent server and tank availability, eight-hour elapsed delivery, commit velocity, feature updates, and deployment batches.",
-        responses: { "200": htmlResponse("HTML roadmap") },
+        summary: "Change record (moved)",
+        description: "Permanently redirects to `/status/#delivery`, where the change record now lives. `/roadmap.json` did not move and is unchanged.",
+        responses: { "301": { description: "Moved to /status/#delivery" } },
       },
     },
     "/roadmap.json": {
@@ -123,8 +131,8 @@ export const OPENAPI = {
     "/status/": {
       get: {
         tags: ["ops"],
-        summary: "Status dashboard",
-        description: "Server availability, scheduled tank downtime, unscheduled outages, and tank presence. Billing remains in Inquiry and authenticated Admin.",
+        summary: "Operations dashboard",
+        description: "Operations. Server and tank availability, live tank occupancy with the computer-controlled agent count beside it, state copies and restore drills, the full incident record at `#incidents`, the append-only control receipt chain at `#control-history`, and the change record at `#delivery`. Spend is at `/spend/`; operator controls are behind authentication at `/admin/`.",
         responses: { "200": htmlResponse("HTML dashboard") },
       },
     },
@@ -136,19 +144,22 @@ export const OPENAPI = {
       },
     },
     "/incidents/": {
-      get: { tags: ["ops"], summary: "Public incident and control history", description: "Resolved and active maintenance incidents with an availability timeline measured from project start, and human-readable append-only control receipts.", responses: { "200": htmlResponse("Incident dashboard") } },
+      get: { tags: ["ops"], summary: "Incident record (moved)", description: "Permanently redirects to `/status/#incidents`. `/incidents.json` did not move and is unchanged.", responses: { "301": { description: "Moved to /status/#incidents" } } },
     },
     "/incidents.json": {
       get: { tags: ["ops"], summary: "Public incident and control history (JSON)", responses: { "200": jsonResponse("Availability summary, incident records, control entries, and SHA-256 chain head") } },
     },
-    "/inquiry/": {
-      get: { tags: ["ops"], summary: "Public billable-action inquiry", description: "Proof-of-concept dashboard linking normal game and operations actions to measured Workers, Durable Objects, D1, and R2 usage and summarized spend.", responses: { "200": htmlResponse("Public billing inquiry") } },
+    "/spend/": {
+      get: { tags: ["ops"], summary: "Cost and capacity meters", description: "Links normal game and operations actions to measured Workers, Durable Objects, D1 and R2 usage, against each free-tier allowance and against the hard spend limit that closes the game rather than billing. Previously served at `/inquiry/`, which still redirects here.", responses: { "200": htmlResponse("Cost and capacity meters") } },
     },
-    "/inquiry.json": {
-      get: { tags: ["ops"], summary: "Public billable-action inquiry (JSON)", responses: { "200": jsonResponse("Proof-of-concept statement and reset-window billing summary") } },
+    "/spend.json": {
+      get: { tags: ["ops"], summary: "Cost and capacity meters (JSON)", description: "Also served at `/inquiry.json`, the pre-rename name, which is unchanged.", responses: { "200": jsonResponse("Proof-of-concept statement and reset-window billing summary") } },
+    },
+    "/inquiry/": {
+      get: { tags: ["ops"], summary: "Cost and capacity meters (moved)", description: "Permanently redirects to `/spend/`.", responses: { "301": { description: "Moved to /spend/" } } },
     },
     "/logs/": {
-      get: { tags: ["ops"], summary: "Public reason-coded logs", description: "Searchable, filterable service evidence with 90-day retention plus the 40 newest reason-coded captures per ocean tank and sanitized TXT downloads.", responses: { "200": htmlResponse("Public Shark Tank log inquiry") } },
+      get: { tags: ["ops"], summary: "Public reason-coded logs", description: "Searchable, filterable service evidence with 90-day retention plus the 40 newest reason-coded captures per ocean tank and sanitized TXT downloads.", responses: { "200": htmlResponse("Public Shark Tank evidence") } },
     },
     "/logs.json": {
       get: { tags: ["ops"], summary: "Public service and tank logs (JSON)", description: "Every row includes a letter-plus-three-digit reason code. Tank records use the same timestamp, reasonCode, tick, action, language, name, and details fields as the live inspector and TXT export.", responses: { "200": jsonResponse("Public service and tank event stream") } },
@@ -175,16 +186,25 @@ export const OPENAPI = {
     "/policies/": {
       get: {
         tags: ["ops"],
-        summary: "Governance policy set",
-        description: "The written record ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed: context and scope, the information security policy, roles and authorities, the risk assessment and treatment processes, the Statement of Applicability cover, the risk treatment plan, the security and AI objectives, the AI policy with its impact assessment, and the AI system life cycle. Each document names the clauses it is the record for, and the conformance register links back to it.",
-        responses: { "200": htmlResponse("Policy set") },
+        summary: "Governance policy index",
+        description: "The index of the written record ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed. Each document is its own route at `/policies/{document}/`, searchable from here, and every section within a document has its own anchor.",
+        responses: { "200": htmlResponse("Policy index") },
+      },
+    },
+    "/policies/{document}/": {
+      get: {
+        tags: ["ops"],
+        summary: "One governance document",
+        description: "A single document — context and scope, the information security policy, roles and authorities, the risk assessment and treatment processes, the Statement of Applicability cover, the risk treatment plan, the security and AI objectives, the AI policy with its impact assessment, the AI system life cycle, and the rest. Each names the clauses it is the record for, and the conformance register links to it directly. The document identifier is the `id` field in `/policies.json`.",
+        parameters: [{ name: "document", in: "path", required: true, schema: { type: "string" }, description: "Document identifier, e.g. `risk-assessment`" }],
+        responses: { "200": htmlResponse("Governance document"), "404": htmlResponse("No such document") },
       },
     },
     "/policies.json": {
       get: {
         tags: ["ops"],
         summary: "Governance policy set (JSON)",
-        description: "The same documents as machine-readable data: reference, identifier, title, purpose, the clauses each satisfies, its sections, and what triggers its review.",
+        description: "The same documents as machine-readable data: reference, identifier, the route it is published at, title, purpose, the clauses each satisfies, its sections with their anchor ids, and what triggers its review.",
         responses: { "200": jsonResponse("Governance documents with their clause coverage and review triggers") },
       },
     },
@@ -378,10 +398,10 @@ function renderParams(params: AnyRec[], context: string): string {
   const rows = params
     .map(
       (p) =>
-        `<tr><td><code>${esc(String(p.name))}</code></td><td>${esc(String(p.in))}</td><td>${p.required ? "yes" : "no"}</td><td>${schemaSummary(p.schema as AnyRec)}</td><td>${esc(String(p.description ?? ""))}</td></tr>`,
+        `<tr><th scope="row"><code>${esc(String(p.name))}</code></th><td>${esc(String(p.in))}</td><td>${p.required ? "yes" : "no"}</td><td>${schemaSummary(p.schema as AnyRec)}</td><td>${esc(String(p.description ?? ""))}</td></tr>`,
     )
     .join("");
-  return `<h3>Parameters</h3><div class="table-scroll" role="region" aria-label="${esc(context)} parameters" tabindex="0"><table class="api-table"><thead><tr><th>Name</th><th>In</th><th>Req</th><th>Type</th><th>Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<h3>Parameters</h3><div class="table-scroll" role="region" aria-label="${esc(context)} parameters" tabindex="0"><table class="api-table"><caption class="sr-only">${esc(context)} parameters</caption><thead><tr><th scope="col">Name</th><th scope="col">In</th><th scope="col">Req</th><th scope="col">Type</th><th scope="col">Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderBody(body: AnyRec | undefined): string {
@@ -400,10 +420,10 @@ function renderResponses(responses: AnyRec, context: string): string {
       const media = content ? Object.keys(content)[0] : "";
       const schema = media && content ? ((content[media] as AnyRec).schema as AnyRec) : undefined;
       const type = schema ? ` — <code>${esc(media)}</code> ${schemaSummary(schema)}` : "";
-      return `<tr><td><code>${esc(code)}</code></td><td>${esc(String(rr.description ?? ""))}${type}</td></tr>`;
+      return `<tr><th scope="row"><code>${esc(code)}</code></th><td>${esc(String(rr.description ?? ""))}${type}</td></tr>`;
     })
     .join("");
-  return `<h3>Responses</h3><div class="table-scroll" role="region" aria-label="${esc(context)} responses" tabindex="0"><table class="api-table"><thead><tr><th>Status</th><th>Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<h3>Responses</h3><div class="table-scroll" role="region" aria-label="${esc(context)} responses" tabindex="0"><table class="api-table"><caption class="sr-only">${esc(context)} responses</caption><thead><tr><th scope="col">Status</th><th scope="col">Description</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderSchemas(schemas: AnyRec): string {
@@ -412,9 +432,13 @@ function renderSchemas(schemas: AnyRec): string {
       const s = sch as AnyRec;
       const props = (s.properties as AnyRec) ?? {};
       const rows = Object.entries(props)
-        .map(([pname, psch]) => `<tr><td><code>${esc(pname)}</code></td><td>${schemaSummary(psch as AnyRec)}</td></tr>`)
+        // The field name is the row's header, not another data cell: it is what every
+        // other cell in the row is about. Without it — and without the column header row
+        // these tables shipped with none of — a screen reader reading the second column
+        // announces a type with nothing to attach it to (SC 1.3.1).
+        .map(([pname, psch]) => `<tr><th scope="row"><code>${esc(pname)}</code></th><td>${schemaSummary(psch as AnyRec)}</td></tr>`)
         .join("");
-      return `<div class="card" id="schema-${esc(name)}"><h3 style="margin:0 0 8px">${esc(name)}</h3><div class="table-scroll" role="region" aria-label="${esc(name)} schema" tabindex="0"><table class="schema-table"><tbody>${rows}</tbody></table></div></div>`;
+      return `<div class="card" id="schema-${esc(name)}"><h3 style="margin:0 0 8px">${esc(name)}</h3><div class="table-scroll" role="region" aria-label="${esc(name)} schema" tabindex="0"><table class="schema-table"><caption class="sr-only">${esc(name)} schema fields and types</caption><thead><tr><th scope="col">Field</th><th scope="col">Type</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     })
     .join("");
   return `<h2 id="schemas">Schemas</h2>${blocks}`;

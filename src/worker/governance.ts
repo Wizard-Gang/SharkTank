@@ -639,6 +639,21 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         ],
       },
       {
+        heading: "Response headers, and where they are applied",
+        body: [
+          "One header table is applied to every response this Worker emits — transport security, no content-type sniffing, a referrer policy, frame denial and a permissions policy that switches off camera, microphone and geolocation. It is applied in one place, on the way out, rather than per route.",
+          "That is a correction. The permissions policy used to be set on the static asset branch only, so the game carried it and the eight server-rendered pages — the ones that exist to demonstrate these controls — did not. A header set on one branch of a router is not a control, and it was found by reading the served response rather than the source.",
+        ],
+      },
+      {
+        heading: "Limits on the unauthenticated writes",
+        body: [
+          "Two routes accept a write from anyone: the public action log and the player profile. Both are throttled on the connection the edge stamps, never on anything the caller supplies — the profile identity is a cookie the first read hands out, so throttling on it would mean discarding the cookie bought a fresh allowance. Each also sits under a ceiling shared by every public caller at once, so a distributed flood is bounded even when no single connection is.",
+          "The profile write was the gap. A row ceiling governed how many profiles could be created and nothing at all governed how often an existing one could be overwritten, although an overwrite costs the same durable write as a creation. Both branches are metered now.",
+          "Body size is capped at 16 KiB and the cap is counted on the bytes that actually arrive. It was previously read from Content-Length, which a chunked request does not send, so the check passed on a missing header rather than failing closed. The stream is now cut the moment it passes the ceiling.",
+        ],
+      },
+      {
         heading: "Rules for the use of cryptography",
         body: [
           "There are four uses and no others. Transport: everything runs over TLS terminated by the platform, with strict transport security asserted for a year including subdomains, and the operations routes refusing plaintext outright anywhere but loopback because a basic credential is reversible base64.",
@@ -905,7 +920,8 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Version, approval and supersession",
         body: [
           "The version of a document is the deployment that published it. That is not a naming convention; it is the mechanism. These pages are rendered by the Worker from source that ships in the same artefact as the running service, so there is no build in which the published document and the service it describes can disagree. A document is superseded by the next deployment that changes it, and there is no window in which a stale version is being served.",
-          "The consequence, stated plainly because it is unusual: there is no revision history for these documents beyond the change record and the repository. Asking which version of DOC-18 was in force on a given date is answered by asking which deployment was live on that date, and the change record at /roadmap/ answers that with an identifier for every production deployment.",
+          "Each document is published at its own route, /policies/<identifier>/, and each section within it carries an anchor derived from its heading, so a clause can be cited down to the paragraph that answers it. The whole set previously rendered as one page with no identifier on any of its headings, which meant nothing in it could be linked to and the register had to point at the whole document.",
+          "The consequence, stated plainly because it is unusual: there is no revision history for these documents beyond the change record and the repository. Asking which version of DOC-18 was in force on a given date is answered by asking which deployment was live on that date, and the change record at /status/#delivery answers that with an identifier for every production deployment.",
           "Approval is by the Owner, who is the only role that exists. DOC-03 states the limits of that arrangement and does not pretend it is a separation of duties.",
         ],
       },
@@ -960,7 +976,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "The procedure as operated",
         body: [
-          "React first. Contain the effect and correct the thing itself. Where the service is affected, an incident is opened and appears at /incidents/ with its cause; where a control action is involved, a receipt enters the chain at the moment it happens.",
+          "React first. Contain the effect and correct the thing itself. Where the service is affected, an incident is opened and appears at /status/#incidents with its cause; where a control action is involved, a receipt enters the chain at the moment it happens.",
           "Then classify. Each nonconformity is recorded as one of: a documentation fault, where the service was correct and the description of it was not; a control fault, where the control did not operate; or a design fault, where the control operated as designed and the design was inadequate. The distinction decides what corrective action is worth taking, and it is the step that was previously skipped.",
           "Then determine the cause and whether it can recur elsewhere. This asks one specific question rather than inviting an essay: what else in this service has the same shape as the thing that failed? That question is what turned a single incorrect statement about the capture log into a check of every document making a similar claim.",
           "Then act, verify, and record the outcome. Corrective action ships as a deployment in the change record. Where the action changes a control's status, the register moves in the same deployment.",
@@ -979,7 +995,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Where the records are",
         body: [
-          "The classification and cause analysis for each item is the section above, which is a published record superseded only by a deployment. The correction is the change record entry that shipped it, at /roadmap/. The dated, tamper-evident trace of any control action taken along the way is the receipt chain at /incidents/#control-history.",
+          "The classification and cause analysis for each item is the section above, which is a published record superseded only by a deployment. The correction is the change record entry that shipped it, at /status/#delivery. The dated, tamper-evident trace of any control action taken along the way is the receipt chain at /status/#control-history.",
           "Nothing here is retained privately. If a nonconformity were ever found that could not be published — because publishing it would describe a live weakness — it would be recorded as an incident with its cause stated at the level that can be published, and the register would say so rather than the item quietly not existing.",
         ],
       },
@@ -1161,7 +1177,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Change management records",
         body: [
           "The change processes on the register have always operated; what was missing was a named record an assessor could sample. Each is named here against the sampling route.",
-          "Classification. Every entry in the change record carries a class — feature, hotfix or bonus — assigned before it ships and visible at /roadmap/ and in its JSON. A hotfix is a correction to something already released; a feature adds capability; the classification decides how much of the register a change is expected to move.",
+          "Classification. Every entry in the change record carries a class — feature, hotfix or bonus — assigned before it ships and visible at /status/#delivery and in its JSON. A hotfix is a correction to something already released; a feature adds capability; the classification decides how much of the register a change is expected to move.",
           "Authorisation. Authorisation is the deployment itself, which is a deliberate act by the only role that can authorise one, and the production deploy script refuses to run when a required secret is absent. Every entry carries the deployment batch identifier that shipped it, so authorisation and change are the same record seen twice.",
           "Post-implementation review. Each change record entry carries concrete evidence bullets written after the change shipped, stating what was verified rather than what was intended. Where the review found the change insufficient, the following entry says so — the run of accessibility hotfixes is the clearest sample of that.",
           "Review of unintended change. The receipt chain, the incident record and the metered spend series are the three places an unintended change would show. The chain is re-derived on every read and its verdict published; the spend series is compared against a hard limit that closes the game by itself; the incident record carries a cause for every entry. This version adds a fourth: a daily state copy under a digest, which makes an unintended change to durable state detectable by comparison rather than only by inspection.",
@@ -1328,47 +1344,140 @@ export function governanceManifest() {
   return {
     ok: true,
     statement:
-      "The written record ISO/IEC 27001 and 42001 ask for, published as routes. Each document names the clauses it is the record for; the register at /audit/ links back to it.",
+      "The written record ISO/IEC 27001 and 42001 ask for, published as routes — one document per route, each section separately addressable. Each document names the clauses it is the record for; the register at /audit/ links back to it.",
     documents: DOCS_IN_ORDER.map((doc) => ({
       ref: doc.ref,
       id: doc.id,
+      /** The route this document is published at. One document, one page, one URL. */
+      route: `/policies/${doc.id}/`,
       title: doc.title,
       purpose: doc.purpose,
       satisfies: doc.satisfies,
       review: doc.review,
-      sections: doc.sections.map((s) => ({ heading: s.heading, body: s.body })),
+      sections: doc.sections.map((s) => ({ id: sectionId(doc, s.heading), heading: s.heading, body: s.body })),
     })),
   };
 }
 
-function docHtml(doc: GovernanceDoc): string {
-  const sections = doc.sections.map((section) => `<section class="gov-section">
-      <h3>${esc(section.heading)}</h3>
+/**
+ * Section anchors, derived from the heading the section already carries.
+ *
+ * The whole set used to render as one 201 KB page with 21 `h2` and 123 `h3` between them
+ * and not a single `id` on any of them, so nothing in it could be cited, deep-linked or
+ * jumped to. Deriving the id from the heading text keeps the anchor readable and keeps it
+ * stable as long as the heading is — and if a heading changes, the evidence checker's
+ * fragment test says so rather than leaving a link that silently lands at the top.
+ */
+function slug(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
+function sectionId(doc: GovernanceDoc, heading: string): string {
+  return `${doc.id}-${slug(heading)}`;
+}
+
+/** The document, as its own page. */
+export function governanceDocPageHtml(doc: GovernanceDoc): string {
+  const contents = doc.sections.length > 1
+    ? `<nav class="card gov-index" aria-label="Sections of this document"><h2 style="margin:0 0 10px;font-size:1.05rem">In this document</h2><ul>${
+      doc.sections.map((section) => `<li><a href="#${esc(sectionId(doc, section.heading))}">${esc(section.heading)}</a></li>`).join("")
+    }</ul></nav>`
+    : "";
+  const sections = doc.sections.map((section) => `<section class="gov-section" id="${esc(sectionId(doc, section.heading))}" tabindex="-1">
+      <h2>${esc(section.heading)}</h2>
       ${section.body.map((p) => `<p>${esc(p)}</p>`).join("")}
     </section>`).join("");
-  return `<article class="card gov-doc" id="${esc(doc.id)}" tabindex="-1">
-    <div class="gov-head">
-      <div><div class="eyebrow">${esc(doc.ref)}</div><h2>${esc(doc.title)}</h2></div>
-    </div>
-    <p class="sub gov-purpose">${esc(doc.purpose)}</p>
+  const position = DOCS_IN_ORDER.findIndex((item) => item.id === doc.id);
+  const previous = position > 0 ? DOCS_IN_ORDER[position - 1] : null;
+  const next = position >= 0 && position < DOCS_IN_ORDER.length - 1 ? DOCS_IN_ORDER[position + 1] : null;
+  const step = (item: GovernanceDoc | null, direction: "previous" | "next") => item
+    ? `<a class="action-link" href="/policies/${esc(item.id)}/">${direction === "previous" ? "← " : ""}${esc(item.ref)} ${esc(item.title)}${direction === "next" ? " →" : ""}</a>`
+    : "<span></span>";
+  return `<section class="page-intro">
+    <p class="gov-breadcrumb"><a href="/trust/">Trust</a> · <a href="/policies/">Policies</a></p>
+    <div class="eyebrow">${esc(doc.ref)}</div>
+    <h1>${esc(doc.title)}</h1>
+    <p class="sub">${esc(doc.purpose)}</p>
+  </section>
+  <article class="card gov-doc" id="${esc(doc.id)}" tabindex="-1">
     <div class="gov-satisfies"><span class="gov-satisfies-label">Record for</span><ul>${
       doc.satisfies.map((c) => `<li><code>${esc(c)}</code></li>`).join("")
     }</ul></div>
-    ${sections}
     <p class="gov-review"><strong>Review.</strong> ${esc(doc.review)}</p>
-  </article>`;
+  </article>
+  ${contents}
+  <div class="card gov-body">${sections}</div>
+  <nav class="gov-steps" aria-label="Other documents">${step(previous, "previous")}${step(next, "next")}</nav>`;
 }
 
-export function governanceHtml(): string {
+/** Look a document up by its slug. */
+export function findGovernanceDoc(id: string): GovernanceDoc | undefined {
+  return DOCS_IN_ORDER.find((doc) => doc.id === id);
+}
+
+export function governanceMissingHtml(id: string): string {
+  return `<section class="page-intro"><div class="eyebrow">Policies</div><h1>No such document</h1>
+    <p class="sub">There is no governance document at <code>/policies/${esc(id)}/</code>. The full set is listed on the <a href="/policies/">policy index</a>.</p></section>
+  <nav class="card gov-index" aria-label="Documents"><h2 style="margin:0 0 10px;font-size:1.05rem">Documents</h2><ul>${
+    DOCS_IN_ORDER.map((d) => `<li><a href="/policies/${esc(d.id)}/"><code>${esc(d.ref)}</code> ${esc(d.title)}</a></li>`).join("")
+  }</ul></nav>`;
+}
+
+/**
+ * The index.
+ *
+ * Each entry keeps `id="<slug>"` as well as linking to `/policies/<slug>/`. That is
+ * deliberate: the register and anything else already published cited these documents as
+ * `/policies/#risk-assessment`, and a fragment never reaches the server, so it cannot be
+ * redirected. Keeping the id here means an old link still lands on the right entry, one
+ * click from the document, instead of at the top of a page it cannot find.
+ *
+ * The search box is the same control `/audit/` uses, filtering the same way, because a
+ * reader who has used one of these pages should not have to learn the other.
+ */
+export function governanceIndexHtml(): string {
+  const rows = DOCS_IN_ORDER.map((doc) => {
+    const haystack = `${doc.ref} ${doc.title} ${doc.purpose} ${doc.satisfies.join(" ")} ${doc.sections.map((s) => s.heading).join(" ")}`.toLowerCase();
+    return `<li class="gov-card" id="${esc(doc.id)}" data-doc-row data-search="${esc(haystack)}">
+      <a class="gov-card__link" href="/policies/${esc(doc.id)}/"><code>${esc(doc.ref)}</code><strong>${esc(doc.title)}</strong></a>
+      <p class="sub">${esc(doc.purpose)}</p>
+      <p class="gov-card__clauses">${doc.satisfies.map((c) => `<code>${esc(c)}</code>`).join(" ")}</p>
+    </li>`;
+  }).join("");
   return `<section class="page-intro">
+    <p class="gov-breadcrumb"><a href="/trust/">Trust</a></p>
     <div class="eyebrow">Governance · the documents behind the register</div>
     <h1>Policies</h1>
-    <p class="sub">The written record that ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed as documents nobody can check. Each one names the clauses it is the record for. The <a href="/audit/">conformance register</a> links back to these, and the same content is available as <a href="/policies.json">data</a>.</p>
+    <p class="sub">The written record that ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed as documents nobody can check. Each one is its own route, names the clauses it is the record for, and can be linked to section by section. The <a href="/audit/">conformance register</a> links back to these, and the same content is available as <a href="/policies.json">data</a>.</p>
     <p class="sub">These describe the service as it actually runs, including where it falls short. A policy asserting a control that does not exist would make every other row on the register suspect.</p>
   </section>
-  <nav class="card gov-index" aria-label="Documents">
-    <h2 style="margin:0 0 10px;font-size:1.05rem">Documents</h2>
-    <ul>${DOCS_IN_ORDER.map((d) => `<li><a href="#${esc(d.id)}"><code>${esc(d.ref)}</code> ${esc(d.title)}</a></li>`).join("")}</ul>
-  </nav>
-  ${DOCS_IN_ORDER.map(docHtml).join("")}`;
+  <div class="card">
+    <div class="log-toolbar">
+      <label for="gov-search"><span>Search documents</span><input type="search" id="gov-search" placeholder="risk, supplier, backup, A.8.13…" autocomplete="off"></label>
+      <span class="log-visible-count" id="gov-count" role="status" aria-live="polite" aria-atomic="true">${DOCS_IN_ORDER.length} documents</span>
+    </div>
+    <ul class="gov-list">${rows}</ul>
+    <p class="sub" id="gov-empty" hidden>No document matches that search.</p>
+  </div>
+  ${indexFilterScript(DOCS_IN_ORDER.length)}`;
+}
+
+/**
+ * Index filter. Debounced announcement, same as the register's, so a settled query is
+ * spoken once rather than per keystroke.
+ */
+function indexFilterScript(total: number): string {
+  const script = [
+    "(function(){",
+    "var search=document.getElementById('gov-search'),count=document.getElementById('gov-count'),empty=document.getElementById('gov-empty');",
+    "var rows=Array.prototype.slice.call(document.querySelectorAll('[data-doc-row]')),total=" + total + ",timer=null;",
+    "function announce(text){if(count.textContent!==text)count.textContent=text;}",
+    "function apply(delay){var q=(search.value||'').trim().toLowerCase(),shown=0;",
+    "rows.forEach(function(row){var ok=!q||(row.dataset.search||'').indexOf(q)>-1;row.hidden=!ok;if(ok)shown++;});",
+    "if(empty)empty.hidden=shown>0;",
+    "var text=shown===total?total+' documents':shown+' of '+total+' documents';",
+    "if(timer)clearTimeout(timer);if(delay){timer=setTimeout(function(){announce(text);},450);}else announce(text);}",
+    "search.addEventListener('input',function(){apply(true);});apply(false);",
+    "}());",
+  ].join("");
+  return `<script nonce="__WG_CSP_NONCE__">${script}</script>`;
 }

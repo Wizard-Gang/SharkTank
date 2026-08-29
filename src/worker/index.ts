@@ -7,8 +7,8 @@
 
 import { API } from "module-react3fiber/protocol";
 import { OPENAPI, openApiToHtml } from "./openapi.js";
-import { conformanceHtml, conformanceManifest } from "./conformance.js";
-import { governanceHtml, governanceManifest } from "./governance.js";
+import { conformanceHtml, conformanceManifest, summarise, ALL_CONTROLS } from "./conformance.js";
+import { governanceIndexHtml, governanceDocPageHtml, governanceMissingHtml, findGovernanceDoc, governanceManifest } from "./governance.js";
 
 export { Room } from "./room-do.js";
 export { Lobby } from "./lobby-do.js";
@@ -132,6 +132,18 @@ function html(body: string, status = 200): Response {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": csp, ...SECURITY_HEADERS, "referrer-policy": "no-referrer" },
   });
+}
+
+/**
+ * A permanent move that keeps the security headers.
+ *
+ * Every route this restructure moved is cited from the conformance register, from the
+ * policy set, and from whatever anyone else has already linked. A moved route that stops
+ * answering turns a live evidence link into a dead one, which is a finding in its own
+ * right — so the old names keep working rather than being deleted.
+ */
+function movedTo(url: URL, target: string): Response {
+  return new Response(null, { status: 301, headers: { location: target, "cache-control": "no-store", ...SECURITY_HEADERS } });
 }
 
 /**
@@ -336,7 +348,7 @@ const ROADMAP_MANIFEST: readonly RoadmapEntry[] = [
   { id: "WG-005", at: "01:50", label: "enhancement", deployment: "D02", title: "Adapt the game UI to any screen and input", summary: "Support desktop, keyboard-only, mouse-only, and mobile play.", evidence: ["ability controls", "gear menu", "responsive HUD"] },
   { id: "WG-006", at: "02:15", label: "feature", deployment: "D03", title: "Publish service and tank logs with downloads", summary: "Publish service and tank evidence without internal player identifiers.", evidence: ["/logs/", "sortable captures", "TXT CSV-style downloads"] },
   { id: "WG-007", at: "02:40", label: "enhancement", deployment: "D03", title: "Match the debug drawer to the public log format", summary: "Align the selected debug language with public tank logs.", evidence: ["desktop debug drawer", "language toggle", "matching log schema"] },
-  { id: "WG-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/inquiry/", "binding-aware coverage", "free-tier anchors"] },
+  { id: "WG-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/spend/", "binding-aware coverage", "free-tier anchors"] },
   { id: "WG-009", at: "03:30", label: "enhancement", deployment: "D04", title: "Stop gameplay when spend reaches the limit", summary: "Reset current-spend tracking and stop gameplay at the measured limit.", evidence: ["billing reset", "$5 threshold", "service-level gate"] },
   { id: "WG-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/admin/", "maintenance toggle", "four-character test alerts"] },
   { id: "WG-011", at: "04:25", label: "fix", deployment: "D04", title: "Restore gameplay without closing the investigation", summary: "Restoring gameplay ends impact without closing the investigation.", evidence: ["immediate lockdown", "separate maintenance event", "open investigation state"] },
@@ -380,6 +392,9 @@ function maintenanceBypass(path: string, method: string): boolean {
     path === "/status" || path.startsWith("/status/") || path === "/status.json" ||
     path === "/incidents" || path.startsWith("/incidents/") || path === "/incidents.json" ||
     path === "/inquiry" || path.startsWith("/inquiry/") || path === "/inquiry.json" ||
+    path === "/spend" || path.startsWith("/spend/") || path === "/spend.json" ||
+    path === "/trust" || path.startsWith("/trust/") ||
+    path === "/policies" || path.startsWith("/policies/") || path === "/policies.json" ||
     path === "/roadmap" || path.startsWith("/roadmap/") || path === "/roadmap.json" ||
     path === "/logs" || path.startsWith("/logs/") || path === "/logs.json" ||
     path === "/audit" || path.startsWith("/audit/") || path === "/audit.json" || path === "/audit.jsonl" ||
@@ -451,7 +466,7 @@ const HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Require TLS and a token on the operations gate",
   summary: `Closed in ${HOTFIX_MINUTES} minutes. Operations auth had an unauthenticated fallback when no token was set. It now accepts only the minted token, over TLS, and denies when there is none.`,
   evidence: ["TLS required on every route", "no unauthenticated fallback path", "HSTS on every response", "constant-time token comparison"],
-  reference: { label: "Security report and control receipts", href: "/incidents/" },
+  reference: { label: "Security report and control receipts", href: "/status/#incidents" },
 };
 /** Everything after the eight-hour build. Rendered on the map, excluded from every metric. */
 /** Second hotfix: the arena wall was lethal but never drawn, so deaths looked random. */
@@ -476,7 +491,7 @@ const MOBILE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Add a thumbstick and ability pads for touch",
   summary: `Closed in ${MOBILE_HOTFIX_MINUTES} minutes. Tapping to steer spent the dash on every tap. Touch play now steers from a thumbstick, with the abilities on their own pads.`,
   evidence: ["floating thumbstick, pads under the other thumb", "32 sharks per tank", "centre-weighted dot spawns", "non-modal respawn card", "Feeding Frenzy event"],
-  reference: { label: "Controls and layout verified on a phone viewport", href: "/roadmap/" },
+  reference: { label: "Controls and layout verified on a phone viewport", href: "/status/#delivery" },
 };
 /** Fourth hotfix: copy that described the product instead of reporting on it, an
  *  availability window that forgot yesterday, and a log page showing 40 rows of a
@@ -490,9 +505,9 @@ const EVIDENCE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Measure availability from project start, not 24 hours",
   summary: `Closed in ${EVIDENCE_HOTFIX_MINUTES} minutes. A rolling 24-hour availability window forgot every incident older than a day. Availability now runs from project start, and the logs page carries the full record.`,
   evidence: ["availability measured since project start", "labelled lanes, counted legend", "every marker links to its record", "full 90-day and 24-hour log windows"],
-  reference: { label: "Availability bar and legend", href: "/incidents/" },
+  reference: { label: "Availability bar and legend", href: "/status/#incidents" },
 };
-/** Fifth hotfix: three inquiry tables in three different shapes, and cost reported as a
+/** Fifth hotfix: three spend tables in three different shapes, and cost reported as a
  *  single instantaneous number with no trend. */
 const INQUIRY_HOTFIX_MINUTES = 13;
 const INQUIRY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -503,7 +518,7 @@ const INQUIRY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Merge three billing tables into one meter",
   summary: `Closed in ${INQUIRY_HOTFIX_MINUTES} minutes. Three billing tables in three column shapes compared against nothing. One meter now reads every service on a shared axis, and spend is sampled hourly and charted.`,
   evidence: ["one four-column meter for every service", "monthly limits normalised per day", "headroom bar on every row", "hourly spend samples charted"],
-  reference: { label: "Usage against the free tier", href: "/inquiry/" },
+  reference: { label: "Usage against the free tier", href: "/spend/" },
 };
 /** Sixth hotfix: the incident report was showing the status page's availability bar. */
 const INCIDENT_HOTFIX_MINUTES = 13;
@@ -515,7 +530,7 @@ const INCIDENT_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Chart incidents by cause, start and duration",
   summary: `Closed in ${INCIDENT_HOTFIX_MINUTES} minutes. The incident page redrew the status page's availability bar and said nothing about the incidents themselves. It now charts each incident by cause, start and duration.`,
   evidence: ["one lane per incident cause", "duration bars, diamonds for point events", "inception-to-now axis", "every mark links to its record", "shared with the roadmap"],
-  reference: { label: "Incident chart", href: "/incidents/" },
+  reference: { label: "Incident chart", href: "/status/#incidents" },
 };
 /** Running total of post-delivery development minutes through WG-023. The security and
  *  accessibility hotfixes below continue the same clock. */
@@ -533,7 +548,7 @@ const TAKEDOWN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Put taking the game offline behind authentication",
   summary: `Closed in ${TAKEDOWN_HOTFIX_MINUTES} minutes. The route that disabled the game was gated by two forgeable headers, one of them published in the public API document. Reporting and taking the game down are now separate operations, and only the takedown is authenticated.`,
   evidence: ["public intake records, never disables", "downtime moved behind operations auth", "one open lockdown at a time", "accepted reports throttled to one a minute"],
-  reference: { label: "Control receipts", href: "/incidents/" },
+  reference: { label: "Control receipts", href: "/status/#incidents" },
 };
 const STATUS_HOTFIX_MINUTES = 6;
 const STATUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -605,7 +620,7 @@ const INCIDENTCAP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Bound the incident record so it cannot block recovery",
   summary: `Closed in ${INCIDENTCAP_HOTFIX_MINUTES} minutes. Incidents were stored as one ever-growing record, written by the same operation that restores service, so a long enough history would have blocked recovery. The record is now bounded, and only resolved incidents are archived.`,
   evidence: ["record kept well under the storage limit", "active incidents never archived", "oldest resolved incidents archived first", "every archival recorded with a reason code"],
-  reference: { label: "Incident record", href: "/incidents/" },
+  reference: { label: "Incident record", href: "/status/#incidents" },
 };
 /** Running total through WG-030. The seven accessibility fixes below share the clock. */
 const POST_DELIVERY_MINUTES_THROUGH_WG030 =
@@ -630,7 +645,7 @@ const CHARTSTOP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Stop chart marks swallowing the keyboard",
   summary: `Closed in ${CHARTSTOP_HOTFIX_MINUTES} minutes. Each mark on the incident and availability charts was a keyboard stop that announced nothing and showed no focus ring. The marks are pointer shortcuts again, and the same records are ordinary links beside each chart.`,
   evidence: ["no unnamed stops left in either chart", "mouse and touch behaviour unchanged", "every mark still reachable from the list below", "page copy states the keyboard route"],
-  reference: { label: "Incidents", href: "/incidents/" },
+  reference: { label: "Incidents", href: "/status/#incidents" },
 };
 const APIHEADING_HOTFIX_MINUTES = 8;
 const APIHEADING_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -677,7 +692,7 @@ const LEAK_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Strip internal detail from errors and exports",
   summary: `Closed in ${LEAK_HOTFIX_MINUTES} minutes. Internal failure messages, build identifiers and exported player names all reached public output, the last of them as text a spreadsheet would run as a formula. All three now say only what a reader needs.`,
   evidence: ["failures return a generic message; detail goes to the operator log", "build and storage identifiers removed from public output", "operator view keeps the full record", "exported names cannot become formulas"],
-  reference: { label: "Cost inquiry", href: "/inquiry/" },
+  reference: { label: "Cost and capacity meters", href: "/spend/" },
 };
 const CHAIN_HOTFIX_MINUTES = 21;
 const CHAIN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -688,7 +703,7 @@ const CHAIN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Verify the receipt chain on every read",
   summary: `Closed in ${CHAIN_HOTFIX_MINUTES} minutes. This page called the control history tamper-evident, but nothing re-checked it and its head was only ever compared against itself. Every receipt is now re-derived on read, and the verdict is stated on the page.`,
   evidence: ["every receipt re-derived from its own contents", "an edited receipt is named by number", "removing entries is detected by the separate record", "verdict shown on the page, not just in the data"],
-  reference: { label: "Control receipts", href: "/incidents/#control-history" },
+  reference: { label: "Control receipts", href: "/status/#control-history" },
 };
 const ABUSE_HOTFIX_MINUTES = 14;
 const ABUSE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
@@ -714,7 +729,7 @@ const INQUIRY_TODAY_ROADMAP_ENTRY: RoadmapEntry = {
   title: "Report today's spend on a readable scale",
   summary: `Closed in ${INQUIRY_TODAY_HOTFIX_MINUTES} minutes. Every included allowance resets daily, but the cost page reported lifetime totals on a linear bar where 0.008% of an allowance and 8% were the same invisible sliver. It now measures the day and plots every meter on a logarithmic axis.`,
   evidence: ["day boundary captured once a day, per meter", "today compared against a whole day's allowance", "average spend per day and spend today, in dollars", "meters on a logarithmic axis with decade ticks", "spend trend on round axis values, current value labelled"],
-  reference: { label: "Usage against the free tier", href: "/inquiry/" },
+  reference: { label: "Usage against the free tier", href: "/spend/" },
 };
 /** Running total through WG-039. The accessibility batch below shares the clock. */
 const POST_DELIVERY_MINUTES_THROUGH_WG039 =
@@ -805,40 +820,69 @@ const PARTIALS_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["state copied daily and proven by a restore that compares digests, not by assertion", "the first restore drill failed, and the failure is published before the passes", "four recurring activities performed for the first time, each stating what was examined", "six controls excluded on the boundary the scope statement already drew, not on convenience", "internal audit stays partial because one person cannot be objective, and says so"],
   reference: { label: "Policies", href: "/policies/" },
 };
-/** Development minutes across every post-delivery entry, WG-018 to WG-046. */
-const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES;
+const POST_DELIVERY_MINUTES_THROUGH_WG046 = POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES;
+const NAMESPACE_MINUTES = 96;
+const NAMESPACE_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "WG-047",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES),
+  label: "feature",
+  deployment: "D25",
+  title: "Split the site in two, because it was serving two audiences from one menu",
+  summary: `Built in ${NAMESPACE_MINUTES} minutes. The site is a game and a public conformance record, for two sets of people who want nothing from each other, and every page carried the same ten-item menu listing both. Thirteen of the site's sixty thousand words were for players. The game keeps one link out; the record gets its own front door at /trust/ with six figures on it, each one a link to the page that owns it and none of them stored twice. The roadmap and incident pages folded into operations, so the receipt chain renders once instead of on two pages and the uptime and spend numbers appear only where they are measured. Cost moved to /spend/, because "inquiry" was being used for the billing page and for the whole record at the same time. The policy set became one route per document with an anchor on every section — it was 201 KB with no identifier on any of its 144 headings, so nothing in it could be cited. Old addresses redirect and the published JSON did not move. Also fixed on the way through: money could be spent on routes the spend limit exempted, saving a profile had nothing bounding it, a body-size check a chunked request walked straight past, a header set on one branch of the router, chart links no keyboard could reach, thirteen tables with no header row, a button that told a screen reader the opposite of what was happening, and a register that needed three screens of sideways scrolling on a phone.`,
+  evidence: ["one menu became two, and the game's competing seven-link menu became one link", "every figure on the trust page is computed from the source the owning page uses", "the receipt chain and the uptime, spend and incident counts each render in exactly one place", "the spend limit now closes the routes that generate the billable writes", "moved routes redirect and every evidence link in the register still resolves", "the agent count is published beside human occupancy, which the AI policy already said it was"],
+  reference: { label: "Trust and operations", href: "/trust/" },
+};
+/** Development minutes across every post-delivery entry, WG-018 to WG-047. */
+const POST_DELIVERY_HOTFIX_MINUTES = POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES;
 
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
   PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
-  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY];
+  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY];
 const ROADMAP_ELAPSED_MINUTES = 8 * 60;
 const ROADMAP_DEPLOYMENT_COUNT = 7;
 interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }
 const formatElapsed = (minutes: number) => minutes < 60 ? `${minutes}m` : minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-function roadmapHtml(entries: readonly RoadmapEntry[], incidents: IncidentRecord[] = [], history: ControlHistoryEntry[] = [], billing: Record<string, unknown> = {}): string {
+/**
+ * The delivery record, as a section of the operations page.
+ *
+ * It used to be its own route and it led with five metric cards: server uptime, tank
+ * uptime, deployment batches, incident count and metered spend. Three of those five are
+ * owned by somewhere else — two by the availability section directly above this one, one
+ * by the incident section directly below it, one by the spend page — and the spend figure
+ * was printed here to four decimal places and there to eight, so the same number read
+ * differently depending on which page you opened. Only the two figures delivery actually
+ * owns are stated here; the rest are links.
+ *
+ * The combined chart stays: correlating deployments against incidents and spend on one
+ * time axis is the delivery-shaped question, and every series in it is read from the same
+ * source the owning page reads.
+ */
+function deliverySection(entries: readonly RoadmapEntry[], incidents: IncidentRecord[] = [], history: ControlHistoryEntry[] = [], billing: Record<string, unknown> = {}): string {
   const now = Date.now(), all = [...entries, ...POST_DELIVERY_ENTRIES];
   const portal = incidentSummary([], now), tank = incidentSummary(incidents, now);
   const allTime = recordValue(billing.allTime);
   // Spend is the all-time metered figure, matching the series `spendHistory` samples and
-  // the number /inquiry/ leads with. The per-deploy billing window would reset the chart
+  // the number /spend/ leads with. The per-deploy billing window would reset the chart
   // to zero every time the page changed.
   const spendUsd = numberValue(allTime.estimatedVariableUsd);
   const hardLimitUsd = numberValue(billing.hardLimitUsd) || 5;
   const samples = Array.isArray(billing.spendHistory) ? billing.spendHistory as Array<{ ts: number; usd: number }> : [];
   const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now };
   const batchCount = deploymentBatches(all).length;
-  const unscheduledCount = incidents.filter((incident) => incident.cause !== "Test alert" && !SCHEDULED_INCIDENT_CAUSES.has(incident.cause)).length;
   const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(entry.reference.href)}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
   const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60, velocity = (entries.length / elapsedHours).toFixed(1);
-  return `<section class="card hero-card"><div class="eyebrow">Project record</div><h1 style="margin:6px 0 16px">Uptime, deployments, incidents and spend, on one clock.</h1>      <div class="metric-grid showcase-metrics">
-        ${metricCard(`${portal.availabilityPercent}%`, "Server uptime", `${portal.windowLabel}, no unscheduled downtime`, "availability", "tone-green")}
-        ${metricCard(`${tank.availabilityPercent}%`, "Shark Tank uptime", `${formatCompactDuration(tank.scheduledDowntimeMs)} scheduled downtime, excluded`, "availability", "tone-green")}
+  return `<section id="delivery" tabindex="-1" aria-labelledby="delivery-heading">
+    <div class="eyebrow">Project record</div>
+    <h2 id="delivery-heading" style="margin:6px 0 10px">Delivery</h2>
+    <p class="sub">Every feature update, the deployment batch that carried it, and how those batches line up against the availability above and the <a href="/spend/">metered spend</a>. The same record is available as <a href="/roadmap.json">data</a>.</p>
+    <div class="card hero-card">
+      <div class="metric-grid showcase-metrics">
         ${metricCard(batchCount, "Deployment batches", `${all.length} feature updates shipped`, "rooms", "tone-cyan")}
-        ${metricCard(incidents.length, "Incidents", `${unscheduledCount} unscheduled`, "uptime", "tone-violet")}
-        ${metricCard(`<span title="$${spendUsd.toFixed(8)}">$${spendUsd.toFixed(4)}</span>`, "Metered spend", `of the $${hardLimitUsd.toFixed(2)} hard stop`, "traffic", "tone-green")}
+        ${metricCard(`${velocity}/h`, "Commit velocity", `${entries.length} updates in ${Math.floor(elapsedHours)}h of build time`, "requests", "tone-violet")}
       </div>
-      ${showcaseChartSvg(showcase)}</section>
-    <section aria-labelledby="project-goals"><div class="portal-signoff"><div><div class="eyebrow">Project goals</div><h2 id="project-goals">Built for speed. Operated with evidence.</h2></div><span class="goal-status">Next goal · ISO/IEC 42001 + ISO/IEC 27001 certification · In progress</span></div>
+      ${showcaseChartSvg(showcase)}
+    </div>
+    <section aria-labelledby="project-goals"><div class="portal-signoff"><div><div class="eyebrow">Project goals</div><h3 id="project-goals">Built for speed. Operated with evidence.</h3></div><span class="goal-status">Next goal · ISO/IEC 42001 + ISO/IEC 27001 certification · In progress</span></div>
       <div class="goal-grid">
         <article class="card"><strong>Speed</strong><p>Ship a complete playable and operational proof of concept inside one working day.</p></article>
         <article class="card"><strong>Security</strong><p>Stop gameplay immediately without hiding status, incidents, or control history.</p></article>
@@ -846,7 +890,8 @@ function roadmapHtml(entries: readonly RoadmapEntry[], incidents: IncidentRecord
         <article class="card"><strong>Human accountable</strong><p>Keep high-impact controls authenticated, attributable, and receipt-backed.</p></article>
       </div>
     </section>
-    <section><div class="portal-signoff"><div><div class="eyebrow">${Math.floor(elapsedHours)}h total elapsed</div><h2>Feature-to-deployment map</h2></div><div class="delivery-velocity"><strong>Commit velocity: ${velocity}/hour</strong><span>${entries.length} feature updates · ${ROADMAP_DEPLOYMENT_COUNT} production deployments · ${(entries.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)} updates/deployment</span></div></div><div class="table-scroll" role="region" aria-label="Sortable feature-to-deployment map" tabindex="0"><table class="roadmap-table" id="roadmap-table"><caption class="sr-only">Sortable feature-to-deployment map</caption><thead><tr><th scope="col" aria-sort="ascending"><button class="table-sort" data-key="id" data-direction="asc">ID</button></th><th scope="col" aria-sort="none"><button class="table-sort" data-key="type">Type</button></th><th scope="col">Feature update</th><th scope="col" aria-sort="none"><button class="table-sort" data-key="duration">Elapsed</button></th><th scope="col">Deployment</th></tr></thead><tbody>${rows}</tbody></table></div></section>${roadmapSortScript()}`;
+    <section><div class="portal-signoff"><div><div class="eyebrow">${Math.floor(elapsedHours)}h total elapsed</div><h3>Feature-to-deployment map</h3></div><div class="delivery-velocity"><strong>Commit velocity: ${velocity}/hour</strong><span>${entries.length} feature updates · ${ROADMAP_DEPLOYMENT_COUNT} production deployments · ${(entries.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)} updates/deployment</span></div></div><div class="table-scroll" role="region" aria-label="Sortable feature-to-deployment map" tabindex="0"><table class="roadmap-table" id="roadmap-table"><caption class="sr-only">Sortable feature-to-deployment map</caption><thead><tr><th scope="col" aria-sort="ascending"><button class="table-sort" data-key="id" data-direction="asc">ID</button></th><th scope="col" aria-sort="none"><button class="table-sort" data-key="type">Type</button></th><th scope="col">Feature update</th><th scope="col" aria-sort="none"><button class="table-sort" data-key="duration">Elapsed</button></th><th scope="col">Deployment</th></tr></thead><tbody>${rows}</tbody></table></div></section>${roadmapSortScript()}
+  </section>`;
 }
 
 function formatCompactDuration(ms: number): string { const seconds = Math.round(ms / 1000); return seconds < 60 ? `${seconds}s` : seconds < 3600 ? `${Math.round(seconds / 60)}m` : `${(seconds / 3600).toFixed(1)}h`; }
@@ -863,6 +908,14 @@ function formatCompactDuration(ms: number): string { const seconds = Math.round(
  * player-chosen display name and must never reach innerHTML. The polite live region gets a
  * one-line summary and only when that summary actually changes, so a screen reader is not
  * re-read the same sentence every 15 seconds.
+ */
+/*
+ * The button used to ship `aria-pressed="true"` on the label "Pause auto-update", so
+ * assistive technology announced "Pause auto-update, pressed" while polling was *running*
+ * and the inverse once it had stopped — the name and the state contradicted each other in
+ * both positions (SC 4.1.2). Of the two consistent conventions, this takes the action-verb
+ * label and drops `aria-pressed` entirely: the label already says what activating the
+ * control will do, and the `role="status"` region below it announces what actually changed.
  */
 function statusLiveScript(): string {
   return `<script nonce="__WG_CSP_NONCE__">(function(){
@@ -884,7 +937,7 @@ function statusLiveScript(): string {
       list.forEach(function(r){
         var tr=document.createElement('tr'),name=document.createElement('td'),strong=document.createElement('strong');
         strong.textContent=String(r.name==null?'':r.name);name.appendChild(strong);tr.appendChild(name);
-        [r.players,r.topScore,r.topName].forEach(function(cell){var td=document.createElement('td');td.textContent=String(cell==null?'':cell);tr.appendChild(td);});
+        [r.players,r.bots,r.topScore,r.topName].forEach(function(cell){var td=document.createElement('td');td.textContent=String(cell==null?'':cell);tr.appendChild(td);});
         frag.appendChild(tr);
       });
       rows.textContent='';rows.appendChild(frag);
@@ -899,8 +952,8 @@ function statusLiveScript(): string {
       if(++failures>=3){stop();if(stamp)stamp.textContent='paused after repeated errors';}
     });
   }
-  function start(){if(timer)return;timer=setInterval(poll,INTERVAL);btn.textContent='Pause auto-update';btn.setAttribute('aria-pressed','true');poll();}
-  function stop(){if(timer){clearInterval(timer);timer=null;}btn.textContent='Resume auto-update';btn.setAttribute('aria-pressed','false');}
+  function start(){if(timer)return;timer=setInterval(poll,INTERVAL);btn.textContent='Pause auto-update';poll();}
+  function stop(){if(timer){clearInterval(timer);timer=null;}btn.textContent='Resume auto-update';}
   btn.addEventListener('click',function(){
     var on=!!timer;
     if(on){stop();if(live)live.textContent='Auto-update paused.';}else{start();if(live)live.textContent='Auto-update resumed.';}
@@ -926,7 +979,11 @@ const PAGE_CSS = `
   p.sub{color:var(--muted);margin:0 0 24px;max-width:76ch}
   a{color:#b6a9ff;text-underline-offset:3px}
   a:hover{color:#d4ccff}
-  :where(a,button):focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+  /* Was :where(a,button) only, so the search inputs and selects on the register, the
+     evidence pages and the policy index fell back to whatever the browser happened to
+     draw — on some, nothing at all. Every focusable control is covered now. */
+  :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+  :where(input,select,textarea):focus-visible{outline-offset:1px}
   .site-header{position:relative;z-index:2;max-width:1160px;margin:0 auto;padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;gap:20px}
   .brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;min-width:max-content}
   .brand svg{width:56px;height:34px;filter:drop-shadow(0 7px 13px rgba(34,230,255,.22))}
@@ -961,7 +1018,7 @@ const PAGE_CSS = `
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .kpi{font-size:1.6rem;font-weight:800}
   .kpi small{display:block;font-size:.75rem;color:#b9b4d6;font-weight:600}
-  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 14px}.metric-grid>*{min-width:0}.stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.status-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.showcase-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}.inquiry-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.inquiry-metrics .metric-value{display:-webkit-box;min-height:2.15em;overflow:hidden;white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 14px}.metric-grid>*{min-width:0}.stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.status-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.showcase-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}.spend-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.spend-metrics .metric-value{display:-webkit-box;min-height:2.15em;overflow:hidden;white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
   .metric-card{position:relative;display:grid;grid-template-rows:auto auto auto 1fr;align-content:start;overflow:hidden;min-width:0;min-height:124px;padding:15px 16px;border:1px solid #3a355e;border-radius:14px;background:linear-gradient(145deg,#19172f,#121123)}
   .metric-card:after{content:"";position:absolute;right:-35px;bottom:-45px;width:110px;height:110px;border-radius:50%;background:color-mix(in srgb,currentColor 10%,transparent)}
   .metric-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.metric-icon{width:30px;height:30px;color:#a78bff}.metric-icon svg{display:block;width:100%;height:100%}
@@ -978,12 +1035,12 @@ const PAGE_CSS = `
   .server-controls{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}.server-controls>*{flex:1 1 240px}.security-report-button{background:linear-gradient(100deg,#ff8a1f,#ffd54a);color:#170d02}.security-receipt{margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.alert-test{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.alert-code{width:8rem;min-height:44px;border:1px solid var(--strong);border-radius:10px;background:var(--surface-1);color:var(--text);font:900 1rem ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;padding:8px 12px}.report-confetti{position:fixed;z-index:9999;top:-24px;width:9px;height:16px;border-radius:2px;pointer-events:none;animation:report-fall 1.5s cubic-bezier(.2,.7,.3,1) forwards}@keyframes report-fall{to{transform:translate3d(var(--drift),105vh,0) rotate(720deg);opacity:.1}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
   .gov-doc{margin:0 0 14px}.gov-head h2{margin:2px 0 0;font-size:1.2rem}.gov-purpose{margin:8px 0 12px}.gov-satisfies{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(11,10,20,.48)}.gov-satisfies-label{color:var(--faint);font:900 .66rem/1 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}.gov-satisfies ul{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none}.gov-satisfies code{font-size:.72rem}.gov-section{margin:0 0 14px}.gov-section h3{margin:0 0 6px;font-size:.98rem}.gov-section p{margin:0 0 8px;color:var(--muted)}.gov-review{margin:14px 0 0;padding:10px 12px;border-left:2px solid var(--cyan);color:var(--muted);font-size:.86rem}.gov-index{display:block}.gov-index ul{margin:0;padding:0 0 0 2px;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:7px 14px}.gov-index a{color:var(--text)}.gov-index a>code{flex:0 0 auto;white-space:nowrap}.skip-link{position:absolute;left:-9999px;top:0;z-index:100;padding:10px 16px;border-radius:0 0 10px 0;background:var(--cyan);color:#07131a;font-weight:800;text-decoration:none}.skip-link:focus{left:0}main:focus{outline:none}table caption{caption-side:top;padding:0 0 8px;color:var(--muted);font-size:.78rem;text-align:left}[hidden]{display:none!important}.history-list{display:grid;gap:10px;margin-top:14px}.history-item{display:grid;grid-template-columns:7.2rem 1fr auto;gap:14px;align-items:start;padding:14px;border:1px solid var(--border);border-radius:12px;background:rgba(11,10,20,.48)}.history-sequence{color:var(--cyan);font:800 .76rem/1.4 ui-monospace,monospace}.history-copy strong{display:block}.history-copy p{margin:3px 0;color:var(--muted)}.history-meta{color:var(--faint);font-size:.75rem}.history-receipt{max-width:11rem;overflow:hidden;color:var(--faint);font:700 .72rem/1.4 ui-monospace,monospace;text-overflow:ellipsis;white-space:nowrap}.history-item--focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(34,230,255,.28)}.history-pager{display:flex;gap:12px;align-items:center;justify-content:center;margin:16px 0 0;color:var(--muted);font-size:.8rem}.pager-btn{padding:7px 14px;border:1px solid var(--strong);border-radius:999px;background:rgba(11,10,20,.52);color:var(--text);font:inherit;font-weight:700;cursor:pointer}.pager-btn:disabled{opacity:.4;cursor:default}.pager-btn[aria-disabled="true"]{background:none;color:var(--faint);cursor:default}.integrity-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted)}.status-incident-list{display:grid;gap:8px}.status-incident{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(11,10,20,.48);color:var(--text);text-decoration:none}.status-incident:hover,.status-incident:focus-visible{border-color:var(--cyan)}.status-incident--active{border-color:#ff8a1f}.status-incident-state{color:var(--faint);font:900 .66rem/1 ui-monospace,monospace;letter-spacing:.08em}.status-incident-title{min-width:0;font-weight:700;overflow-wrap:anywhere}.status-incident-cause{color:var(--muted);font-size:.74rem;white-space:nowrap}@media(max-width:560px){.status-incident{grid-template-columns:auto auto 1fr}.status-incident-cause{grid-column:2/-1}}.incident-card{margin:0 0 12px}.incident-card--active{border-color:#ff8a1f}.incident-dot{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:3px;vertical-align:middle}.integrity-line code{overflow-wrap:anywhere}.integrity-badge{display:inline-flex;padding:3px 8px;border:1px solid #4ade80;border-radius:999px;color:#4ade80;font-size:.7rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.integrity-badge.verdict-pass{border-color:#4ade80;color:#4ade80}.integrity-badge.verdict-fail{border-color:#ff6b6b;color:#ff6b6b}.integrity-badge.verdict-idle{border-color:var(--strong);color:var(--muted)}
-  /* ── Billing inquiry ── */
-  .inquiry-hero{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;margin:0 0 14px}
-  .inquiry-hero>.card{margin:0;min-width:0}
-  .inquiry-hero .gauge-layout{grid-template-columns:1fr;gap:8px}
-  .inquiry-hero .gauge-svg{max-width:260px}
-  .inquiry-hero .gauge-readout>strong{font-size:clamp(1.6rem,4vw,2.2rem)}
+  /* ── Spend ── */
+  .spend-hero{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:14px;margin:0 0 14px}
+  .spend-hero>.card{margin:0;min-width:0}
+  .spend-hero .gauge-layout{grid-template-columns:1fr;gap:8px}
+  .spend-hero .gauge-svg{max-width:260px}
+  .spend-hero .gauge-readout>strong{font-size:clamp(1.6rem,4vw,2.2rem)}
   .trend-card{display:grid;align-content:start;gap:2px}
   .trend-card h2{margin:2px 0 10px;font-size:1.05rem}
   .trend-card .sub{margin:10px 0 0;font-size:.78rem}
@@ -1022,8 +1079,8 @@ const PAGE_CSS = `
   .meter-legend i{display:inline-block;width:22px;height:9px;border-radius:999px;background:#4ade80}
   .meter-legend b{display:inline-block;width:2px;height:13px;border-radius:1px;background:#e9e6ff}
   .meter-none,.meter-note{color:var(--faint);font-style:italic}
-  @media(max-width:860px){.inquiry-hero{grid-template-columns:1fr}}
-  .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:900px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+  @media(max-width:860px){.spend-hero{grid-template-columns:1fr}}
+  .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.availability-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:900px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
   .log-room{padding:0;overflow:hidden}.log-room>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:14px 18px;cursor:pointer;list-style:none}.log-room>summary::-webkit-details-marker{display:none}.log-room>summary:after{content:"+";color:var(--cyan);font-size:1.35rem;font-weight:900}.log-room[open]>summary{border-bottom:1px solid var(--border)}.log-room[open]>summary:after{content:"−"}.log-summary{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.log-count{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.72rem;font-weight:800}.log-room-body{padding:16px 18px 4px}.log-actions{display:flex;justify-content:flex-end;margin-bottom:10px}.log-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(150px,.42fr) auto;gap:10px;align-items:end;margin:0 0 14px}.log-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.06em;text-transform:uppercase}.log-toolbar :is(input,select){width:100%;min-height:42px;border:1px solid var(--strong);border-radius:9px;background:var(--surface-1);color:var(--text);padding:8px 10px;font:inherit}.log-visible-count{padding:10px 0;color:var(--faint);font-size:.74rem;white-space:nowrap}.table-sort{min-height:0;padding:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;box-shadow:none}.table-sort:active{transform:none;box-shadow:none}.table-sort:after{content:" ↕";color:var(--faint)}.table-sort[data-direction="asc"]:after{content:" ↑";color:var(--cyan)}.table-sort[data-direction="desc"]:after{content:" ↓";color:var(--cyan)}
   pre{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto}
   /* ── Conformance register (/audit/) ──────────────────────────────────────────
@@ -1094,14 +1151,120 @@ const PAGE_CSS = `
   @media(max-width:760px){.iso-toolbar{grid-template-columns:1fr 1fr}.iso-toolbar button{grid-column:1/-1}}
   @media(max-width:420px){.iso-toolbar{grid-template-columns:1fr}}
   @media(max-width:900px){.goal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:760px){.site-header{align-items:flex-start;flex-direction:column}.site-header nav{justify-content:flex-start}.brand svg{width:48px}.site-header{padding:14px 12px 0}main{padding:22px 12px 48px}.gauge-layout{grid-template-columns:1fr}.metric-grid,.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-metrics,.inquiry-metrics,.showcase-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric-card{min-height:112px;padding:12px}.metric-icon{width:25px;height:25px}.metric-value{font-size:clamp(1.05rem,5vw,1.45rem)}th,td{padding:8px}.history-item{grid-template-columns:1fr}.history-receipt{max-width:100%}.delivery-velocity{text-align:left}.log-toolbar{grid-template-columns:1fr 1fr}.log-visible-count{grid-column:1/-1;padding:0}}
-  @media(max-width:420px){nav a{padding:5px 9px}.brand-copy small{display:none}.goal-grid{grid-template-columns:1fr}.inquiry-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.inquiry-metrics .metric-value{font-size:clamp(.95rem,4.4vw,1.2rem)}.log-room>summary{padding:12px}.log-room-body{padding:12px 12px 2px}.log-toolbar{grid-template-columns:1fr}}
+  @media(max-width:760px){.site-header{align-items:flex-start;flex-direction:column}.site-header nav{justify-content:flex-start}.brand svg{width:48px}.site-header{padding:14px 12px 0}main{padding:22px 12px 48px}.gauge-layout{grid-template-columns:1fr}.metric-grid,.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-metrics,.spend-metrics,.showcase-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric-card{min-height:112px;padding:12px}.metric-icon{width:25px;height:25px}.metric-value{font-size:clamp(1.05rem,5vw,1.45rem)}th,td{padding:8px}.history-item{grid-template-columns:1fr}.history-receipt{max-width:100%}.delivery-velocity{text-align:left}.log-toolbar{grid-template-columns:1fr 1fr}.log-visible-count{grid-column:1/-1;padding:0}}
+  @media(max-width:420px){nav a{padding:5px 9px}.brand-copy small{display:none}.goal-grid{grid-template-columns:1fr}.spend-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.spend-metrics .metric-value{font-size:clamp(.95rem,4.4vw,1.2rem)}.log-room>summary{padding:12px}.log-room-body{padding:12px 12px 2px}.log-toolbar{grid-template-columns:1fr}}
+
+  /* ── Trust overview ── */
+  .trust-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
+  .trust-tile{position:relative;display:grid;gap:4px;min-height:132px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--surface-1);color:var(--text);text-decoration:none}
+  .trust-tile:hover{border-color:var(--strong);background:var(--surface-2)}
+  .trust-tile__label{color:var(--muted);font-size:.72rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+  .trust-tile__value{font-size:clamp(1.4rem,3.4vw,2rem);font-weight:800;letter-spacing:-.02em;line-height:1.1;overflow-wrap:anywhere}
+  .trust-tile__detail{color:var(--muted);font-size:.82rem}
+  .trust-tile__go{position:absolute;right:14px;bottom:12px;color:var(--faint);font-weight:900}
+  .trust-tile.tone-green .trust-tile__value{color:#4ade80}.trust-tile.tone-cyan .trust-tile__value{color:#22e6ff}.trust-tile.tone-violet .trust-tile__value{color:#c4b5fd}.trust-tile.tone-red .trust-tile__value{color:#ff8c92}
+  .trust-what{display:grid;grid-template-columns:minmax(0,10rem) minmax(0,1fr);gap:8px 18px;margin:0}
+  .trust-what dt{font-weight:800}.trust-what dd{margin:0;color:var(--muted)}
+  .page-intro dfn{font-style:normal;font-weight:800;color:var(--text);border-bottom:1px dotted var(--strong)}
+  .action-links{display:flex;flex-wrap:wrap;gap:14px;margin:0}
+
+  /* ── Policy index and documents ── */
+  .gov-breadcrumb{margin:0 0 8px;color:var(--muted);font-size:.8rem;font-weight:700}
+  .gov-list{display:grid;gap:10px;margin:14px 0 0;padding:0;list-style:none}
+  .gov-card{padding:14px;border:1px solid var(--border);border-radius:12px;background:rgba(11,10,20,.42)}
+  .gov-card__link{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;font-size:1.02rem;text-decoration:none}
+  .gov-card__link strong{color:var(--text)}
+  .gov-card__link:hover strong{color:#d4ccff}
+  .gov-card .sub{margin:6px 0 8px;font-size:.86rem}
+  .gov-card__clauses{margin:0;font-size:.72rem;line-height:2}
+  .gov-body{display:grid;gap:4px}
+  .gov-body .gov-section h2{margin:22px 0 8px;font-size:1.08rem}
+  .gov-body .gov-section:first-child h2{margin-top:0}
+  .gov-steps{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:18px 0 0}
+
+  /* ── The register on a phone ──
+     .iso-table pins a 1200px minimum at every width, which is 3.1x horizontal scroll on a
+     390px viewport across all 184 rows. Below 760px the rows become cards: each cell prints
+     the column name it belongs to from data-label, so the header association survives the
+     table losing its shape. The filter stays on screen while they scroll, so narrowing the
+     set is always one reach away rather than five screens back up. */
+  @media(max-width:760px){
+    .iso-toolbar-card{position:sticky;top:0;z-index:3;backdrop-filter:blur(14px);background:rgba(11,10,20,.94)}
+    /* Doubled class throughout: the base layout rules are written as ".table-scroll table",
+       which outranks a single ".iso-table" on specificity no matter which comes last. */
+    .iso-table.iso-table{--table-min:0;min-width:0;width:100%;display:block;table-layout:auto}
+    .iso-table.iso-table :is(tbody,tr){display:block;width:100%}
+    .iso-table.iso-table thead{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+    .iso-table.iso-table tr{margin:0 0 10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:rgba(11,10,20,.42)}
+    /* The per-table column pins (.iso-doc-table :is(th,td):nth-child(3){width:11rem} and
+       friends) carry a pseudo-class, so they outrank a plain class pair. Nothing here is a
+       column any more, so the pins are simply cancelled. */
+    .iso-table.iso-table :is(th,td){display:block;width:auto!important;min-width:0;padding:6px 0;border:0;text-align:left;overflow-wrap:anywhere}
+    .iso-table.iso-table :is(th,td):empty{display:none}
+    .iso-table.iso-table :is(th,td)[data-label]:before{content:attr(data-label);display:block;margin:0 0 3px;color:var(--faint);font-size:.65rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+    .iso-table.iso-table .cell-key{font-size:1rem;white-space:normal}
+    .table-scroll:has(.iso-table){overflow-x:visible}
+    .trust-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .trust-what{grid-template-columns:1fr;gap:2px 0}
+    .trust-what dd{margin:0 0 10px}
+  }
+  @media(max-width:420px){.trust-grid{grid-template-columns:1fr}}
+
+  /* ── Contrast preferences ──
+     The game's theme implements prefers-contrast three times; these nine pages implemented
+     it zero times. On a portal whose whole purpose is to demonstrate conformance, that
+     asymmetry is the finding. Borders and muted text move to values that clear 4.5:1
+     against the surfaces they sit on, and forced-colors hands every one of them back to the
+     system palette rather than fighting it. */
+  @media(prefers-contrast:more){
+    :root{--muted:#ded9f5;--faint:#cdc7e8;--border:#8079ad;--strong:#c3bce4;--surface-1:#100e20;--surface-2:#191634}
+    a{color:#cfc4ff}
+    .metric-detail,.sub,.timeline-key-note{color:var(--muted)}
+    :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline-width:4px}
+  }
+  @media(forced-colors:active){
+    .metric-card,.card,.trust-tile,.gov-card,.iso-table tr{border:1px solid CanvasText}
+    .iso-pill,.meter-pill,.integrity-badge,.status-pill{border:1px solid CanvasText;forced-color-adjust:none;background:Canvas;color:CanvasText}
+    :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid Highlight;outline-offset:2px}
+    .key-dot,.incident-dot,.meter-bar i{forced-color-adjust:none}
+    svg a:focus-visible{outline:3px solid Highlight}
+  }
 `;
 
 const SHARK_MARK_SVG = `<svg viewBox="0 0 180 110" role="img" aria-label="Goofy Shark Tank mascot"><path d="M35 55 4 26l8 30-8 29 31-25c12 26 67 35 112 4 12-8 20-8 29-9-9-2-17-4-29-12C102 13 47 27 35 55Z" fill="#22e6ff" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M76 29 91 5l19 28M76 75 90 102l14-29" fill="#0891b2" stroke="#070b14" stroke-width="5" stroke-linejoin="round"/><path d="M41 48c24-15 62-22 106-5-43-8-79 1-105 19Z" fill="#fff" opacity=".18"/><circle cx="137" cy="40" r="13" fill="#fff" stroke="#070b14" stroke-width="4"/><circle cx="142" cy="43" r="5" fill="#070b14"/><path d="M119 66q21 16 42-2-21 31-42 2Z" fill="#47142a" stroke="#070b14" stroke-width="4" stroke-linejoin="round"/><path d="m126 69 5 10 6-8 6 8 5-11" fill="#fff" stroke="#070b14" stroke-width="2" stroke-linejoin="round"/><circle cx="158" cy="48" r="3" fill="#070b14"/></svg>`;
 
-function shell(title: string, inner: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title><style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a><nav aria-label="Shark Tank pages"><a href="/">Game</a><a href="/roadmap/">Roadmap</a><a href="/docs/">API</a><a href="/status/">Status</a><a href="/incidents/">Incidents</a><a href="/inquiry/">Inquiry</a><a href="/logs/">Logs</a><a href="/audit/">Audit</a><a href="/policies/">Policies</a><a href="/admin/">Admin</a></nav></header><main id="main" tabindex="-1">${inner}</main><script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
+/**
+ * Two products, two audiences, two navigations.
+ *
+ * One flat ten-item bar used to sit on every page, so a player looking for the game was
+ * shown nine governance routes and an assessor looking for evidence was shown the game.
+ * Neither audience was served, and roughly half the outstanding usability findings were
+ * downstream of that one bar. The game keeps a single way out — one link — and the trust
+ * estate keeps its own five-item table of contents.
+ */
+type ShellNav = "trust" | "game";
+const TRUST_NAV: ReadonlyArray<readonly [string, string]> = [
+  ["/trust/", "Overview"],
+  ["/audit/", "Register"],
+  ["/policies/", "Policies"],
+  ["/status/", "Operations"],
+  ["/logs/", "Evidence"],
+];
+function navHtml(kind: ShellNav): string {
+  if (kind === "game") return `<nav aria-label="Site"><a href="/trust/">Trust &amp; operations →</a></nav>`;
+  return `<nav aria-label="Trust and operations"><a href="/">← Game</a>${
+    TRUST_NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
+  }<a href="/admin/">Admin</a></nav>`;
+}
+
+/**
+ * `description` is emitted whenever a page supplies one. It is not decoration: these pages
+ * are the evidence an assessor is pointed at, and a result with no description is a result
+ * that has to be opened to be identified.
+ */
+function shell(title: string, inner: string, description = "", nav: ShellNav = "trust"): string {
+  const meta = description ? `<meta name="description" content="${esc(description)}">` : "";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0a14"><title>${title}</title>${meta}<style>${PAGE_CSS}</style></head><body><a class="skip-link" href="#main">Skip to main content</a><header class="site-header"><a class="brand" href="/">${SHARK_MARK_SVG}<span class="brand-copy"><strong>Wizard Gang</strong><small>Shark Tank operations</small></span></a>${navHtml(nav)}</header><main id="main" tabindex="-1">${inner}</main><script nonce="__WG_CSP_NONCE__">(function(){function land(){var id=location.hash.slice(1);if(!id)return;var el=document.getElementById(id);if(!el)return;if(!el.hasAttribute("tabindex"))el.setAttribute("tabindex","-1");el.focus({preventScroll:true});}if(location.hash)land();window.addEventListener("hashchange",land);}());</script></body></html>`;
 }
 
 function esc(s: string): string {
@@ -1276,7 +1439,7 @@ function meterRowHtml(row: MeterRow): string {
     + `<td class="meter-daily"><div class="meter-stack"><span class="meter-daily__value">${row.daily}</span>${row.averageShare == null ? "" : `<span class="meter-share">${meterPercentLabel(row.averageShare)}% of daily limit</span>`}</div></td></tr>`;
 }
 
-function inquiryHtml(billing: Record<string, unknown>): string {
+function spendHtml(billing: Record<string, unknown>): string {
   const allTime = recordValue(billing.allTime), services = recordValue(allTime.services);
   const durable = recordValue(services.durableObjects), d1 = recordValue(services.d1), r2 = recordValue(services.r2);
   const currentServices = recordValue(billing.services), workers = recordValue(currentServices.workers);
@@ -1418,9 +1581,9 @@ function inquiryHtml(billing: Record<string, unknown>): string {
     },
   ];
 
-  return `<section class="page-intro"><div class="eyebrow">Shark Tank cost control</div><h1>Every bite leaves a receipt.</h1><a class="action-link" href="/inquiry.json">Raw inquiry JSON →</a></section>
-    <div class="inquiry-hero">
-      <div class="card hero-card gauge-card">${billingGaugeSvg("inquiry", monthly, measured, "All-time list-price meter")}</div>
+  return `<section class="page-intro"><div class="eyebrow">Shark Tank cost control</div><h1>Every bite leaves a receipt.</h1><a class="action-link" href="/spend.json">Raw spend JSON →</a></section>
+    <div class="spend-hero">
+      <div class="card hero-card gauge-card">${billingGaugeSvg("spend", monthly, measured, "All-time list-price meter")}</div>
       <div class="card hero-card trend-card">
         <div class="eyebrow">Spend trend</div>
         <h2>Cumulative metered spend</h2>
@@ -1428,7 +1591,7 @@ function inquiryHtml(billing: Record<string, unknown>): string {
         <p class="sub">${samples.length} hourly ${samples.length === 1 ? "sample" : "samples"} · $${hardLimit.toFixed(2)} hard stop · ${billing.hardLimitExceeded === true ? "<b>game traffic and public writes disabled</b>" : "traffic allowed"}</p>
       </div>
     </div>
-    <div class="metric-grid inquiry-metrics">
+    <div class="metric-grid spend-metrics">
       ${/* An eight-decimal figure wraps mid-number in a card; the exact value stays on the
             gauge readout below and in this cell's tooltip. */""}
       ${metricCard(`<span title="$${measured.toFixed(8)}">${usd(measured)}</span>`, "All-time meter", `since ${new Date(numberValue(allTime.startedAt)).toLocaleDateString()}`, "audit", "tone-cyan")}
@@ -1602,7 +1765,7 @@ function timelineLegend(incidents: IncidentRecord[], history: ControlHistoryEntr
     ${group("Server", [`<span><i class="key-green"></i>Available <b>100%</b></span>`])}
     ${group("Tank · scheduled", scheduled.map(entry))}
     ${group("Tank · unscheduled", unscheduled.map(entry))}
-    <p class="timeline-key-note">Every legend entry links to the record that produced it. Chart markers are pointer shortcuts to the same records; by keyboard, reach them through the legend above or the incident list on <a href="/incidents/">Incidents</a>.</p>
+    <p class="timeline-key-note">Every legend entry links to the record that produced it. Chart markers are pointer shortcuts to the same records; by keyboard, reach them through the legend above or the incident list on <a href="/status/#incidents">Incidents</a>.</p>
   </div>`;
 }
 
@@ -1654,20 +1817,31 @@ function incidentChartSvg(incidents: IncidentRecord[], now: number, history: Con
       const x1 = x(from), x2 = x(to);
       // An invisible padded rect behind each mark keeps the tap target usable even when
       // the incident itself is a four-second sliver.
-      const hit = `<rect x="${(x1 - 8).toFixed(1)}" y="${(mid - 13).toFixed(1)}" width="${Math.max(20, x2 - x1 + 16).toFixed(1)}" height="26" fill="transparent"/>`;
+      // 26 CSS px tall, and at least 26 wide once the 768-unit viewBox is laid out at any
+      // width at or above its own — the transparent rect is the focus ring and the tap
+      // target, so it has to clear 24x24 by itself (SC 2.5.8) rather than rely on the
+      // four-pixel sliver of colour drawn inside it.
+      const hit = `<rect x="${(x1 - 11).toFixed(1)}" y="${(mid - 13).toFixed(1)}" width="${Math.max(26, x2 - x1 + 22).toFixed(1)}" height="26" rx="3" fill="transparent" class="ic-hit"/>`;
       const shape = x2 - x1 < 2
         ? `<path d="M ${x1.toFixed(1)} ${(mid - 7).toFixed(1)} l 7 7 l -7 7 l -7 -7 Z" fill="${tone.color}" stroke="${active ? "#fff" : "#0b0a14"}" stroke-width="1"/>`
         : `<rect x="${x1.toFixed(1)}" y="${(mid - 8).toFixed(1)}" width="${Math.max(4, x2 - x1).toFixed(1)}" height="16" rx="3" fill="${tone.color}" stroke="${active ? "#fff" : "none"}" stroke-width="${active ? 1.5 : 0}"/>`;
-      return `<a href="${linkBase}#${anchor}" tabindex="-1" aria-label="${label}"><title>${label}</title>${hit}${shape}</a>`;
+      return `<g role="listitem"><a href="${linkBase}#${anchor}" aria-label="${label}"><title>${label}</title>${hit}${shape}</a></g>`;
     }).join("");
     return `<line x1="${left}" y1="${mid.toFixed(1)}" x2="${width - right}" y2="${mid.toFixed(1)}" stroke="#221f3d" stroke-width="1"/>`
       + `<text x="${left - 10}" y="${(mid + 3.5).toFixed(1)}" class="ic-lane" text-anchor="end">${esc(tone.label)} <tspan class="ic-count">${inLane.length}</tspan></text>`
-      + marks;
+      + `<g role="list" aria-label="${esc(tone.label)}">${marks}</g>`;
   }).join("");
 
   const nowX = (left + plot).toFixed(1);
-  return `<div class="timeline-scroll incident-chart" role="region" aria-label="Incident chart" tabindex="0"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(`${incidents.length} incidents across ${formatWindow(span)} of project time, grouped into ${causes.length} causes`)}" style="height:${height}px">
-    <style>.ic-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.ic-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.ic-count{fill:#8f89ae;font-weight:800}</style>
+  // `role="img"` made every descendant presentational, so the nine links inside were
+  // invisible to assistive technology, and `tabindex="-1"` took them off the tab order as
+  // well — the chart was reachable by pointer and by nothing else (SC 2.1.1, SC 4.1.2).
+  // `role="group"` with a title/desc pair keeps the summary and lets the links exist, which
+  // is the pattern the delivery chart on this same page was already using.
+  return `<div class="timeline-scroll incident-chart" role="region" aria-label="Incident chart" tabindex="0"><svg viewBox="0 0 ${width} ${height}" role="group" aria-labelledby="ic-chart-title ic-chart-desc" style="height:${height}px">
+    <title id="ic-chart-title">Incidents by cause since project start</title>
+    <desc id="ic-chart-desc">${esc(`${incidents.length} incidents across ${formatWindow(span)} of project time, grouped into ${causes.length} causes. Each mark is a link to that incident's entry and control receipt.`)}</desc>
+    <style>.ic-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.ic-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.ic-count{fill:#8f89ae;font-weight:800}a:focus-visible .ic-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}</style>
     ${grid.join("")}
     ${lanes}
     <line x1="${nowX}" y1="${top - 6}" x2="${nowX}" y2="${top + causes.length * laneH}" stroke="#22e6ff" stroke-width="1.5" stroke-dasharray="3 3"/>
@@ -1838,7 +2012,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
     const when = `${new Date(from).toISOString().replace("T", " ").slice(0, 16)}Z`;
     const kind = scheduled ? "scheduled, excluded from availability" : lasted ? "unscheduled outage" : "no impact";
     const name = esc(`${tone.label} · ${incident.title} · ${when} · ${formatCompactDuration(Math.max(0, to - from))} · ${kind}`);
-    return `<g role="listitem"><a href="/incidents/#${anchor}" aria-label="${name}"><title>${name}</title>`
+    return `<g role="listitem"><a href="#${anchor}" aria-label="${name}"><title>${name}</title>`
       + seg(index, tankY, colour, entry.rank === 3 ? 0 : 5) + `</a></g>`;
   }).join("");
 
@@ -1889,7 +2063,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
       ? `<path d="M${left + 48} ${sy(first.usd).toFixed(1)} L${x(first.ts).toFixed(1)} ${sy(first.usd).toFixed(1)}" fill="none" stroke="#f0abfc" stroke-width="2" stroke-dasharray="4 4" opacity=".5"/>`
       : "";
     series = `${ticks.join("")}${baseline}`
-      + `<g role="listitem"><a href="/inquiry/" aria-label="${esc(`Metered spend $${last.usd.toFixed(4)}, from $${lo.toFixed(4)} across ${samples.length} hourly samples; the dashed stretch is the baseline for the days before sampling began`)}"><title>${esc(`$${last.usd.toFixed(4)} metered`)}</title>`
+      + `<g role="listitem"><a href="/spend/" aria-label="${esc(`Metered spend $${last.usd.toFixed(4)}, from $${lo.toFixed(4)} across ${samples.length} hourly samples; the dashed stretch is the baseline for the days before sampling began`)}"><title>${esc(`$${last.usd.toFixed(4)} metered`)}</title>`
       + `<rect x="${left}" y="${spendTop}" width="${plot}" height="${spendH}" fill="transparent"/>`
       + `<path d="${line}" fill="none" stroke="#f0abfc" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`
       + `<circle cx="${x(last.ts).toFixed(1)}" cy="${sy(last.usd).toFixed(1)}" r="3.5" fill="#f0abfc"/></a></g>`;
@@ -1898,7 +2072,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   }
   const used = Math.max(0, Math.min(1, spendUsd / Math.max(hardLimitUsd, 1e-9)));
   const capBar = `<rect x="${left}" y="${capY}" width="${plot}" height="${capH}" rx="4" fill="#2b2750"/>`
-    + `<g role="listitem"><a href="/inquiry/" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
+    + `<g role="listitem"><a href="/spend/" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
     + `<rect x="${left}" y="${capY}" width="${Math.max(3, used * plot).toFixed(1)}" height="${capH}" rx="4" fill="#f0abfc"/></a></g>`
     + `<text x="${left + 10}" y="${(capY + 11).toFixed(1)}" class="sc-note">${esc(`$${spendUsd.toFixed(4)} used · ${(used * 100).toFixed(2)}% of the $${hardLimitUsd.toFixed(2)} hard stop`)}</text>`
     + `<text x="${(left + plot).toFixed(1)}" y="${(capY - 4).toFixed(1)}" class="sc-axis" text-anchor="end">$${hardLimitUsd.toFixed(2)}</text>`;
@@ -1954,19 +2128,46 @@ function backupPanelHtml(backup?: BackupState): string {
     <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</div>`;
 }
 
-function statusIncidentsHtml(incidents: IncidentRecord[], history: ControlHistoryEntry[]): string {
+/**
+ * The incident record, as a section of the operations page.
+ *
+ * This used to be a whole route (`/incidents/`) plus a five-row teaser here, which meant
+ * the append-only receipt chain rendered twice on two pages and the incident count was
+ * stated in three places at three precisions. It is one section now, on the page that owns
+ * availability, and the receipt chain below it is the only copy.
+ */
+function incidentsSection(incidents: IncidentRecord[], history: ControlHistoryEntry[]): string {
+  const now = Date.now();
+  const s = incidentSummary(incidents, now);
+  // Active incidents first — an open incident is the thing a reader needs to see.
   const ordered = incidents.map((incident, index) => ({ incident, index })).sort((a, b) => {
     const openA = a.incident.status === "active" ? 0 : 1, openB = b.incident.status === "active" ? 0 : 1;
     return openA !== openB ? openA - openB : b.index - a.index;
-  }).map((entry) => entry.incident).slice(0, 5);
-  const activeCount = incidents.filter((incident) => incident.status === "active").length;
-  const rows = ordered.map((incident) => {
-    const tone = incidentTone(incident.cause), anchor = receiptAnchor(incident, history);
-    const href = anchor ? `/incidents/#${anchor}` : "/incidents/";
-    return `<a class="status-incident${incident.status === "active" ? " status-incident--active" : ""}" href="${href}"><i class="incident-dot ${tone.key}"></i><span class="status-incident-state">${incident.status.toUpperCase()}</span><span class="status-incident-title">${esc(incident.title)}</span><span class="status-incident-cause">${esc(incident.cause)}</span></a>`;
-  }).join("");
-  const heading = activeCount ? `${activeCount} active · latest activity` : "No active incidents · latest activity";
-  return `<div class="card"><h2 style="margin-top:0;font-size:1.1rem">Incidents</h2><p class="sub" style="margin:0 0 12px">${heading}. Select one to open its entry in the control receipt log.</p><div class="status-incident-list">${rows || '<p class="sub">No incidents recorded.</p>'}</div><p style="margin:12px 0 0"><a class="action-link" href="/incidents/">Full report and timeline →</a></p></div>`;
+  }).map((entry) => entry.incident);
+  const active = ordered.filter((x) => x.status === "active"), resolved = ordered.filter((x) => x.status !== "active");
+  const card = (x: IncidentRecord) => {
+    const timing = x.impactEndedAt != null && x.status === "active"
+      ? `${new Date(incidentTime(x.startedAt, now)).toISOString()} → impact ended ${new Date(incidentImpactEnd(x, now)).toISOString()} · investigation remains open`
+      : `${new Date(incidentTime(x.startedAt, now)).toISOString()} → ${x.resolvedAt == null ? "ongoing" : new Date(incidentTime(x.resolvedAt, now)).toISOString()}`;
+    const tone = incidentTone(x.cause), anchor = receiptAnchor(x, history);
+    const receipt = anchor ? `<p style="margin:10px 0 0"><a class="action-link" href="#${anchor}">Open control receipt →</a></p>` : "";
+    // Every incident card carries its own anchor so a timeline marker without a control
+    // receipt still has somewhere to land — no mark on the chart is a dead end.
+    return `<article class="card incident-card${x.status === "active" ? " incident-card--active" : ""}" id="${incidentAnchor(x)}" tabindex="-1"><div class="m ${x.status === "active" ? "o" : "g"}"><i class="incident-dot ${tone.key}"></i>${x.status.toUpperCase()} · ${esc(x.cause)}</div><h3>${esc(x.title)}</h3><p>${esc(x.summary)}</p><p class="sub" style="margin:0">${timing}</p>${receipt}</article>`;
+  };
+  const activeBlock = active.length
+    ? `<section aria-labelledby="active-incidents"><div class="eyebrow">Needs attention</div><h3 id="active-incidents" style="margin:6px 0 14px">Active incidents (${active.length})</h3>${active.map(card).join("")}</section>`
+    : `<section class="card"><div class="m g">ALL CLEAR</div><h3 style="margin:6px 0 0">No active incidents</h3></section>`;
+  const resolvedBlock = resolved.length
+    ? `<section aria-labelledby="resolved-incidents"><div class="eyebrow">History</div><h3 id="resolved-incidents" style="margin:6px 0 14px">Resolved incidents (${resolved.length})</h3>${resolved.map(card).join("")}</section>`
+    : "";
+  return `<section id="incidents" tabindex="-1" aria-labelledby="incidents-heading">
+    <div class="eyebrow">Availability evidence</div>
+    <h2 id="incidents-heading" style="margin:6px 0 10px">Incidents</h2>
+    <p class="sub">Scheduled tank downtime is tracked separately from unscheduled outages and from server availability, because only one of the three is a fault. ${incidents.length} recorded over ${s.windowLabel}. <a href="/incidents.json">Raw incident JSON →</a></p>
+    <div class="card hero-card"><h3 style="margin:0 0 4px;font-size:1.1rem">Every incident since project start</h3><p class="sub" style="margin:0 0 10px">${formatCompactDuration(s.scheduledDowntimeMs)} of it scheduled and excluded from availability.</p>${incidentChartSvg(incidents, now, history)}<p class="timeline-key-note" style="margin:8px 0 0">Bars show how long impact lasted; diamonds are instantaneous events. Every mark is a link to its incident and control receipt, reachable by keyboard as well as pointer.</p></div>
+    ${activeBlock}${resolvedBlock}
+  </section>`;
 }
 /** Control receipt anchor for an incident, so a card can jump to its entry in the log. */
 function receiptAnchor(incident: IncidentRecord, history: ControlHistoryEntry[]): string | null {
@@ -2036,7 +2237,10 @@ function incidentTimelineSvg(incidents: IncidentRecord[], now = Date.now(), hist
     const shape = `<g class="tl-marker"><title>${label}</title>`
       + `<line x1="${px.toFixed(2)}" y1="44" x2="${px.toFixed(2)}" y2="64" stroke="${tone.color}" stroke-width="1.5" opacity=".85"/>`
       + `<path d="M ${px.toFixed(2)} 44 l -6 -8 l 12 0 Z" fill="${tone.color}" stroke="#0b0a14" stroke-width="1"/></g>`;
-    return `<a href="${linkBase}#${anchor}" tabindex="-1" aria-label="${label}">${shape}</a>`;
+    // A padded transparent rect behind the marker: the arrow itself is 12x8, well under the
+    // 24x24 target minimum once the link is focusable (SC 2.5.8).
+    const hit = `<rect x="${(px - 13).toFixed(2)}" y="34" width="26" height="32" fill="transparent" rx="3" class="tl-hit"/>`;
+    return `<g role="listitem"><a href="${linkBase}#${anchor}" aria-label="${label}">${hit}${shape}</a></g>`;
   }).join("");
   const axis = (label: string, x: number, anchorPoint: string) => `<text x="${x}" y="82" class="tl-axis" text-anchor="${anchorPoint}">${esc(label)}</text>`;
   // Wrapped in a scroller with a floor width: letting the chart shrink to a phone's
@@ -2050,20 +2254,22 @@ function incidentTimelineSvg(incidents: IncidentRecord[], now = Date.now(), hist
     const from = incidentTime(x.startedAt, now), to = incidentImpactEnd(x, now);
     return `<li>${esc(x.cause)} — ${esc(new Date(from).toISOString().replace("T", " ").slice(0, 16))}Z, lasting ${esc(formatWindow(Math.max(0, to - from)))}.</li>`;
   }).join("")}</ul>`;
-  return `<div class="timeline-scroll" role="region" aria-label="Availability timeline" tabindex="0"><svg role="img" aria-label="${esc(spoken)}" viewBox="0 0 ${width} 90" preserveAspectRatio="xMidYMid meet">
-    <style>.tl-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.tl-axis{fill:#8f89ae;font:500 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tl-marker{transition:transform 120ms ease}a:hover .tl-marker,a:focus-visible .tl-marker{transform:translateY(-2px)}</style>
+  // The floor width is what makes the marker hit areas real: the viewBox is 768 units wide,
+  // so below a 768px render one unit is under one CSS pixel and a 26-unit target lands
+  // beneath the 24x24 minimum (SC 2.5.8). At 768 the mapping is 1:1 and the scroller —
+  // already here, already labelled and focusable — takes the overflow, exactly as the
+  // incident chart beside it does.
+  return `<div class="timeline-scroll availability-chart" role="region" aria-label="Availability timeline" tabindex="0"><svg role="group" aria-labelledby="tl-title tl-desc" viewBox="0 0 ${width} 90" preserveAspectRatio="xMidYMid meet">
+    <title id="tl-title">Availability timeline</title>
+    <desc id="tl-desc">${esc(spoken)}</desc>
+    <style>.tl-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.tl-axis{fill:#8f89ae;font:500 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tl-marker{transition:transform 120ms ease}a:hover .tl-marker,a:focus-visible .tl-marker{transform:translateY(-2px)}a:focus-visible .tl-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}@media(prefers-reduced-motion:reduce){.tl-marker{transition:none}}</style>
     <text x="0" y="32" class="tl-lane">Server</text>${serverLane}
     <text x="0" y="60" class="tl-lane">Tank</text>${tankLane}
-    ${markers}
+    <g role="list" aria-label="Incident markers">${markers}</g>
     ${axis(new Date(start).toISOString().slice(0, 10), left, "start")}
     ${axis(formatWindow(span) + " measured", left + plot / 2, "middle")}
     ${axis("now", left + plot, "end")}
   </svg>${spokenDetail}</div>`;
-}
-function controlHistoryHtml(history: ControlHistoryEntry[], integrity: ControlHistoryIntegrity, limit = 20): string {
-  const entries = history.slice(-limit).reverse().map((entry) => historyItemHtml(entry)).join("");
-  const head = integrity.headHash ? `<code>${esc(integrity.headHash)}</code>` : "No receipt yet";
-  return `<section class="card"><div class="eyebrow">Control receipts</div><h2 style="margin-top:0">Append-only control history</h2><div class="integrity-line"><span class="integrity-badge">${esc(integrity.algorithm)}</span><span>${integrity.entryCount} entries · chain head ${head}</span></div><div class="integrity-line">${integrityVerdict(integrity)}</div><div class="history-list">${entries || '<p class="sub">No control events recorded.</p>'}</div><p style="margin:14px 0 0"><a class="action-link" href="/incidents/#control-history">Search the full receipt chain →</a></p></section>`;
 }
 
 function historyItemHtml(entry: ControlHistoryEntry, searchable = false): string {
@@ -2133,33 +2339,62 @@ var m=matching(),i=m.indexOf(target);if(i<0){search.value='';code.value='';m=mat
 if(i>=0){page=Math.floor(i/PER);render(0);target.classList.add('history-item--focus');target.scrollIntoView({block:'center'});if(!target.hasAttribute('tabindex'))target.setAttribute('tabindex','-1');target.focus({preventScroll:true});}}
 render(0);reveal();window.addEventListener('hashchange',reveal);}());</script>`;
 }
-function incidentsHtml(incidents: IncidentRecord[], history: ControlHistoryEntry[], integrity: ControlHistoryIntegrity): string {
-  const now = Date.now();
-  const s = incidentSummary(incidents, now);
-  // Active incidents first — an open incident is the thing a reader needs to see.
-  const ordered = incidents.map((incident, index) => ({ incident, index })).sort((a, b) => {
-    const openA = a.incident.status === "active" ? 0 : 1, openB = b.incident.status === "active" ? 0 : 1;
-    return openA !== openB ? openA - openB : b.index - a.index;
-  }).map((entry) => entry.incident);
-  const active = ordered.filter((x) => x.status === "active"), resolved = ordered.filter((x) => x.status !== "active");
-  const card = (x: IncidentRecord) => {
-    const timing = x.impactEndedAt != null && x.status === "active"
-      ? `${new Date(incidentTime(x.startedAt, now)).toISOString()} → impact ended ${new Date(incidentImpactEnd(x, now)).toISOString()} · investigation remains open`
-      : `${new Date(incidentTime(x.startedAt, now)).toISOString()} → ${x.resolvedAt == null ? "ongoing" : new Date(incidentTime(x.resolvedAt, now)).toISOString()}`;
-    const tone = incidentTone(x.cause), anchor = receiptAnchor(x, history);
-    const receipt = anchor ? `<p style="margin:10px 0 0"><a class="action-link" href="#${anchor}">Open control receipt →</a></p>` : "";
-    // Every incident card carries its own anchor so a timeline marker without a control
-    // receipt still has somewhere to land — no mark on the chart is a dead end.
-    return `<article class="card incident-card${x.status === "active" ? " incident-card--active" : ""}" id="${incidentAnchor(x)}" tabindex="-1"><div class="m ${x.status === "active" ? "o" : "g"}"><i class="incident-dot ${tone.key}"></i>${x.status.toUpperCase()} · ${esc(x.cause)}</div><h3>${esc(x.title)}</h3><p>${esc(x.summary)}</p><p class="sub" style="margin:0">${timing}</p>${receipt}</article>`;
-  };
-  const activeBlock = active.length
-    ? `<section aria-labelledby="active-incidents"><div class="eyebrow">Needs attention</div><h2 id="active-incidents" style="margin:6px 0 14px">Active incidents (${active.length})</h2>${active.map(card).join("")}</section>`
-    : `<section class="card"><div class="m g">ALL CLEAR</div><h2 style="margin:6px 0 0">No active incidents</h2></section>`;
-  const resolvedBlock = resolved.length
-    ? `<section aria-labelledby="resolved-incidents"><div class="eyebrow">History</div><h2 id="resolved-incidents" style="margin:6px 0 14px">Resolved incidents (${resolved.length})</h2>${resolved.map(card).join("")}</section>`
-    : "";
-  return `<section class="page-intro"><div class="eyebrow">Availability evidence</div><h1>Incidents</h1><p class="sub">Scheduled tank downtime is tracked separately from unscheduled outages and server availability.</p><a class="action-link" href="/incidents.json">Raw incident JSON →</a></section><div class="card hero-card"><h2 style="margin:0 0 4px;font-size:1.1rem">Every incident since project start</h2><p class="sub" style="margin:0 0 10px">${incidents.length} recorded over ${s.windowLabel} · ${s.availabilityPercent}% available · ${formatCompactDuration(s.scheduledDowntimeMs)} scheduled downtime. <a href="/status/">Live availability →</a></p>${incidentChartSvg(incidents, now, history)}<p class="timeline-key-note" style="margin:8px 0 0">Bars show how long impact lasted; diamonds are instantaneous events. Every mark is a pointer shortcut to its incident and control receipt; by keyboard, the same incidents and receipts are listed in full below.</p></div>${activeBlock}${resolvedBlock}${controlHistoryListHtml(history, integrity)}`;
+/**
+ * The trust estate's front door, and the page that defines its vocabulary.
+ *
+ * Six figures, each one a link to the page that owns it. Nothing here is restated as a
+ * literal: every number is computed from the same value the owning page renders, so the
+ * two cannot drift apart and be separately true. That is the whole design constraint —
+ * a summary page that keeps its own copy of a number is a second source of truth, and a
+ * second source of truth on a conformance estate is a finding.
+ */
+interface TrustInput {
+  portal: ReturnType<typeof incidentSummary>;
+  tank: ReturnType<typeof incidentSummary>;
+  incidents: IncidentRecord[];
+  integrity: ControlHistoryIntegrity;
+  spendUsd: number;
+  hardLimitUsd: number;
+  readiness: { percent: number; met: number; partial: number; total: number };
+  lastDeployment: { id: string; title: string } | null;
 }
+function trustHtml(input: TrustInput): string {
+  const { portal, tank, incidents, integrity, spendUsd, hardLimitUsd, readiness, lastDeployment } = input;
+  const unscheduled = incidents.filter((incident) => incident.cause !== "Test alert" && !SCHEDULED_INCIDENT_CAUSES.has(incident.cause)).length;
+  const chainOk = integrity.chainStatus === "verified";
+  const tile = (href: string, label: string, value: string, detail: string, tone: string) =>
+    `<a class="trust-tile ${tone}" href="${href}"><span class="trust-tile__label">${esc(label)}</span><span class="trust-tile__value">${value}</span><span class="trust-tile__detail">${esc(detail)}</span><span class="trust-tile__go" aria-hidden="true">→</span></a>`;
+  return `<section class="page-intro">
+    <div class="eyebrow">Trust · operations and conformance</div>
+    <h1>Trust &amp; operations</h1>
+    <p class="sub">Wizard Gang Shark Tank is a browser game. A <dfn id="tank">tank</dfn> is one of its four game rooms — a single running world with its own players, its own leaderboard and its own log; the word is used that way everywhere on this site. These pages are the evidence behind the service that runs them: what it is doing right now, what it has done, what it costs, and where it falls short.</p>
+    <p class="sub">Everything published here is read from the running service at the moment the page is built. Each figure below links to the page that owns it — none of them is stored twice.</p>
+  </section>
+  <div class="trust-grid">
+    ${tile("/status/", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
+    ${tile("/status/#incidents", "Incidents", String(incidents.length), `${unscheduled} unscheduled`, unscheduled ? "tone-violet" : "tone-green")}
+    ${tile("/spend/", "Metered spend", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
+    ${tile("/audit/", "Conformance readiness", `${readiness.percent}%`, `${readiness.met} met and ${readiness.partial} partial of ${readiness.total} applicable`, "tone-violet")}
+    ${tile("/status/#delivery", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
+    ${tile("/status/#control-history", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
+  </div>
+  <section class="card">
+    <h2 style="margin-top:0;font-size:1.1rem">What is on each page</h2>
+    <dl class="trust-what">
+      <dt><a href="/audit/">Register</a></dt><dd>Every ISO/IEC 27001 and 42001 control, what this service does about it, and the live route that proves it. A control may only be marked met when a reader can open that route.</dd>
+      <dt><a href="/policies/">Policies</a></dt><dd>The written record the two standards ask for — context and scope, risk method and assessment, the Statement of Applicability, and the rest — published as pages rather than filed as documents nobody can check.</dd>
+      <dt><a href="/status/">Operations</a></dt><dd>Live availability, the incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record.</dd>
+      <dt><a href="/logs/">Evidence</a></dt><dd>The 90-day service action log and the 24-hour per-tank capture logs, searchable and downloadable.</dd>
+      <dt><a href="/spend/">Spend</a></dt><dd>What the service consumes against each free allowance and against the hard limit that closes the game rather than billing.</dd>
+      <dt><a href="/docs/">API</a></dt><dd>Every route this Worker serves, including the unauthenticated ones and the limits on them.</dd>
+    </dl>
+  </section>
+  <section class="card">
+    <h2 style="margin-top:0;font-size:1.1rem">The rule these pages are held to</h2>
+    <p class="sub" style="margin:0">A row marked met must name a live route that demonstrates it. Implemented but unrecorded is partial; nothing is silently a gap. An overstated register fails an audit faster than an honest one with open gaps, and it makes every other row suspect — so where this service is weaker than it would like to be, the page says so.</p>
+  </section>`;
+}
+
 
 interface PublicLogEvent { ts: number; type: string; room?: string | null; subject?: string | null; detail?: string | null }
 interface GameLogWireEvent { ts: number; tick: number; language?: unknown; action: Record<string, unknown> }
@@ -2232,7 +2467,7 @@ function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], cap
   const truncationNote = caps.serviceTruncated || caps.captureTruncated
     ? `<p class="table-note" style="margin:0">Showing the newest ${caps.serviceTruncated ? `${serviceRecords.length} service records` : ""}${caps.serviceTruncated && caps.captureTruncated ? " and " : ""}${caps.captureTruncated ? "captures per tank" : ""} — the retained record is larger than one page can carry. The JSON and TXT exports carry the rest.</p>`
     : "";
-  return `<section class="page-intro"><div class="eyebrow">Public Shark Tank inquiry</div><h1>Every operational move leaves a reason.</h1><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
+  return `<section class="page-intro"><div class="eyebrow">Public Shark Tank evidence</div><h1>Every operational move leaves a reason.</h1><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
     <details class="card log-room"><summary><span class="log-summary"><strong>Service evidence</strong><code>90-day retention</code><span class="log-count">${serviceRecords.length} records</span></span></summary><div class="log-room-body">${logToolbar(serviceTableId, serviceRecords, "service evidence")}<div class="table-scroll" role="region" aria-label="Service evidence" tabindex="0"><table class="events-table" id="${serviceTableId}"><caption class="sr-only">Service evidence</caption><thead><tr><th scope="col">Timestamp</th><th scope="col">Reason</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Detail</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No public events recorded.</td></tr>'}</tbody></table></div>${serviceRecords.length > LOG_PAGE_SIZE ? logPager(serviceTableId, serviceRecords.length) : ""}<p class="table-note">Reason codes are one letter plus three digits. Full detail remains available in JSON.</p></div></details>
     <section><h2>Tank captures · past 24 hours</h2><p class="sub">${captureTotal} ${captureTotal === 1 ? "capture" : "captures"} across four ocean tanks. Records older than 24 hours are purged at the source, so this is the complete window. Expand a tank to search, filter, sort, or download it.</p>${tanks}</section>${truncationNote}${gameLogSortScript()}`;
 }
@@ -2723,26 +2958,28 @@ export default {
       }
 
       if (path === "/roadmap.json") { const availability = await roadmapAvailability(env), elapsedHours = ROADMAP_ELAPSED_MINUTES / 60; return json({ ok: true, elapsedMinutes: ROADMAP_ELAPSED_MINUTES, elapsedHours, commitVelocity: { perHour: Number((ROADMAP_MANIFEST.length / elapsedHours).toFixed(1)), featureUpdates: ROADMAP_MANIFEST.length, productionDeployments: ROADMAP_DEPLOYMENT_COUNT, updatesPerDeployment: Number((ROADMAP_MANIFEST.length / ROADMAP_DEPLOYMENT_COUNT).toFixed(1)) }, nextGoal: { name: "ISO/IEC 42001 + ISO/IEC 27001 certification", status: "in-progress" }, availability, license: "MIT", entries: ROADMAP_MANIFEST, postDelivery: { note: "Excluded from every metric above.", hotfixMinutes: POST_DELIVERY_HOTFIX_MINUTES, entries: POST_DELIVERY_ENTRIES } }); }
-      if (path === "/roadmap" || path === "/roadmap/") {
-        // The showcase chart needs the spend series as well as the incidents, and both live
-        // behind the same Durable Object; the two reads go out together rather than in turn.
-        const [{ incidents, history }, statusRes] = await Promise.all([incidentData(env), lobbyStub(env).fetch("https://lobby/status")]);
-        const status = (await statusRes.json()) as { billingWindow?: Record<string, unknown> };
-        return html(shell("Portal Framework — Roadmap", roadmapHtml(ROADMAP_MANIFEST, incidents, history, publicBillingWindow(status.billingWindow ?? {}))));
-      }
+      // The roadmap and incident *pages* folded into /status/. The JSON did not move: it is
+      // a published contract with fixed figures, and folding a page is no reason to break it.
+      if (path === "/roadmap" || path === "/roadmap/") return movedTo(url, "/status/#delivery");
 
       if (path === "/incidents.json") { const data = await incidentData(env); return json({ ok: true, summary: incidentSummary(data.incidents), ...data }); }
-      if (path === "/incidents" || path === "/incidents/") { const data = await incidentData(env); return html(shell("Shark — Incidents", incidentsHtml(data.incidents, data.history, data.historyIntegrity))); }
+      if (path === "/incidents" || path === "/incidents/") return movedTo(url, "/status/#incidents");
 
-      if (path === "/inquiry.json") {
+      // "Inquiry" meant two different things on this site — this billing page, and the
+      // whole transparency estate — and the word appeared on all seven content pages
+      // carrying both senses. The page is /spend/ now, which is what it is about. The old
+      // names keep redirecting, and the old JSON keeps answering, because operator tooling
+      // and the OpenAPI document were both written against them.
+      if (path === "/inquiry" || path === "/inquiry/") return movedTo(url, "/spend/");
+      if (path === "/spend.json" || path === "/inquiry.json") {
         const res = await lobbyStub(env).fetch("https://lobby/status");
         const data = (await res.json()) as { billingWindow?: Record<string, unknown> };
         return json({ ok: true, billingWindow: publicBillingWindow(data.billingWindow ?? {}) });
       }
-      if (path === "/inquiry" || path === "/inquiry/") {
+      if (path === "/spend" || path === "/spend/") {
         const res = await lobbyStub(env).fetch("https://lobby/status");
         const data = (await res.json()) as { billingWindow?: Record<string, unknown> };
-        return html(shell("Shark — Billing Inquiry", inquiryHtml(publicBillingWindow(data.billingWindow ?? {}))));
+        return html(shell("Shark — Spend", spendHtml(publicBillingWindow(data.billingWindow ?? {})), "What this service consumes against each free allowance and against the five dollar hard limit that closes the game rather than billing."));
       }
 
       const publicGameLog = path.match(/^\/logs\/game\/([^/]+)\.txt$/);
@@ -2764,10 +3001,46 @@ export default {
         return html(shell("Shark — Logs", publicLogsHtml(serviceEvents, tanks, caps)));
       }
 
+      // ── The trust estate's front door ──────────────────────────────────────
+      // Six figures, six links. Each one is computed here from the same source the owning
+      // page computes it from, so this page cannot state a number the owning page
+      // contradicts — there is no second copy to fall out of step.
+      if (path === "/trust" || path === "/trust/") {
+        const [statusRes, { incidents, historyIntegrity }] = await Promise.all([
+          lobbyStub(env).fetch("https://lobby/status"),
+          incidentData(env),
+        ]);
+        const data = (await statusRes.json()) as { billingWindow?: Record<string, unknown> };
+        const billing = publicBillingWindow(data.billingWindow ?? {});
+        const summary = summarise(ALL_CONTROLS);
+        const lastEntry = [...ROADMAP_MANIFEST, ...POST_DELIVERY_ENTRIES].at(-1) ?? null;
+        return html(shell("Shark — Trust and operations", trustHtml({
+          portal: incidentSummary([]),
+          tank: incidentSummary(incidents),
+          incidents,
+          integrity: historyIntegrity,
+          spendUsd: numberValue(recordValue(billing.allTime).estimatedVariableUsd),
+          hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
+          readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
+          lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
+        }), "Availability, incidents, spend, conformance readiness and the control receipt chain for wizardgang.ai — each figure linking to the page that owns it."));
+      }
+
       // Public conformance register. Fixed content, no binding read: the evidence is the
       // routes it links to, so the page has nothing to fetch and nothing to get wrong.
       if (path === "/policies.json") return json(governanceManifest());
-      if (path === "/policies" || path === "/policies/") return html(shell("Shark — Policies", governanceHtml()));
+      if (path === "/policies" || path === "/policies/") return html(shell("Shark — Policies", governanceIndexHtml(), "Index of the governance documents ISO/IEC 27001 and 42001 require, each published as its own route."));
+      // One route per document. The set was 201 KB on a single page with 21 h2, 123 h3 and
+      // not one id on any of them, so nothing in it could be cited, linked or found. The
+      // old fragment names keep working: /policies/#risk-assessment redirects to the
+      // document that owns that anchor rather than 404ing an evidence link.
+      const policyDoc = path.match(/^\/policies\/([a-z0-9-]+)\/?$/);
+      if (policyDoc) {
+        const doc = findGovernanceDoc(policyDoc[1]);
+        if (!doc) return html(shell("Shark — Policy not found", governanceMissingHtml(policyDoc[1])), 404);
+        if (!path.endsWith("/")) return movedTo(url, `/policies/${doc.id}/`);
+        return html(shell(`Shark — ${doc.title}`, governanceDocPageHtml(doc), doc.purpose));
+      }
       if (path === "/audit/manifest.json") return json(conformanceManifest());
       if (path === "/audit" || path === "/audit/") {
         return html(shell("Shark — ISO 27001 and 42001 register", conformanceHtml(metricCard)));
@@ -2790,9 +3063,16 @@ export default {
         const tankAvailability = incidentSummary(incidents), portalAvailability = incidentSummary([]);
         return json({ ...publicData, usage: publicUsage, availability: tankAvailability, tankAvailability, portalAvailability, incidents });
       }
+      // ── Operations. Availability, incidents, receipts, backups and delivery ────
+      // Three routes folded into this one. Everything below was already reachable, but
+      // spread across /status/, /incidents/ and /roadmap/, with the receipt chain rendered
+      // twice and three headline numbers stated on pages that do not own them.
       if (path === "/status" || path === "/status/") {
-        const res = await lobbyStub(env).fetch("https://lobby/status");
-        const data = (await res.json()) as {
+        const [statusRes, { history: fullHistory, historyIntegrity }] = await Promise.all([
+          lobbyStub(env).fetch("https://lobby/status"),
+          incidentData(env),
+        ]);
+        const data = (await statusRes.json()) as {
           maintenance: MaintenanceState;
           usage: { uptimeMs: number; durableObjects: { tank: number; rooms: number; total: number } };
           rooms: Array<{ name: string; players: number; bots: number; capacity: number; topScore: number; topName: string }>;
@@ -2800,18 +3080,27 @@ export default {
           history?: ControlHistoryEntry[];
           historyIntegrity?: ControlHistoryIntegrity;
           backup?: BackupState;
+          billingWindow?: Record<string, unknown>;
         };
         const players = data.rooms.reduce((n, r) => n + r.players, 0);
+        const agents = data.rooms.reduce((n, r) => n + r.bots, 0);
         const incidents = [...INCIDENTS, ...(data.maintenanceIncidents ?? [])], availability = incidentSummary(incidents), portalAvailability = incidentSummary([]);
+        const history = data.history ?? fullHistory;
+        const integrity = data.historyIntegrity ?? historyIntegrity;
+        // The agent count exists — it is `bots` on every row of this same response, and it
+        // is what /api/tank has always returned. It was reachable only from behind the
+        // authenticated dashboard, while DOC-25 stated twice, publicly, that the
+        // availability page publishes it beside human occupancy. One column, and the
+        // sentence is true at a public route instead of false.
         const roomRows = data.rooms
-          .map((r) => `<tr><td><strong>${esc(r.name)}</strong></td><td>${r.players}</td><td>${r.topScore}</td><td>${esc(r.topName)}</td></tr>`)
+          .map((r) => `<tr><td><strong>${esc(r.name)}</strong></td><td>${r.players}</td><td>${r.bots}</td><td>${r.topScore}</td><td>${esc(r.topName)}</td></tr>`)
           .join("");
         return html(
           shell(
-            "Shark — Status",
-            `<section class="page-intro"><div class="eyebrow">Tank Access</div><h1>Availability status</h1><a class="action-link" href="/status.json">Raw status JSON →</a></section>
+            "Shark — Operations",
+            `<section class="page-intro"><div class="eyebrow">Trust · operations</div><h1>Operations</h1><p class="sub">Live availability for the server and for the tanks, every incident since the project started, the append-only receipt chain behind the controls that caused them, the state copies and restore drills, and the delivery record. <a href="/trust/">Trust overview →</a></p><p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a> <a class="action-link" href="/incidents.json">Incident JSON →</a> <a class="action-link" href="/roadmap.json">Delivery JSON →</a></p></section>
              <div class="live-controls">
-               <button type="button" id="status-autoupdate" class="secondary" aria-pressed="true">Pause auto-update</button>
+               <button type="button" id="status-autoupdate" class="secondary">Pause auto-update</button>
                <p class="sub">Live figures refresh every 15 seconds in place. Last updated <time id="status-updated-at">just now</time>.</p>
              </div>
              <p class="sr-only" id="status-live" role="status" aria-live="polite"></p>
@@ -2821,14 +3110,17 @@ export default {
                ${metricCard(formatCompactDuration(availability.scheduledDowntimeMs), "Scheduled downtime", "excluded from availability", "uptime", "tone-violet", "status-scheduled-downtime")}
                ${metricCard(data.maintenance.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
              </div>
-             <div class="card hero-card"><h2 style="margin-top:0;font-size:1.1rem">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), data.history ?? [], "/incidents/")}${timelineLegend(incidents, data.history ?? [], "/incidents/")}</div>
-             ${backupPanelHtml(data.backup)}
-             ${statusIncidentsHtml(incidents, data.history ?? [])}
-             ${controlHistoryHtml(data.history ?? [], data.historyIntegrity ?? { mode: "append-only tamper-evident hash chain", algorithm: "SHA-256", entryCount: 0, headHash: null }, 5)}
+             <div class="card hero-card"><h2 style="margin-top:0;font-size:1.1rem">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
              <div class="card"><h2 style="margin-top:0;font-size:1.1rem">Tank activity</h2>
-               <div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div>
+               <p class="sub" style="margin:0 0 12px">${players} human ${players === 1 ? "player" : "players"} and ${agents} computer-controlled ${agents === 1 ? "agent" : "agents"} across the four tanks. Agents are rule-based: fixed steering and target selection, no model and no inference call.</p>
+               <div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div>
              </div>
+             ${backupPanelHtml(data.backup)}
+             ${incidentsSection(incidents, history)}
+             ${controlHistoryListHtml(history, integrity)}
+             ${deliverySection(ROADMAP_MANIFEST, incidents, history, publicBillingWindow(data.billingWindow ?? {}))}
              ${statusLiveScript()}`,
+            "Live availability, the full incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record for wizardgang.ai.",
           ),
         );
       }

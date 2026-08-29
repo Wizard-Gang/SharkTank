@@ -1,7 +1,10 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    Shark Arena UI design system — WCAG 2.2 AA.
-   Token-driven so contrast is auditable in one place. All text tokens hit ≥4.5:1
-   on their intended surface; UI/border tokens hit ≥3:1 (1.4.3 / 1.4.11).
+   Token-driven so contrast is auditable in one place. All text tokens hit ≥4.5:1 on
+   their intended surface — including --ability-rocket and --ability-dash, which are
+   fills carrying white text and are therefore measured as text, not as UI. Only the
+   tokens that carry no text — borders and non-text indicators — sit at the ≥3:1 line
+   (1.4.3 / 1.4.11).
    Honors prefers-color-scheme, prefers-contrast, prefers-reduced-motion, plus
    in-app overrides via [data-contrast] / [data-motion] / --font-scale on <html>.
    ──────────────────────────────────────────────────────────────────────────── */
@@ -13,6 +16,12 @@
   --surface-2: #201d3b;
   --surface-3: #2b2750;
   --overlay-scrim: rgba(6, 5, 12, 0.72);
+
+  /* Ability pad fills. These carry white text at 13.1px and 9.9px, so they are text
+     tokens and fall under the 4.5:1 claim above rather than the 3:1 one — #d94322 was
+     4.40:1 for the 13.1px label, which is a fail at that size. */
+  --ability-rocket: #cc3f20;   /* white on this: 4.88:1 */
+  --ability-dash: #6557d7;     /* white on this: 5.39:1 */
 
   /* Text — measured on --surface-1/2 */
   --text: #f3f1ff;         /* ~15:1 on --bg */
@@ -69,7 +78,10 @@
     --accent-contrast: #ffffff;
     --focus-ring: #8a5a00;
     --border: #c9c3e6;
-    --border-strong: #9a92c4;
+    /* 2.88:1 on #ffffff and 2.24:1 on --surface-3 at the previous #9a92c4, so a control
+       edge on the strictest surface failed 1.4.11 outright. #8a82b4 is not enough either
+       — it reaches 2.74:1 on --surface-3. */
+    --border-strong: #7f77a8;  /* 4.11:1 on #ffffff, 3.19:1 on --surface-3 */
     /* The dark-surface reds, greens and yellows measure 1.4–2.8:1 on these surfaces.
        Each value below clears 4.5:1 against --surface-1, --surface-2 *and* --surface-3
        (--surface-3 is the strict one). */
@@ -81,7 +93,13 @@
   }
 }
 
-/* High contrast — system pref OR in-app [data-contrast="high"] */
+/* High contrast — system pref OR in-app [data-contrast="high"]
+   The escalation of --border and --text-faint was written at `:root` (0,1,0), while the
+   light theme sets them at `:root:not([data-theme="dark"])` (0,2,0). Specificity, not
+   order, decides that, so in light mode the escalation was silently discarded: asking the
+   system for more contrast left the light control edges exactly where they started, and
+   there was no reachable configuration in which they met 1.4.11. Both selectors are
+   matched below so the escalation lands in either theme. */
 @media (prefers-contrast: more) {
   :root {
     --text-faint: var(--text-muted); --border: var(--border-strong);
@@ -91,7 +109,12 @@
 }
 /* Matched specificity, placed after the light block so it actually wins there. */
 @media (prefers-contrast: more) and (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) { --danger: #8f1410; --success: #0b4f2b; --warning: #5c3b00; }
+  :root:not([data-theme="dark"]) {
+    --danger: #8f1410; --success: #0b4f2b; --warning: #5c3b00;
+    /* The two the specificity mismatch was dropping. --border-strong is 4.11:1 on white
+       and 3.19:1 on --surface-3; --text-muted is the AA body value. */
+    --text-faint: var(--text-muted); --border: var(--border-strong);
+  }
 }
 :root[data-contrast="high"] {
   --text: #ffffff;
@@ -374,8 +397,11 @@ body {
 .ability-button:disabled{opacity:.54;cursor:not-allowed;filter:saturate(.55)}
 .ability-button svg{grid-row:1/3;width:48px;height:48px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ability-button span{min-width:0;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ability-button small{min-width:0;font-size:.62rem;opacity:.86;letter-spacing:.11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rocket-button{background:#d94322}.dash-button{background:#6557d7}
+/* The .86 opacity took this 9.9px label to 3.63:1 on the rocket fill and 4.43:1 on the
+   dash fill — both under 4.5:1, and neither is large text. Removed rather than
+   compensated for: white on both fills already clears AA at full opacity. */
+.ability-button small{min-width:0;font-size:.62rem;letter-spacing:.11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rocket-button{background:var(--ability-rocket)}.dash-button{background:var(--ability-dash)}
 
 /* ── Feeding Frenzy ── */
 .frenzy-banner{position:absolute;z-index:12;top:calc(12px + var(--safe-t));left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:1px;max-width:calc(100% - 24px);padding:7px 18px;border:2px solid #ffd54a;border-radius:999px;background:linear-gradient(120deg,#9a2a12,#995215);color:#fff;text-align:center;pointer-events:none;box-shadow:0 10px 30px rgba(217,67,34,.4);animation:frenzy-pulse 1.1s ease-in-out infinite}

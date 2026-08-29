@@ -5,10 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#0b0a14" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <title>SharkTank</title>
+    <title>Wizard Gang — Shark Tank</title>
+    <meta
+      name="description"
+      content="Realtime multiplayer Shark Tank. Swim a shark in one of four tanks, eat to grow, and race the leaderboard. Free, no account, nothing to install."
+    />
+    <!--
+      The page the game hydrates into used to be an empty <div id="root">: no heading, no
+      link, no description. That is what a crawler, a reader with scripting off, and anyone
+      on a slow first paint actually received. What is below is the same page's own claim,
+      written out — one heading, the tagline, and one way out of the game into the evidence
+      behind it. React replaces all of it on mount, so it is never a second copy to maintain.
+    -->
+    <style>
+      #boot {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 14vh 24px 24px;
+        color: #f3f1ff;
+        font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        text-align: center;
+      }
+      #boot h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2rem, 7vw, 3.2rem);
+        line-height: 1.04;
+        letter-spacing: -0.045em;
+      }
+      #boot p {
+        margin: 0 0 22px;
+        color: #b9b4d6;
+      }
+      #boot a {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        padding: 8px 18px;
+        border: 1px solid #4a4370;
+        border-radius: 999px;
+        color: #b6a9ff;
+        font-weight: 800;
+        text-decoration: none;
+      }
+      #boot a:focus-visible {
+        outline: 3px solid #22e6ff;
+        outline-offset: 3px;
+      }
+      body {
+        margin: 0;
+        background: #0b0a14;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main id="boot">
+        <h1>Wizard Gang Shark Tank</h1>
+        <p>
+          Realtime multiplayer Shark Tank. Swim a shark in one of four tanks, eat to grow,
+          and race the leaderboard. The game is loading.
+        </p>
+        <a href="/trust/">Trust &amp; operations →</a>
+      </main>
+    </div>
     <script type="module" src="/src/client/main.tsx"></script>
   </body>
 </html>

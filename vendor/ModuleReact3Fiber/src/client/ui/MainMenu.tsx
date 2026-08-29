@@ -62,14 +62,14 @@ export function MainMenu({
           </div>
         </div>}
 
-        <nav className="shark-menu__nav" aria-label="Shark Tank pages">
-          <a href={`${backend.apiBase}/roadmap/`} target="_blank" rel="noopener noreferrer">Roadmap</a>
-          <a href={`${backend.apiBase}/docs/`} target="_blank" rel="noopener noreferrer">API</a>
-          <a href={`${backend.apiBase}/status/`} target="_blank" rel="noopener noreferrer">Status</a>
-          <a href={`${backend.apiBase}/incidents/`} target="_blank" rel="noopener noreferrer">Incidents</a>
-          <a href={`${backend.apiBase}/inquiry/`} target="_blank" rel="noopener noreferrer">Inquiry</a>
-          <a href={`${backend.apiBase}/logs/`} target="_blank" rel="noopener noreferrer">Logs</a>
-          <a href={`${backend.apiBase}/audit/`} target="_blank" rel="noopener noreferrer">Audit</a>
+        {/*
+          One link, not seven. This nav listed seven of the site's ten routes and left out
+          the policy set entirely, so the game and the pages it linked to disagreed about
+          how many destinations the site had. The governance estate has its own table of
+          contents at /trust/; the game needs exactly one way into it.
+        */}
+        <nav className="shark-menu__nav" aria-label="Site">
+          <a href={`${backend.apiBase}/trust/`} target="_blank" rel="noopener noreferrer">Trust &amp; operations →</a>
         </nav>
       </div>
     </div>
