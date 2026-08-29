@@ -49,34 +49,34 @@ const ev = (label: string, href?: string, auth?: boolean): Evidence => ({ label,
    Every one of these is a route this Worker serves. Keep them in sync with the
    routing table in index.ts; a dead evidence link is a finding in its own right. */
 const E = {
-  register: ev("This register", "/audit/"),
-  trust: ev("Governance overview", "/trust/"),
-  policies: ev("Policy set", "/policies/"),
+  register: ev("This register", "/controls/#registers"),
+  trust: ev("Governance overview", "/"),
+  policies: ev("Policy set", "/controls/#policies"),
   policiesJson: ev("Policy set (JSON)", "/policies.json"),
-  docContext: ev("Context, scope and interested parties", "/policies/context/"),
-  docSecurity: ev("Information security policy", "/policies/security-policy/"),
-  docRoles: ev("Roles, responsibilities and authorities", "/policies/roles/"),
-  docAi: ev("AI policy and impact assessment", "/policies/ai-policy/"),
-  docRiskMethod: ev("Risk assessment process", "/policies/risk-assessment/"),
-  docRiskTreatment: ev("Risk treatment process", "/policies/risk-treatment/"),
-  docSoa: ev("Statement of Applicability", "/policies/statement-of-applicability/"),
-  docPlan: ev("Risk treatment plan", "/policies/risk-treatment-plan/"),
-  docObjectives: ev("Security and AI objectives", "/policies/objectives/"),
-  docLifecycle: ev("AI system life cycle", "/policies/ai-lifecycle/"),
-  docSecureDev: ev("Secure development and operations", "/policies/secure-development/"),
-  docAccess: ev("Access control, supplier and endpoint policy", "/policies/access-and-suppliers/"),
-  docLegal: ev("Legal, regulatory and contractual register", "/policies/legal-register/"),
+  docContext: ev("Context, scope and interested parties", "/controls/#context"),
+  docSecurity: ev("Information security policy", "/controls/#security-policy"),
+  docRoles: ev("Roles, responsibilities and authorities", "/controls/#roles"),
+  docAi: ev("AI policy and impact assessment", "/controls/#ai-policy"),
+  docRiskMethod: ev("Risk assessment process", "/controls/#risk-assessment"),
+  docRiskTreatment: ev("Risk treatment process", "/controls/#risk-treatment"),
+  docSoa: ev("Statement of Applicability", "/controls/#statement-of-applicability"),
+  docPlan: ev("Risk treatment plan", "/controls/#risk-treatment-plan"),
+  docObjectives: ev("Security and AI objectives", "/controls/#objectives"),
+  docLifecycle: ev("AI system life cycle", "/controls/#ai-lifecycle"),
+  docSecureDev: ev("Secure development and operations", "/controls/#secure-development"),
+  docAccess: ev("Access control, supplier and endpoint policy", "/controls/#access-and-suppliers"),
+  docLegal: ev("Legal, regulatory and contractual register", "/controls/#legal-register"),
   manifest: ev("Register as JSON", "/audit/manifest.json"),
-  change: ev("Change record", "/status/#delivery"),
+  change: ev("Change record", "/evidence/#changes"),
   changeJson: ev("Change record (JSON)", "/roadmap.json"),
-  incidents: ev("Incident record", "/status/#incidents"),
+  incidents: ev("Incident record", "/evidence/#incidents"),
   incidentsJson: ev("Incident record (JSON)", "/incidents.json"),
-  receipts: ev("Control receipt chain", "/status/#control-history"),
-  logs: ev("Service and tank logs", "/logs/"),
+  receipts: ev("Control receipt chain", "/evidence/#receipts"),
+  logs: ev("Service and tank logs", "/evidence/#logs"),
   logsJson: ev("Logs (JSON)", "/logs.json"),
-  status: ev("Availability status", "/status/"),
+  status: ev("Availability status", "/evidence/#availability"),
   statusJson: ev("Status (JSON)", "/status.json"),
-  inquiry: ev("Cost and capacity meters", "/spend/"),
+  inquiry: ev("Cost and capacity meters", "/evidence/#spend"),
   inquiryJson: ev("Cost meters (JSON)", "/spend.json"),
   api: ev("API reference", "/docs/"),
   openapi: ev("OpenAPI document", "/openapi.json"),
@@ -86,14 +86,14 @@ const E = {
   adminLog: ev("90-day action log", "/admin/log.json", true),
   adminGame: ev("Deterministic tank log", "/admin/game/room-1.jsonl", true),
   adminReplay: ev("Deterministic replay at a tick", "/admin/replay/room-1?tick=100", true),
-  docDocInfo: ev("Control of documented information", "/policies/documented-information/"),
-  docNonconformity: ev("Nonconformity and corrective action", "/policies/nonconformity/"),
-  docAssets: ev("Asset inventory and classification", "/policies/asset-inventory/"),
-  docContinuity: ev("Continuity, backup and restore", "/policies/continuity/"),
-  docRecords: ev("Operating records", "/policies/operating-records/"),
-  docPlanning: ev("Operational planning and performance", "/policies/operational-planning/"),
-  docAudit: ev("Internal audit and management review", "/policies/audit-and-review/"),
-  backupStatus: ev("State copies and restore drills", "/status/#backup"),
+  docDocInfo: ev("Control of documented information", "/controls/#documented-information"),
+  docNonconformity: ev("Nonconformity and corrective action", "/controls/#nonconformity"),
+  docAssets: ev("Asset inventory and classification", "/controls/#asset-inventory"),
+  docContinuity: ev("Continuity, backup and restore", "/controls/#continuity"),
+  docRecords: ev("Operating records", "/controls/#operating-records"),
+  docPlanning: ev("Operational planning and performance", "/controls/#operational-planning"),
+  docAudit: ev("Internal audit and management review", "/controls/#audit-and-review"),
+  backupStatus: ev("State copies and restore drills", "/evidence/#continuity"),
   adminBackup: ev("Full state export", "/admin/backup.json", true),
   game: ev("Live Shark Tank demo", "/play/"),
 };
@@ -625,28 +625,28 @@ export interface EvidenceRoute {
 }
 
 export const EVIDENCE_INDEX: readonly EvidenceRoute[] = [
-  { route: "/ and /trust/", access: "public", proves: "The management-system overview: the governed workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, and a live operational snapshot whose figures link to the routes that own them.", controls: "7.4, 9.1, 42001 7.4" },
-  { route: "/status/#delivery", access: "public", proves: "Every production change with an identifier, a classification, a deployment grouping, its evidence and the report or incident it answers.", controls: "8.1, 8.3, A.8.32, A.5.27" },
+  { route: "/", access: "public", proves: "The management-system overview: the governed workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, accessibility scope, and a live operational snapshot whose figures link to the records that own them.", controls: "7.4, 9.1, 42001 7.4" },
+  { route: "/evidence/#changes", access: "public", proves: "Every production change with an identifier, a classification, a deployment grouping, its evidence and the report or incident it answers.", controls: "8.1, 8.3, A.8.32, A.5.27" },
   { route: "/roadmap.json", access: "public", proves: "The same change record as machine-readable data, including delivery velocity and post-delivery hotfixes kept separate from the delivery metrics.", controls: "8.1, A.8.32" },
-  { route: "/status/#incidents", access: "public", proves: "Every incident with cause, start, duration and resolution, charted by cause, with the append-only control receipt chain and its verification verdict at /status/#control-history on the same page.", controls: "A.5.24, A.5.26, A.5.28, 10.2" },
+  { route: "/evidence/#incidents", access: "public", proves: "Every incident with cause, start, duration and resolution, charted by cause, with the append-only control receipt chain and its verification verdict at /evidence/#receipts on the same page.", controls: "A.5.24, A.5.26, A.5.28, 10.2" },
   { route: "/incidents.json", access: "public", proves: "Incident and receipt data with the integrity verdict, for independent re-verification.", controls: "A.5.28, A.5.33" },
-  { route: "/status/", access: "public", proves: "Availability measured from project start rather than a rolling window, scheduled versus unscheduled downtime, live occupancy and autonomous agent counts, and the state of the most recent copy of durable state with the result of the last restore drill.", controls: "9.1, A.8.6, A.8.13, A.8.16, A.5.29, A.5.30, 42001 A.6.2.6" },
+  { route: "/evidence/#availability and /evidence/#continuity", access: "public", proves: "Availability measured from project start rather than a rolling window, scheduled versus unscheduled downtime, live occupancy and autonomous agent counts, and the state of the most recent copy of durable state with the result of the last restore drill.", controls: "9.1, A.8.6, A.8.13, A.8.16, A.5.29, A.5.30, 42001 A.6.2.6" },
   { route: "/status.json", access: "public", proves: "The same measurements as data, with infrastructure identifiers redacted.", controls: "9.1, A.8.11" },
-  { route: "/logs/", access: "public", proves: "A 90-day reason-coded service log and 24-hour per-tank captures, searchable, filterable and downloadable.", controls: "A.8.15, A.5.33, A.8.10" },
+  { route: "/evidence/#logs", access: "public", proves: "A 90-day reason-coded service log and 24-hour per-tank captures, searchable, filterable and downloadable.", controls: "A.8.15, A.5.33, A.8.10" },
   { route: "/logs.json", access: "public", proves: "The same records as data, with the retention windows and record counts stated.", controls: "A.8.15, A.8.10" },
   { route: "/logs/game/{tank}.txt", access: "public", proves: "A tank's capture window as a fixed-schema text export with no player identifiers.", controls: "A.8.11, A.8.15" },
-  { route: "/spend/", access: "public", proves: "Consumption per bound service against the free-tier allowance and a hard spend limit, on a logarithmic axis with an hourly spend trend.", controls: "A.8.6, A.5.9, 7.1" },
+  { route: "/evidence/#spend and /evidence/#degradation", access: "public", proves: "Consumption per bound service against the free-tier allowance, the hard spend stop, and the degradation path that preserves read-only evidence and recovery access.", controls: "A.8.6, A.5.9, 7.1" },
   { route: "/docs/ and /openapi.json", access: "public", proves: "Every route, its authorisation, its required headers and its effect — the operating procedure for the service.", controls: "A.5.37, 4.3, A.8.27" },
   { route: "/api/profile", access: "public", proves: "The other unauthenticated write, and the limits on it: a per-connection bucket and a global ceiling across every public caller at once, a 16 KiB body ceiling enforced on the bytes that arrive rather than on a declared length, and refusal along with the game once the spend limit closes the gate. The identity it writes under is a cookie the caller is handed, so the cookie cannot be the throttle key.", controls: "A.8.20, A.8.6, A.5.33, 8.1" },
   { route: "/api/audit", access: "public", proves: "The only unauthenticated write into the 90-day action log, and the limits that make it safe: two permitted event types, a per-connection bucket, a global ceiling across every public caller at once, and a separate retention floor so a flood evicts only other public rows.", controls: "A.8.15, A.5.33, A.8.20, 8.1" },
   { route: "/api/security-report", access: "public", proves: "A same-origin white-hat intake that records a report and raises it without changing service state, throttled to one accepted report a minute.", controls: "A.6.8, A.5.25, 42001 A.8.3" },
-  { route: "/audit/ and /audit/manifest.json", access: "public", proves: "This register: every clause and control of both standards with a status, a justification and its evidence.", controls: "6.1.3, 42001 6.1.3" },
-  { route: "/policies/<document>/ and /policies.json", access: "public", proves: "The written record the standards ask for, one document per route: scope and context, the information security policy, roles and authorities, the risk assessment method and its acceptance criteria, the treatment process, the Statement of Applicability cover, the assessed risks with their scores and decisions, the objectives, the AI policy with its impact assessment, the AI system life cycle, the secure development and operations procedure, the access control, supplier and endpoint policy, the legal, regulatory and contractual register with its privacy notice, the control of documented information, the nonconformity record, the asset inventory and classification scheme, the continuity, backup and restore plan, the dated operating records, the operational planning and performance document, and the internal audit programme with the management review — each naming the clauses it is the record for.", controls: "27001 4.1-4.4, 5.1-5.3, 6.1.1-6.1.3, 6.2, 6.3, 7.1-7.5.3, 8.1-8.3, 9.2, 9.3, 10.1, 10.2, A.5.1-A.5.5, A.5.8-A.5.10, A.5.12, A.5.13, A.5.15, A.5.16, A.5.18-A.5.23, A.5.29-A.5.32, A.5.34-A.5.37, A.6.3, A.6.7, A.7.7, A.7.9, A.8.1, A.8.7, A.8.13, A.8.24, A.8.25, A.8.28, A.8.29; 42001 4.1-4.4, 5.1-5.3, 6.1.2-6.1.4, 6.2, 6.3, 7.1-7.5, 8.1-8.4, 9.1-9.3, 10.1, 10.2, A.2, A.3.2, A.4.2, A.4.4, A.4.6, A.5, A.6.1.2, A.6.2, A.7.4, A.8.2, A.8.5, A.9.2-A.9.4, A.10.4" },
+  { route: "/controls/#registers and /audit/manifest.json", access: "public", proves: "This register: every clause and control of both standards with a status, a justification and its evidence.", controls: "6.1.3, 42001 6.1.3" },
+  { route: "/controls/#policies and /policies.json", access: "public", proves: "The complete written record the standards ask for: scope, policy, roles, risk, applicability, objectives, AI impact and life cycle, secure development, access, suppliers, legal and privacy obligations, documented information, nonconformity, assets, continuity, operations, internal audit, and management review.", controls: "27001 4.1-10.2 and applicable Annex A controls; 42001 4.1-10.2 and applicable Annex A controls" },
   { route: "/admin/", access: "operator", proves: "The authenticated control panel: traffic control, billing thresholds, live runtime figures and the receipt chain.", controls: "A.8.2, A.5.15, A.8.18" },
   { route: "/admin/status.json", access: "operator", proves: "The unredacted operational record, including the running version identifier, the measurement window and instance residency for rate-limit verification.", controls: "A.8.16, A.8.19, A.8.9" },
   { route: "/admin/log.json and /admin/log.jsonl", access: "operator", proves: "The 90-day action record in full, including the fields withheld from public output.", controls: "A.8.15, A.8.3" },
   { route: "/admin/game/{tank}.jsonl", access: "operator", proves: "The deterministic tank log: seed plus the ordered action stream for every agent and player decision.", controls: "42001 A.6.2.8, A.7.5" },
-  { route: "/admin/backup.json, /admin/backup/run, /admin/backup/drill", access: "operator", proves: "The full state export covering the durable object's keys and both tables beneath them under a digest, the trigger that writes a copy outside the daily schedule, and the restore drill that reads the most recent stored copy back out of object storage, restores it into a scratch instance and compares digests before wiping it. Operator-only because the export carries every profile row; the public evidence is the shape and timing panel on /status/.", controls: "A.8.13, A.5.29, A.5.30, A.5.12" },
+  { route: "/admin/backup.json, /admin/backup/run, /admin/backup/drill", access: "operator", proves: "The full state export covering the durable object's keys and both tables beneath them under a digest, the trigger that writes a copy outside the daily schedule, and the restore drill that reads the most recent stored copy back out of object storage, restores it into a scratch instance and compares digests before wiping it. Operator-only because the export carries every profile row; the public evidence is the shape and timing panel at /evidence/#continuity.", controls: "A.8.13, A.5.29, A.5.30, A.5.12" },
   { route: "/admin/replay/{tank}?tick=N", access: "operator", proves: "Exact reconstruction of tank state at any tick, so agent behaviour can be inspected rather than described. Answers 410 once the retained history for that tank has expired, which is the retention rule working rather than a broken route.", controls: "42001 A.6.2.4, A.6.2.6, A.7.5" },
 ];
 
@@ -817,12 +817,14 @@ function controlRow(control: Control, standard: string): string {
 
 function registerHtml(register: Register): string {
   const summary = summarise(register.controls);
-  return `<section class="card iso-register" id="${esc(register.id)}" data-register>
-    <div class="iso-register__head"><div><div class="eyebrow">${esc(register.standard)}</div><h3>${esc(register.title)}</h3></div><span class="iso-count" data-register-count>${summary.total} controls</span></div>
+  return `<details class="card iso-register" id="${esc(register.id)}" data-register>
+    <summary class="iso-register__head"><div><div class="eyebrow">${esc(register.standard)}</div><h3>${esc(register.title)}</h3></div><span class="iso-count" data-register-count>${summary.total} controls</span></summary>
+    <div class="iso-register__body">
     <p class="sub">${esc(register.intro)}</p>
     <div class="table-scroll" role="region" aria-label="${esc(register.title)}" tabindex="0"><table class="iso-table"><caption class="sr-only">${esc(register.title)}</caption><thead><tr><th scope="col">Ref</th><th scope="col">Control</th><th scope="col">What an assessor asks for</th><th scope="col">Status</th><th scope="col">Position</th><th scope="col">Evidence</th></tr></thead><tbody>${register.controls.map((control) => controlRow(control, register.standard)).join("")}</tbody></table></div>
     <p class="iso-empty" data-register-empty hidden>No rows in this register match the current filter.</p>
-  </section>`;
+    </div>
+  </details>`;
 }
 
 function filterScript(): string {
@@ -839,7 +841,7 @@ function filterScript(): string {
     "var visible=Array.prototype.filter.call(section.querySelectorAll('tr[data-control-row]'),function(row){return !row.hidden;}).length;",
     "var label=section.querySelector('[data-register-count]'),empty=section.querySelector('[data-register-empty]');",
     "if(label)label.textContent=visible+(visible===1?' control':' controls');",
-    "if(empty)empty.hidden=visible>0;});",
+    "if(empty)empty.hidden=visible>0;if((q||s||st)&&visible>0)section.open=true;});",
     "var text=shown===total?'Showing all '+total+' rows.':'Showing '+shown+' of '+total+' rows.';",
     "if(timer)clearTimeout(timer);if(delay){timer=setTimeout(function(){announce(text);},450);}else announce(text);}",
     "search.addEventListener('input',function(){apply(true);});",
@@ -852,15 +854,19 @@ function filterScript(): string {
   return `<script nonce="__WG_CSP_NONCE__">${script}</script>`;
 }
 
-export function conformanceHtml(metricCard: MetricCard): string {
+export function conformanceHtml(metricCard: MetricCard, embedded = false): string {
   const overall = summarise(ALL_CONTROLS);
   const statusOptions = STATUSES.map((value) => `<option value="${value}">${esc(STATUS_LABEL[value])}</option>`).join("");
   const documents = summarise(MANDATORY_DOCUMENTS.map((item) => ({ ref: item.ref, title: item.title, ask: "", status: item.status, note: item.note, evidence: item.evidence })));
   const changes = summarise(CHANGE_PROCESSES.map((item) => ({ ref: item.id, title: item.title, ask: "", status: item.status, note: item.purpose, evidence: item.evidence })));
 
-  return `<section class="page-intro"><div class="eyebrow">Certification readiness · the site is the evidence</div><h1>Audit</h1>
+  const intro = embedded
+    ? `<section class="controls-block" id="registers" tabindex="-1" aria-labelledby="registers-heading"><div class="eyebrow">Certification readiness · the site is the evidence</div><h2 id="registers-heading">Control register</h2>`
+    : `<section class="page-intro"><div class="eyebrow">Certification readiness · the site is the evidence</div><h1>Audit</h1>`;
+
+  return `${intro}
     <p class="sub">Every clause of ISO/IEC 27001:2022 and ISO/IEC 42001:2023, every one of the 93 Annex A controls and all 38 AI controls, each with what an assessor asks for, where this service stands, and the live route that proves it. Nothing here is a screenshot: an evidence link is a URL you can open now and check against the running system.</p>
-    <p class="action-links"><a class="action-link" href="#registers">Search all ${overall.total} rows →</a> <a class="action-link" href="/audit/manifest.json">Register as JSON →</a></p></section>
+    <p class="action-links"><a class="action-link" href="#register-filter">Search all ${overall.total} rows →</a> <a class="action-link" href="/audit/manifest.json">Register as JSON →</a></p></section>
 
   <div class="card hero-card">
     <div class="eyebrow">Statement</div>
@@ -898,7 +904,7 @@ export function conformanceHtml(metricCard: MetricCard): string {
     <div class="table-scroll" role="region" aria-label="Mandatory documented information" tabindex="0"><table class="iso-table iso-doc-table"><caption class="sr-only">Mandatory documented information</caption><thead><tr><th scope="col">Ref</th><th scope="col">Document</th><th scope="col">Clause</th><th scope="col">Status</th><th scope="col">Position</th><th scope="col">Evidence</th></tr></thead><tbody>${MANDATORY_DOCUMENTS.map(documentRow).join("")}</tbody></table></div>
   </div>
 
-  <h2 class="iso-section" id="registers">Clause and control registers</h2>
+  <h3 class="iso-section" id="clause-registers">Clause and control registers</h3>
   <p class="sub">All ${overall.total} rows across both standards, filtered together. The search covers the reference, the control name, the assessor's question and this service's position on it.</p>
   <div class="card iso-toolbar-card" id="register-filter">
     <div class="log-toolbar iso-toolbar">
@@ -928,7 +934,7 @@ export function conformanceHtml(metricCard: MetricCard): string {
       <li><strong>Hold the infrastructure provider's certificate on file</strong> to support the ${overall.byStatus.supplier} supplier-inherited rows, and record its scope and expiry.</li>
       <li><strong>Stage 1</strong> — document review against the list above. <strong>Stage 2</strong> — evidence of the system actually operating. <strong>Surveillance</strong> — annually thereafter.</li>
     </ol>
-    <p class="sub" style="margin:14px 0 0">Operational controls for the running service are at <a href="/admin/">the control panel</a>, which requires operations credentials. The public record it writes to is at <a href="/status/#incidents">Incidents</a>, <a href="/logs/">Evidence</a> and <a href="/status/#delivery">the change record</a>.</p>
+    <p class="sub" style="margin:14px 0 0">Operational controls for the running service remain protected behind operations credentials. Their public records are consolidated under <a href="/evidence/#incidents">Incidents</a>, <a href="/evidence/#logs">Logs</a>, and <a href="/evidence/#changes">Change management</a>.</p>
   </div>
   ${filterScript()}`;
 }

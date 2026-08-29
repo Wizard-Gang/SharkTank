@@ -117,48 +117,46 @@ export const OPENAPI = {
       get: {
         tags: ["ops"],
         summary: "Governance overview",
-        description: "The public front door to the SharkTank management system: the running workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, and live operational snapshot.",
+        description: "The public front door to SharkTank: the running workload, evidence model, ISO/IEC 27001 and ISO/IEC 42001 implementations, scoped WCAG 2.0 AA accessibility position, and live operational snapshot.",
         responses: { "200": htmlResponse("Governance overview") },
       },
     },
-    "/iso-27001/": {
+    "/controls/": {
       get: {
         tags: ["ops"],
-        summary: "ISO/IEC 27001 implementation",
-        description: "Explains scope, risk management, the Statement of Applicability, secure development, operations and recovery, and continuous improvement before linking to the searchable control register.",
-        responses: { "200": htmlResponse("ISO/IEC 27001 implementation") },
+        summary: "Consolidated production controls",
+        description: "ISO/IEC 27001 and ISO/IEC 42001 implementation narratives, the complete searchable conformance register, and every maintained policy and record under stable fragments.",
+        responses: { "200": htmlResponse("Controls, registers, policies, and records") },
       },
     },
+    "/iso-27001/": {
+      get: { tags: ["ops"], summary: "ISO/IEC 27001 implementation (moved)", description: "Permanently redirects to `/controls/#iso-27001`.", responses: { "301": { description: "Moved to /controls/#iso-27001" } } },
+    },
     "/iso-42001/": {
-      get: {
-        tags: ["ops"],
-        summary: "ISO/IEC 42001 implementation",
-        description: "Defines the governed AI system, its intended use, deterministic rule dependency, impact boundary, human authority, monitoring, transparency, change process, and limitations.",
-        responses: { "200": htmlResponse("ISO/IEC 42001 implementation") },
-      },
+      get: { tags: ["ops"], summary: "ISO/IEC 42001 implementation (moved)", description: "Permanently redirects to `/controls/#iso-42001`.", responses: { "301": { description: "Moved to /controls/#iso-42001" } } },
     },
     "/evidence/": {
       get: {
         tags: ["ops"],
-        summary: "Live evidence index",
-        description: "Routes to operations, recovery, logs, resource controls, the control register, management-system documents, and the developer appendix.",
-        responses: { "200": htmlResponse("Live evidence index") },
+        summary: "Consolidated live production evidence",
+        description: "Availability, incidents, state copies and restore drills, receipt integrity, spend and controlled degradation, reason-coded logs, changes, and raw evidence endpoints.",
+        responses: { "200": htmlResponse("Live production evidence dashboard") },
       },
     },
     "/trust/": {
       get: {
         tags: ["ops"],
         summary: "Governance overview compatibility route",
-        description: "Serves the same governance overview as `/` so existing evidence references remain valid.",
-        responses: { "200": htmlResponse("Governance overview") },
+        description: "Permanently redirects to `/`.",
+        responses: { "301": { description: "Moved to /" } },
       },
     },
     "/roadmap/": {
       get: {
         tags: ["ops"],
         summary: "Change record (moved)",
-        description: "Permanently redirects to `/status/#delivery`, where the change record now lives. `/roadmap.json` did not move and is unchanged.",
-        responses: { "301": { description: "Moved to /status/#delivery" } },
+        description: "Permanently redirects to `/evidence/#changes`, where the change record now lives. `/roadmap.json` did not move.",
+        responses: { "301": { description: "Moved to /evidence/#changes" } },
       },
     },
     "/roadmap.json": {
@@ -171,9 +169,9 @@ export const OPENAPI = {
     "/status/": {
       get: {
         tags: ["ops"],
-        summary: "Operations dashboard",
-        description: "Operations. Server and tank availability, live tank occupancy with the computer-controlled agent count beside it, state copies and restore drills, the full incident record at `#incidents`, the append-only control receipt chain at `#control-history`, and the change record at `#delivery`. Spend is at `/spend/`; operator controls are behind authentication at `/admin/`.",
-        responses: { "200": htmlResponse("HTML dashboard") },
+        summary: "Operations dashboard (moved)",
+        description: "Permanently redirects to `/evidence/#availability`.",
+        responses: { "301": { description: "Moved to /evidence/#availability" } },
       },
     },
     "/status.json": {
@@ -184,22 +182,22 @@ export const OPENAPI = {
       },
     },
     "/incidents/": {
-      get: { tags: ["ops"], summary: "Incident record (moved)", description: "Permanently redirects to `/status/#incidents`. `/incidents.json` did not move and is unchanged.", responses: { "301": { description: "Moved to /status/#incidents" } } },
+      get: { tags: ["ops"], summary: "Incident record (moved)", description: "Permanently redirects to `/evidence/#incidents`. `/incidents.json` did not move.", responses: { "301": { description: "Moved to /evidence/#incidents" } } },
     },
     "/incidents.json": {
       get: { tags: ["ops"], summary: "Public incident and control history (JSON)", responses: { "200": jsonResponse("Availability summary, incident records, control entries, and SHA-256 chain head") } },
     },
     "/spend/": {
-      get: { tags: ["ops"], summary: "Cost and capacity meters", description: "Links normal game and operations actions to measured Workers, Durable Objects, D1 and R2 usage, against each free-tier allowance and against the hard spend limit that closes the game rather than billing. Previously served at `/inquiry/`, which still redirects here.", responses: { "200": htmlResponse("Cost and capacity meters") } },
+      get: { tags: ["ops"], summary: "Cost and capacity meters (moved)", description: "Permanently redirects to `/evidence/#spend`.", responses: { "301": { description: "Moved to /evidence/#spend" } } },
     },
     "/spend.json": {
       get: { tags: ["ops"], summary: "Cost and capacity meters (JSON)", description: "Also served at `/inquiry.json`, the pre-rename name, which is unchanged.", responses: { "200": jsonResponse("Proof-of-concept statement and reset-window billing summary") } },
     },
     "/inquiry/": {
-      get: { tags: ["ops"], summary: "Cost and capacity meters (moved)", description: "Permanently redirects to `/spend/`.", responses: { "301": { description: "Moved to /spend/" } } },
+      get: { tags: ["ops"], summary: "Cost and capacity meters (moved)", description: "Permanently redirects to `/evidence/#spend`.", responses: { "301": { description: "Moved to /evidence/#spend" } } },
     },
     "/logs/": {
-      get: { tags: ["ops"], summary: "Public reason-coded logs", description: "Searchable, filterable service evidence with 90-day retention plus the 40 newest reason-coded captures per ocean tank and sanitized TXT downloads.", responses: { "200": htmlResponse("Public Shark Tank evidence") } },
+      get: { tags: ["ops"], summary: "Public reason-coded logs (moved)", description: "Permanently redirects to `/evidence/#logs`; raw JSON and tank TXT downloads retain their addresses.", responses: { "301": { description: "Moved to /evidence/#logs" } } },
     },
     "/logs.json": {
       get: { tags: ["ops"], summary: "Public service and tank logs (JSON)", description: "Every row includes a letter-plus-three-digit reason code. Tank records use the same timestamp, reasonCode, tick, action, language, name, and details fields as the live inspector and TXT export.", responses: { "200": jsonResponse("Public service and tank event stream") } },
@@ -210,9 +208,9 @@ export const OPENAPI = {
     "/audit/": {
       get: {
         tags: ["ops"],
-        summary: "ISO/IEC 27001 and ISO/IEC 42001 conformance register",
-        description: "Public, unauthenticated readiness register: every clause of ISO/IEC 27001:2022 and ISO/IEC 42001:2023, all 93 Annex A controls, all 38 AI controls, the fourteen documented change-management processes, the Stage 1 documented-information list, and an index of every route that serves as evidence. Each row carries a status, the justification behind it, and links to the live routes that prove it. This is a readiness statement, not a certificate.",
-        responses: { "200": htmlResponse("Conformance register") },
+        summary: "Conformance register (moved)",
+        description: "Permanently redirects to `/controls/#registers`; the machine-readable manifest retains its address.",
+        responses: { "301": { description: "Moved to /controls/#registers" } },
       },
     },
     "/audit/manifest.json": {
@@ -226,18 +224,18 @@ export const OPENAPI = {
     "/policies/": {
       get: {
         tags: ["ops"],
-        summary: "Governance policy index",
-        description: "The index of the written record ISO/IEC 27001:2022 and ISO/IEC 42001:2023 ask for, published as pages rather than filed. Each document is its own route at `/policies/{document}/`, searchable from here, and every section within a document has its own anchor.",
-        responses: { "200": htmlResponse("Policy index") },
+        summary: "Governance policy index (moved)",
+        description: "Permanently redirects to `/controls/#policies`.",
+        responses: { "301": { description: "Moved to /controls/#policies" } },
       },
     },
     "/policies/{document}/": {
       get: {
         tags: ["ops"],
-        summary: "One governance document",
-        description: "A single document — context and scope, the information security policy, roles and authorities, the risk assessment and treatment processes, the Statement of Applicability cover, the risk treatment plan, the security and AI objectives, the AI policy with its impact assessment, the AI system life cycle, and the rest. Each names the clauses it is the record for, and the conformance register links to it directly. The document identifier is the `id` field in `/policies.json`.",
+        summary: "One governance document (moved)",
+        description: "A known document identifier permanently redirects to its stable fragment under `/controls/`. The identifier is the `id` field in `/policies.json`.",
         parameters: [{ name: "document", in: "path", required: true, schema: { type: "string" }, description: "Document identifier, e.g. `risk-assessment`" }],
-        responses: { "200": htmlResponse("Governance document"), "404": htmlResponse("No such document") },
+        responses: { "301": { description: "Moved to the document fragment under /controls/" }, "404": htmlResponse("No such document") },
       },
     },
     "/policies.json": {

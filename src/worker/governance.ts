@@ -1358,12 +1358,12 @@ export function governanceManifest() {
   return {
     ok: true,
     statement:
-      "The written record ISO/IEC 27001 and 42001 ask for, published as routes — one document per route, each section separately addressable. Each document names the clauses it is the record for; the register at /audit/ links back to it.",
+      "The written record ISO/IEC 27001 and 42001 ask for, consolidated under /controls/ with every document and section separately addressable. Each document names the clauses it is the record for; the control register links back to it.",
     documents: DOCS_IN_ORDER.map((doc) => ({
       ref: doc.ref,
       id: doc.id,
-      /** The route this document is published at. One document, one page, one URL. */
-      route: `/policies/${doc.id}/`,
+      /** Canonical human route for this document inside the consolidated controls surface. */
+      route: `/controls/#${doc.id}`,
       title: doc.title,
       purpose: doc.purpose,
       satisfies: doc.satisfies,
@@ -1371,6 +1371,35 @@ export function governanceManifest() {
       sections: doc.sections.map((s) => ({ id: sectionId(doc, s.heading), heading: s.heading, body: s.body })),
     })),
   };
+}
+
+/**
+ * Consolidated policy set for /controls/.
+ *
+ * Every document stays complete and separately addressable, but details remain collapsed
+ * until a reader asks for them. This keeps the public information architecture at four
+ * primary surfaces without turning the 29-document record into a wall of text.
+ */
+export function governanceControlsHtml(): string {
+  const documents = DOCS_IN_ORDER.map((doc) => {
+    const sections = doc.sections.map((section) => `<section class="gov-section" id="${esc(sectionId(doc, section.heading))}" tabindex="-1">
+      <h4>${esc(section.heading)}</h4>
+      ${section.body.map((paragraph) => `<p>${esc(paragraph)}</p>`).join("")}
+    </section>`).join("");
+    return `<details class="card gov-control-doc" id="${esc(doc.id)}">
+      <summary><span><code>${esc(doc.ref)}</code><strong>${esc(doc.title)}</strong></span><small>${esc(doc.purpose)}</small></summary>
+      <div class="gov-control-body">
+        <div class="gov-satisfies"><span class="gov-satisfies-label">Record for</span><ul>${doc.satisfies.map((clause) => `<li><code>${esc(clause)}</code></li>`).join("")}</ul></div>
+        <p class="gov-review"><strong>Review.</strong> ${esc(doc.review)}</p>
+        ${sections}
+      </div>
+    </details>`;
+  }).join("");
+  return `<section id="policies" class="controls-block" tabindex="-1" aria-labelledby="policies-heading">
+    <div class="section-head"><div><div class="eyebrow">Policies, risks, objectives, and records</div><h2 id="policies-heading">The complete governed record.</h2></div><a class="action-link" href="/policies.json">Policy data →</a></div>
+    <p class="sub">All ${DOCS_IN_ORDER.length} documents remain complete and independently addressable. Expand only the record you need; supplier boundaries, exclusions, known gaps, review intervals, and AI impact limits remain explicit.</p>
+    <div class="gov-control-list">${documents}</div>
+  </section>`;
 }
 
 /**
