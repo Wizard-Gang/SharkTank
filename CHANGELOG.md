@@ -4,9 +4,12 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
-- ST-040 (v1.3.1) Renumber the public change log to the SharkTank identifier, drop the backup and meter explanations in favour of the tables beneath them, remove the case-study link from the game, and record the three deployments since the public cutover.
-- ST-039 (v1.3.1) Ignore `@react-three/fiber` major updates while the project remains on React 18.
-- ST-038 (v1.3.1) Accept Dependabot's lowercase `bump` verb and `deps-dev` scope in the verified dependency-automation history exception.
+## v1.3.1 — 2026-08-30
+
+- ST-038 Accept Dependabot's lowercase `bump` verb and `deps-dev` scope in the verified dependency-automation history exception.
+- ST-039 Ignore `@react-three/fiber` major updates while the project remains on React 18.
+- ST-040 Renumber the public change log to the SharkTank identifier, drop the backup and meter explanations in favour of the tables beneath them, remove the case-study link from the game, and record the three deployments since the public cutover.
+- ST-041 Record the v1.3.1 release state.
 
 ## v1.3.0 — 2026-08-29
 

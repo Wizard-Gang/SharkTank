@@ -36,6 +36,7 @@ ST-034,v1.1.0,,,,forward-change,v1.1.0,governance-first public information archi
 ST-035,v1.2.0,,,,forward-change,v1.2.0,consolidated accessible governance controls evidence and governed workload navigation
 ST-036,218ad96d8366f86dd8152c3a495514261ae708d1,,,,forward-change,v1.3.0,concise public record deploy-time commit metrics and aligned repository metadata
 ST-037,v1.3.0,,,,controlled-record,v1.3.0,record the concise public portfolio release and deploy-time repository metrics
-ST-038,v1.3.1,,,,forward-change,v1.3.1,widen the verified dependency-automation subject exception to lowercase bump verbs and deps-dev scopes
-ST-039,v1.3.1,,,,forward-change,v1.3.1,ignore react-three fiber major updates while the project remains on react 18
-ST-040,v1.3.1,,,,forward-change,v1.3.1,one-sentence change log under the SharkTank identifier with trimmed evidence prose and the deployments since public cutover
+ST-038,031b3432df11acd3e5d1f2565972901b051f85e5,,,,forward-change,v1.3.1,widen the verified dependency-automation subject exception to lowercase bump verbs and deps-dev scopes
+ST-039,5bbe624ffcb68245005ecd558d2af80f4ac790c0,,,,forward-change,v1.3.1,ignore react-three fiber major updates while the project remains on react 18
+ST-040,c03123f265a1efcb9d60eb5f4c8097075a8b64b7,,,,forward-change,v1.3.1,one-sentence change log under the SharkTank identifier with trimmed evidence prose and the deployments since public cutover
+ST-041,v1.3.1,,,,controlled-record,v1.3.1,record the v1.3.1 release covering dependency automation the concise public change log and the deployments since cutover
