@@ -34,4 +34,5 @@ ST-032,v1.0.1,,,,forward-change,v1.0.1,accept only GitHub-verified Dependabot co
 ST-033,v1.0.2,,,,controlled-record,v1.0.2,record verified public-repository production cutover and close the legacy retirement gate
 ST-034,v1.1.0,,,,forward-change,v1.1.0,governance-first public information architecture with standard-specific implementation pages and live evidence index
 ST-035,v1.2.0,,,,forward-change,v1.2.0,consolidated accessible governance controls evidence and governed workload navigation
-ST-036,v1.3.0,,,,forward-change,v1.3.0,concise public record deploy-time commit metrics and aligned repository metadata
+ST-036,218ad96d8366f86dd8152c3a495514261ae708d1,,,,forward-change,v1.3.0,concise public record deploy-time commit metrics and aligned repository metadata
+ST-037,v1.3.0,,,,controlled-record,v1.3.0,record the concise public portfolio release and deploy-time repository metrics

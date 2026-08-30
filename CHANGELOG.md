@@ -4,8 +4,11 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+## v1.3.0 — 2026-08-29
+
 - ST-036 Shorten public change and evidence copy, remove the game case-study link, and refresh repository commit metrics during each production deploy.
 - Align the README and package metadata with the current project and release.
+- ST-037 Record the v1.3.0 release state.
 
 ## v1.0.2 — 2026-08-28
 
