@@ -4,6 +4,10 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+## v1.3.3 — 2026-08-30
+
+- ST-043 Gate the production deploy on the authenticated Cloudflare deployment list, because the public site answers CI runners with a Cloudflare managed challenge.
+
 ## v1.3.2 — 2026-08-30
 
 - ST-042 Plot the newest deployment at the time it reports for itself, so the deployment currently serving the page is not drawn on the original build clock.
