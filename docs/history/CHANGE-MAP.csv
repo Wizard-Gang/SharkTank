@@ -38,3 +38,4 @@ ST-036,218ad96d8366f86dd8152c3a495514261ae708d1,,,,forward-change,v1.3.0,concise
 ST-037,v1.3.0,,,,controlled-record,v1.3.0,record the concise public portfolio release and deploy-time repository metrics
 ST-038,v1.3.1,,,,forward-change,v1.3.1,widen the verified dependency-automation subject exception to lowercase bump verbs and deps-dev scopes
 ST-039,v1.3.1,,,,forward-change,v1.3.1,ignore react-three fiber major updates while the project remains on react 18
+ST-040,v1.3.1,,,,forward-change,v1.3.1,one-sentence change log under the SharkTank identifier with trimmed evidence prose and the deployments since public cutover
