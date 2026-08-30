@@ -40,3 +40,4 @@ ST-038,031b3432df11acd3e5d1f2565972901b051f85e5,,,,forward-change,v1.3.1,widen t
 ST-039,5bbe624ffcb68245005ecd558d2af80f4ac790c0,,,,forward-change,v1.3.1,ignore react-three fiber major updates while the project remains on react 18
 ST-040,c03123f265a1efcb9d60eb5f4c8097075a8b64b7,,,,forward-change,v1.3.1,one-sentence change log under the SharkTank identifier with trimmed evidence prose and the deployments since public cutover
 ST-041,v1.3.1,,,,controlled-record,v1.3.1,record the v1.3.1 release covering dependency automation the concise public change log and the deployments since cutover
+ST-042,v1.3.2,,,,forward-change,v1.3.2,let the newest deployment report its own time from the deploy variable instead of the project clock

@@ -4,6 +4,10 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+## v1.3.2 — 2026-08-30
+
+- ST-042 Plot the newest deployment at the time it reports for itself, so the deployment currently serving the page is not drawn on the original build clock.
+
 ## v1.3.1 — 2026-08-30
 
 - ST-038 Accept Dependabot's lowercase `bump` verb and `deps-dev` scope in the verified dependency-automation history exception.
