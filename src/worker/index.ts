@@ -1053,8 +1053,9 @@ function deliverySection(entries: readonly RoadmapEntry[], deployment: Deploymen
   const spendUsd = numberValue(allTime.estimatedVariableUsd);
   const hardLimitUsd = numberValue(billing.hardLimitUsd) || 5;
   const samples = Array.isArray(billing.spendHistory) ? billing.spendHistory as Array<{ ts: number; usd: number }> : [];
-  const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now };
-  const batchCount = deploymentBatches(all).length;
+  const liveDeployedAt = deployment.deployedAt ? Date.parse(deployment.deployedAt) || 0 : 0;
+  const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now, liveDeployedAt };
+  const batchCount = deploymentBatches(all, liveDeployedAt).length;
   const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(canonicalPublicHref(entry.reference.href))}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
   const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60;
   const velocity = deployment.commitsPerDay > 0 ? `${deployment.commitsPerDay.toFixed(1)}/day` : "Pending deploy";
@@ -2248,14 +2249,21 @@ const DEPLOYMENT_DATES: Readonly<Record<string, string>> = {
 };
 /** Deployment batches D01…Dnn, folded out of the `deployment` field on the roadmap entries. */
 interface DeploymentBatch { id: string; updates: number; firstEntry: string; from: number; to: number; elapsedMinutes: number; recorded: boolean }
-function deploymentBatches(entries: readonly RoadmapEntry[]): DeploymentBatch[] {
+function deploymentBatches(entries: readonly RoadmapEntry[], liveDeployedAt = 0): DeploymentBatch[] {
+  // The newest batch is the deployment currently serving this page, so it cannot carry a
+  // date in DEPLOYMENT_DATES: that map is baked into the artifact being deployed, and any
+  // value written there would name the deployment before this one. It reports its own time
+  // instead, from the deployment variable the deploy script sets. Without that variable it
+  // falls back to the project clock, as the older undated batches do.
+  const newest = entries.reduce((max, entry) => (entry.deployment > max ? entry.deployment : max), "");
   const batches = new Map<string, DeploymentBatch>();
   for (const entry of entries) {
     const recorded = DEPLOYMENT_DATES[entry.deployment];
-    const at = recorded ? Date.parse(recorded) : PROJECT_START_MS + roadmapElapsedMinutes(entry.at) * 60_000;
+    const live = !recorded && entry.deployment === newest && liveDeployedAt > 0 ? liveDeployedAt : 0;
+    const at = recorded ? Date.parse(recorded) : live || PROJECT_START_MS + roadmapElapsedMinutes(entry.at) * 60_000;
     const found = batches.get(entry.deployment);
     if (found) { found.updates += 1; found.from = Math.min(found.from, at); found.to = Math.max(found.to, at); }
-    else batches.set(entry.deployment, { id: entry.deployment, updates: 1, firstEntry: entry.id, from: at, to: at, elapsedMinutes: 0, recorded: Boolean(recorded) });
+    else batches.set(entry.deployment, { id: entry.deployment, updates: 1, firstEntry: entry.id, from: at, to: at, elapsedMinutes: 0, recorded: Boolean(recorded) || live > 0 });
   }
   // Elapsed is read back off the plotted time, so the label a mark announces always matches
   // where the mark actually sits.
@@ -2267,6 +2275,7 @@ const roadmapRowAnchor = (id: string) => `entry-${id.replace(/[^a-zA-Z0-9-]/g, "
 
 interface ShowcaseInput {
   entries: readonly RoadmapEntry[];
+  liveDeployedAt: number;
   incidents: IncidentRecord[];
   history: ControlHistoryEntry[];
   portal: ReturnType<typeof incidentSummary>;
@@ -2295,7 +2304,7 @@ interface ShowcaseInput {
  * `<title>`/`<desc>` rather than `role="img"`, so nothing depends on a key beside it.
  */
 function showcaseChartSvg(input: ShowcaseInput): string {
-  const { entries, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now } = input;
+  const { entries, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now, liveDeployedAt } = input;
   const start = PROJECT_START_MS, span = Math.max(1, now - start);
   // 2400 units wide, not 1000, and pinned by .showcase-chart to render at least that many
   // pixels -- so one unit is one pixel and a time bucket is 26.8 px across. At the old width
@@ -2305,7 +2314,7 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   // were, so the chart got wider rather than taller and still scrolls inside .timeline-scroll.
   const width = 2400, left = 132, right = 20, plot = width - left - right;
   const x = (ts: number) => left + ((Math.max(start, Math.min(now, ts)) - start) / span) * plot;
-  const batches = deploymentBatches(entries);
+  const batches = deploymentBatches(entries, liveDeployedAt);
   const buildEnd = start + ROADMAP_ELAPSED_MINUTES * 60_000;
 
   const dayMs = 86_400_000, dayTicks: number[] = [];
