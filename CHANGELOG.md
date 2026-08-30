@@ -4,6 +4,8 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+- ST-038 (v1.3.1) Accept Dependabot's lowercase `bump` verb and `deps-dev` scope in the verified dependency-automation history exception.
+
 ## v1.3.0 — 2026-08-29
 
 - ST-036 Shorten public change and evidence copy, remove the game case-study link, and refresh repository commit metrics during each production deploy.

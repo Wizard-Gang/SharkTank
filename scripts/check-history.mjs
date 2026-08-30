@@ -10,7 +10,10 @@ for (const entry of commits) {
   const [sha = "", subject = "", body = "", authorName = "", authorEmail = ""] = entry.split("\x1f");
   const verifiedDependabot = authorName === "dependabot[bot]"
     && /^\d+\+dependabot\[bot\]@users\.noreply\.github\.com$/.test(authorEmail)
-    && /^build\(deps\): Bump .+ from .+ to .+$/.test(subject);
+    // Dependabot writes a lowercase "bump" and scopes devDependency updates as
+    // "deps-dev". Matching only "build(deps): Bump" rejected every devDependency
+    // update, and those pull requests re-ran and failed on each push to main.
+    && /^build\(deps(?:-dev)?\): [Bb]ump .+ from .+ to .+$/.test(subject);
   if (verifiedDependabot) continue;
   if (!subjectPattern.test(subject)) failures.push(`${sha.slice(0, 12)}: invalid subject: ${subject}`);
   for (const heading of headings) {

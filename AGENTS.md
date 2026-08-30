@@ -6,7 +6,7 @@ SharkTank is a public, self-contained reconstruction. Preserve the buildable his
 
 - Work on a branch. Do not rewrite published commits or tags.
 - Keep changes focused and use a subject shaped like `[ST-NNN] [TYPE] Imperative summary`.
-- Dependabot's GitHub-verified `build(deps): Bump ...` commits are the only exception to the ST subject/body shape; CI verifies the bot author and noreply identity before accepting that exception.
+- Dependabot's GitHub-verified `build(deps): bump ...` and `build(deps-dev): bump ...` commits are the only exception to the ST subject/body shape; the scope may be `deps` or `deps-dev` and the verb may be capitalised or not. CI verifies the bot author and noreply identity before accepting that exception.
 - Include these commit-body headings: `Change`, `Reason`, `Impact`, `Risk`, `Controls`, `Validation`, and `Evidence`, followed by either `Notes` or explicit `Source` and `Release` fields. Add `Rollback` for medium- or high-risk operational changes.
 - Update `docs/history/CHANGE-MAP.csv` when a change represents migrated history or alters an existing mapping.
 - Never commit credentials, `.env` files, Cloudflare identifiers intended to remain private, production exports, or operator receipts containing private values.
