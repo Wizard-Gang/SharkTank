@@ -33,7 +33,17 @@ const env = "wizardgangprod";
 const dryRun = process.argv.includes("--dry-run");
 function run(command, args, capture = false) {
   const result = spawnSync(command, args, { cwd: new URL("..", import.meta.url), encoding: "utf8", stdio: capture ? "pipe" : "inherit" });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (result.status !== 0) {
+    // A captured command writes nowhere, so failing silently here produced a bare
+    // "exit code 1" with no cause anywhere in the log. Echo what it said before leaving.
+    if (capture) {
+      console.error(`Failed: ${command} ${args.join(" ")}`);
+      if (result.stdout) console.error(result.stdout.trimEnd());
+      if (result.stderr) console.error(result.stderr.trimEnd());
+      if (result.error) console.error(String(result.error.message ?? result.error));
+    }
+    process.exit(result.status ?? 1);
+  }
   return result.stdout ?? "";
 }
 
