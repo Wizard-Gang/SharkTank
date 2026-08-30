@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # @react-three/fiber 9.x requires react >=19 <19.3 and this project is on react 18.
+      # Major bumps here can never install, so they only produce failing pull requests.
+      # Lift this together with a deliberate React 19 migration.
+      - dependency-name: "@react-three/fiber"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
