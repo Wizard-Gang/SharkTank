@@ -381,22 +381,22 @@ interface RoadmapEntry {
   reference?: { label: string; href: string };
 }
 const ROADMAP_MANIFEST: readonly RoadmapEntry[] = [
-  { id: "WG-001", at: "00:00", label: "feature", deployment: "D01", title: "Serve the game and its operations pages from one Worker", summary: "Host the game and public operations as one controlled deployment.", evidence: ["Worker routing", "Durable Object tanks", "public operations routes"] },
-  { id: "WG-002", at: "00:25", label: "feature", deployment: "D01", title: "Run the game simulation on the server", summary: "Run movement, growth, collisions, bots, and state on the server.", evidence: ["WebSocket simulation", "ocean-named tanks", "durable room state"] },
-  { id: "WG-003", at: "00:55", label: "enhancement", deployment: "D01", title: "Add size-based combat, a dash and rockets", summary: "Large sharks eat smaller sharks; rockets beat every shark.", evidence: ["size-based combat", "dash ability", "rocket dot explosions"] },
-  { id: "WG-004", at: "01:20", label: "fix", deployment: "D02", title: "Fix frame tearing and input lag", summary: "Tighten rendering and steering for mouse, keyboard, and touch.", evidence: ["snapshot interpolation", "local prediction", "large hit targets"] },
-  { id: "WG-005", at: "01:50", label: "enhancement", deployment: "D02", title: "Adapt the game UI to any screen and input", summary: "Support desktop, keyboard-only, mouse-only, and mobile play.", evidence: ["ability controls", "gear menu", "responsive HUD"] },
-  { id: "WG-006", at: "02:15", label: "feature", deployment: "D03", title: "Publish service and tank logs with downloads", summary: "Publish service and tank evidence without internal player identifiers.", evidence: ["/logs/", "sortable captures", "TXT CSV-style downloads"] },
-  { id: "WG-007", at: "02:40", label: "enhancement", deployment: "D03", title: "Match the debug drawer to the public log format", summary: "Align the selected debug language with public tank logs.", evidence: ["desktop debug drawer", "language toggle", "matching log schema"] },
-  { id: "WG-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/spend/", "binding-aware coverage", "free-tier anchors"] },
-  { id: "WG-009", at: "03:30", label: "enhancement", deployment: "D04", title: "Stop gameplay when spend reaches the limit", summary: "Reset current-spend tracking and stop gameplay at the measured limit.", evidence: ["billing reset", "$5 threshold", "service-level gate"] },
-  { id: "WG-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/admin/", "maintenance toggle", "four-character test alerts"] },
-  { id: "WG-011", at: "04:25", label: "fix", deployment: "D04", title: "Restore gameplay without closing the investigation", summary: "Restoring gameplay ends impact without closing the investigation.", evidence: ["immediate lockdown", "separate maintenance event", "open investigation state"] },
-  { id: "WG-012", at: "04:50", label: "enhancement", deployment: "D05", title: "Chain every control decision into a signed receipt", summary: "Link control decisions in an append-only SHA-256 receipt chain.", evidence: ["linked receipts", "incident references", "digestible history"] },
-  { id: "WG-013", at: "05:15", label: "fix", deployment: "D05", title: "Stop tables clipping timestamps and identifiers", summary: "Contain timestamps, subjects, schemas, and identifiers at every viewport.", evidence: ["one-line identity cells", "controlled detail wrap", "contained horizontal scroll"] },
-  { id: "WG-014", at: "05:35", label: "enhancement", deployment: "D05", title: "Keep the site up while the tank is closed", summary: "Keep the portal online while billing or operators close the Shark Tank.", evidence: ["independent delivery path", "controlled game access", "game-independent status surface"] },
-  { id: "WG-015", at: "06:30", label: "enhancement", deployment: "D06", title: "Organise the evidence for ISO 27001 and 42001", summary: "Organize evidence toward ISO/IEC 27001 and ISO/IEC 42001.", evidence: ["risk and control evidence", "incident accountability", "independent assessment required"] },
-  { id: "WG-016", at: "08:00", label: "fix", deployment: "D07", title: "Unify the wording across every page", summary: "Unify Shark Tank language, reason-coded evidence, and the final sales narrative.", evidence: ["mission-led roadmap", "reason-coded logs", "cross-route copy pass"] },
+  { id: "ST-001", at: "00:00", label: "feature", deployment: "D01", title: "Serve the game and its operations pages from one Worker", summary: "Host the game and public operations as one controlled deployment.", evidence: ["Worker routing", "Durable Object tanks", "public operations routes"] },
+  { id: "ST-002", at: "00:25", label: "feature", deployment: "D01", title: "Run the game simulation on the server", summary: "Run movement, growth, collisions, bots, and state on the server.", evidence: ["WebSocket simulation", "ocean-named tanks", "durable room state"] },
+  { id: "ST-003", at: "00:55", label: "enhancement", deployment: "D01", title: "Add size-based combat, a dash and rockets", summary: "Large sharks eat smaller sharks; rockets beat every shark.", evidence: ["size-based combat", "dash ability", "rocket dot explosions"] },
+  { id: "ST-004", at: "01:20", label: "fix", deployment: "D02", title: "Fix frame tearing and input lag", summary: "Tighten rendering and steering for mouse, keyboard, and touch.", evidence: ["snapshot interpolation", "local prediction", "large hit targets"] },
+  { id: "ST-005", at: "01:50", label: "enhancement", deployment: "D02", title: "Adapt the game UI to any screen and input", summary: "Support desktop, keyboard-only, mouse-only, and mobile play.", evidence: ["ability controls", "gear menu", "responsive HUD"] },
+  { id: "ST-006", at: "02:15", label: "feature", deployment: "D03", title: "Publish service and tank logs with downloads", summary: "Publish service and tank evidence without internal player identifiers.", evidence: ["/logs/", "sortable captures", "TXT CSV-style downloads"] },
+  { id: "ST-007", at: "02:40", label: "enhancement", deployment: "D03", title: "Match the debug drawer to the public log format", summary: "Align the selected debug language with public tank logs.", evidence: ["desktop debug drawer", "language toggle", "matching log schema"] },
+  { id: "ST-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/spend/", "binding-aware coverage", "free-tier anchors"] },
+  { id: "ST-009", at: "03:30", label: "enhancement", deployment: "D04", title: "Stop gameplay when spend reaches the limit", summary: "Reset current-spend tracking and stop gameplay at the measured limit.", evidence: ["billing reset", "$5 threshold", "service-level gate"] },
+  { id: "ST-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/admin/", "maintenance toggle", "four-character test alerts"] },
+  { id: "ST-011", at: "04:25", label: "fix", deployment: "D04", title: "Restore gameplay without closing the investigation", summary: "Restoring gameplay ends impact without closing the investigation.", evidence: ["immediate lockdown", "separate maintenance event", "open investigation state"] },
+  { id: "ST-012", at: "04:50", label: "enhancement", deployment: "D05", title: "Chain every control decision into a signed receipt", summary: "Link control decisions in an append-only SHA-256 receipt chain.", evidence: ["linked receipts", "incident references", "digestible history"] },
+  { id: "ST-013", at: "05:15", label: "fix", deployment: "D05", title: "Stop tables clipping timestamps and identifiers", summary: "Contain timestamps, subjects, schemas, and identifiers at every viewport.", evidence: ["one-line identity cells", "controlled detail wrap", "contained horizontal scroll"] },
+  { id: "ST-014", at: "05:35", label: "enhancement", deployment: "D05", title: "Keep the site up while the tank is closed", summary: "Keep the portal online while billing or operators close the Shark Tank.", evidence: ["independent delivery path", "controlled game access", "game-independent status surface"] },
+  { id: "ST-015", at: "06:30", label: "enhancement", deployment: "D06", title: "Organise the evidence for ISO 27001 and 42001", summary: "Organize evidence toward ISO/IEC 27001 and ISO/IEC 42001.", evidence: ["risk and control evidence", "incident accountability", "independent assessment required"] },
+  { id: "ST-016", at: "08:00", label: "fix", deployment: "D07", title: "Unify the wording across every page", summary: "Unify Shark Tank language, reason-coded evidence, and the final sales narrative.", evidence: ["mission-led roadmap", "reason-coded logs", "cross-route copy pass"] },
 ] as const;
 async function maintenanceState(env: Env, fresh = false): Promise<MaintenanceState> {
   if (!fresh && maintenanceCache && maintenanceCache.expiresAt > Date.now()) return maintenanceCache.state;
@@ -500,14 +500,14 @@ function roadmapClock(minutesAfterBuild: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-/** The security report that drove the WG-018 hotfix. Public id, no internal detail. */
+/** The security report that drove the ST-018 hotfix. Public id, no internal detail. */
 const HOTFIX_REPORT_ID = "white-hat-ce395a2b-6d48-49bd-b8e3-f58e6b58b162";
 const HOTFIX_MINUTES = 7;
 /** Hour nine of an eight-hour build. Shown on the map, deliberately excluded from every metric. */
-const BONUS_ROADMAP_ENTRY: RoadmapEntry = { id: "WG-017", at: "09:00", label: "bonus", deployment: "D08", title: "Rewrite the outage jokes", summary: "Spent the bonus hour rewriting the outage jokes. Shipped zero business value, on time and under budget.", evidence: ["setup-and-punchline downtime copy", "tick-driven rotation, no repeats", "no measurable business value"] };
+const BONUS_ROADMAP_ENTRY: RoadmapEntry = { id: "ST-017", at: "09:00", label: "bonus", deployment: "D08", title: "Rewrite the outage jokes", summary: "Spent the bonus hour rewriting the outage jokes. Shipped zero business value, on time and under budget.", evidence: ["setup-and-punchline downtime copy", "tick-driven rotation, no repeats", "no measurable business value"] };
 /** Emergency response to an independent white-hat report against the operations gate. */
 const HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-018",
+  id: "ST-018",
   at: roadmapClock(HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D09",
@@ -520,7 +520,7 @@ const HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 /** Second hotfix: the arena wall was lethal but never drawn, so deaths looked random. */
 const GAME_HOTFIX_MINUTES = 10;
 const GAME_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-019",
+  id: "ST-019",
   at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D10",
@@ -532,7 +532,7 @@ const GAME_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 /** Third hotfix: mobile play was unusable and the tank was too small to hold a lobby. */
 const MOBILE_HOTFIX_MINUTES = 38;
 const MOBILE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-020",
+  id: "ST-020",
   at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D11",
@@ -546,7 +546,7 @@ const MOBILE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
  *  90-day record. */
 const EVIDENCE_HOTFIX_MINUTES = 21;
 const EVIDENCE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-021",
+  id: "ST-021",
   at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D12",
@@ -559,7 +559,7 @@ const EVIDENCE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
  *  single instantaneous number with no trend. */
 const INQUIRY_HOTFIX_MINUTES = 13;
 const INQUIRY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-022",
+  id: "ST-022",
   at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D13",
@@ -571,7 +571,7 @@ const INQUIRY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 /** Sixth hotfix: the incident report was showing the status page's availability bar. */
 const INCIDENT_HOTFIX_MINUTES = 13;
 const INCIDENT_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-023",
+  id: "ST-023",
   at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES + INCIDENT_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D14",
@@ -580,17 +580,17 @@ const INCIDENT_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["one lane per incident cause", "duration bars, diamonds for point events", "inception-to-now axis", "every mark links to its record", "shared with the roadmap"],
   reference: { label: "Incident chart", href: "/status/#incidents" },
 };
-/** Running total of post-delivery development minutes through WG-023. The security and
+/** Running total of post-delivery development minutes through ST-023. The security and
  *  accessibility hotfixes below continue the same clock. */
-const POST_DELIVERY_MINUTES_THROUGH_WG023 =
+const POST_DELIVERY_MINUTES_THROUGH_ST023 =
   HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES + INCIDENT_HOTFIX_MINUTES;
 
-/* WG-024 to WG-027 answer an independent security and accessibility review: one critical
+/* ST-024 to ST-027 answer an independent security and accessibility review: one critical
  * security finding and three critical accessibility findings, shipped together as D15. */
 const TAKEDOWN_HOTFIX_MINUTES = 12;
 const TAKEDOWN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-024",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG023 + TAKEDOWN_HOTFIX_MINUTES),
+  id: "ST-024",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D15",
   title: "Put taking the game offline behind authentication",
@@ -600,8 +600,8 @@ const TAKEDOWN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const STATUS_HOTFIX_MINUTES = 6;
 const STATUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-025",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES),
+  id: "ST-025",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D15",
   title: "Stop the status page reloading itself",
@@ -611,8 +611,8 @@ const STATUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const FOCUS_HOTFIX_MINUTES = 4;
 const FOCUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-026",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES),
+  id: "ST-026",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D15",
   title: "Stop dialogs stealing keyboard focus",
@@ -622,8 +622,8 @@ const FOCUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const CONTRAST_HOTFIX_MINUTES = 5;
 const CONTRAST_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-027",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES),
+  id: "ST-027",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D15",
   title: "Fix unreadable overlay text in light mode",
@@ -631,16 +631,16 @@ const CONTRAST_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["1.05:1 to 18:1 in light mode", "dark mode unchanged", "covers heads-up display, leaderboard, banner, tools rail", "contrast preferences still honoured"],
   reference: { label: "Play the game", href: "/play/" },
 };
-/** Running total through WG-027. The three high-severity fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_WG027 =
-  POST_DELIVERY_MINUTES_THROUGH_WG023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES;
+/** Running total through ST-027. The three high-severity fixes below share the clock. */
+const POST_DELIVERY_MINUTES_THROUGH_ST027 =
+  POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES;
 
-/* WG-028 to WG-030 answer the three high-severity findings from the same independent
+/* ST-028 to ST-030 answer the three high-severity findings from the same independent
  * review, shipped together as D16. Each closes an unauthenticated abuse path. */
 const AUDITFLOOD_HOTFIX_MINUTES = 14;
 const AUDITFLOOD_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-028",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG027 + AUDITFLOOD_HOTFIX_MINUTES),
+  id: "ST-028",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D16",
   title: "Key log throttling to the connection, not a cookie",
@@ -650,8 +650,8 @@ const AUDITFLOOD_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const SEATS_HOTFIX_MINUTES = 4;
 const SEATS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-029",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES),
+  id: "ST-029",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D16",
   title: "Check tank capacity when a seat is taken",
@@ -661,8 +661,8 @@ const SEATS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const INCIDENTCAP_HOTFIX_MINUTES = 9;
 const INCIDENTCAP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-030",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES),
+  id: "ST-030",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D16",
   title: "Bound the incident record so it cannot block recovery",
@@ -670,13 +670,13 @@ const INCIDENTCAP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["record kept well under the storage limit", "active incidents never archived", "oldest resolved incidents archived first", "every archival recorded with a reason code"],
   reference: { label: "Incident record", href: "/status/#incidents" },
 };
-/** Running total through WG-030. The seven accessibility fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_WG030 =
-  POST_DELIVERY_MINUTES_THROUGH_WG027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES;
+/** Running total through ST-030. The seven accessibility fixes below share the clock. */
+const POST_DELIVERY_MINUTES_THROUGH_ST030 =
+  POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES;
 const STATUSMSG_HOTFIX_MINUTES = 11;
 const STATUSMSG_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-031",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG030 + STATUSMSG_HOTFIX_MINUTES),
+  id: "ST-031",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D17",
   title: "Announce search and paging results once",
@@ -686,8 +686,8 @@ const STATUSMSG_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const CHARTSTOP_HOTFIX_MINUTES = 3;
 const CHARTSTOP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-032",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES),
+  id: "ST-032",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D17",
   title: "Stop chart marks swallowing the keyboard",
@@ -697,8 +697,8 @@ const CHARTSTOP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const APIHEADING_HOTFIX_MINUTES = 8;
 const APIHEADING_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-033",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES),
+  id: "ST-033",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D17",
   title: "Give every API endpoint its own heading",
@@ -708,8 +708,8 @@ const APIHEADING_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const GAMEA11Y_HOTFIX_MINUTES = 9;
 const GAMEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-034",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES),
+  id: "ST-034",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D17",
   title: "Stop the tank list reading itself aloud",
@@ -717,13 +717,13 @@ const GAMEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["score movement no longer announces anything", "full and open transitions still spoken", "light-theme status colours clear 4.5:1 on every surface", "Feeding Frenzy small print from 2.2:1 to 5.9:1"],
   reference: { label: "Play the game", href: "/play/" },
 };
-/** Running total through WG-034. The four security fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_WG034 =
-  POST_DELIVERY_MINUTES_THROUGH_WG030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES;
+/** Running total through ST-034. The four security fixes below share the clock. */
+const POST_DELIVERY_MINUTES_THROUGH_ST034 =
+  POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES;
 const CSP_HOTFIX_MINUTES = 24;
 const CSP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-035",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG034 + CSP_HOTFIX_MINUTES),
+  id: "ST-035",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D18",
   title: "Replace the content policy that allowed any script",
@@ -733,8 +733,8 @@ const CSP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const LEAK_HOTFIX_MINUTES = 12;
 const LEAK_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-036",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES),
+  id: "ST-036",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D18",
   title: "Strip internal detail from errors and exports",
@@ -744,8 +744,8 @@ const LEAK_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const CHAIN_HOTFIX_MINUTES = 21;
 const CHAIN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-037",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES),
+  id: "ST-037",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D18",
   title: "Verify the receipt chain on every read",
@@ -755,8 +755,8 @@ const CHAIN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const ABUSE_HOTFIX_MINUTES = 14;
 const ABUSE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-038",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES),
+  id: "ST-038",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D18",
   title: "Strip invisible characters from display names",
@@ -764,14 +764,14 @@ const ABUSE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["text-reversing and invisible characters removed", "look-alike names collapse to the same text", "names in every other script still work", "existing players never evicted, at any load"],
   reference: { label: "Play the game", href: "/play/" },
 };
-/** Running total through WG-038. */
-const POST_DELIVERY_MINUTES_THROUGH_WG038 =
-  POST_DELIVERY_MINUTES_THROUGH_WG034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES;
+/** Running total through ST-038. */
+const POST_DELIVERY_MINUTES_THROUGH_ST038 =
+  POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES;
 /** Free-tier allowances reset daily; the cost page only ever reported lifetime figures. */
 const INQUIRY_TODAY_HOTFIX_MINUTES = 18;
 const INQUIRY_TODAY_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-039",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG038 + INQUIRY_TODAY_HOTFIX_MINUTES),
+  id: "ST-039",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST038 + INQUIRY_TODAY_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D19",
   title: "Report today's spend on a readable scale",
@@ -779,13 +779,13 @@ const INQUIRY_TODAY_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["day boundary captured once a day, per meter", "today compared against a whole day's allowance", "average spend per day and spend today, in dollars", "meters on a logarithmic axis with decade ticks", "spend trend on round axis values, current value labelled"],
   reference: { label: "Usage against the free tier", href: "/spend/" },
 };
-/** Running total through WG-039. The accessibility batch below shares the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_WG039 =
-  POST_DELIVERY_MINUTES_THROUGH_WG038 + INQUIRY_TODAY_HOTFIX_MINUTES;
+/** Running total through ST-039. The accessibility batch below shares the clock. */
+const POST_DELIVERY_MINUTES_THROUGH_ST039 =
+  POST_DELIVERY_MINUTES_THROUGH_ST038 + INQUIRY_TODAY_HOTFIX_MINUTES;
 const PAGEA11Y_HOTFIX_MINUTES = 26;
 const PAGEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-040",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG039 + PAGEA11Y_HOTFIX_MINUTES),
+  id: "ST-040",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D20",
   title: "Every page can be navigated without a mouse or a screen",
@@ -795,8 +795,8 @@ const PAGEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const READABILITY_HOTFIX_MINUTES = 11;
 const READABILITY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-041",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES),
+  id: "ST-041",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D20",
   title: "The outage page says there is an outage",
@@ -806,8 +806,8 @@ const READABILITY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
 };
 const GAMEA11Y2_HOTFIX_MINUTES = 19;
 const GAMEA11Y2_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-042",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES),
+  id: "ST-042",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D20",
   title: "The game stops going quiet at the moments that matter",
@@ -815,13 +815,13 @@ const GAMEA11Y2_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["a repeated message is spoken again", "losing the connection is announced, not only drawn", "spoken position survives turning the radar off", "the single-key shortcut can be switched off and ignores typing"],
   reference: { label: "Play the game", href: "/play/" },
 };
-/** Running total through WG-042. */
-const POST_DELIVERY_MINUTES_THROUGH_WG042 =
-  POST_DELIVERY_MINUTES_THROUGH_WG039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES;
+/** Running total through ST-042. */
+const POST_DELIVERY_MINUTES_THROUGH_ST042 =
+  POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES;
 const NAMES_HOTFIX_MINUTES = 9;
 const NAMES_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-043",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG042 + NAMES_HOTFIX_MINUTES),
+  id: "ST-043",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST042 + NAMES_HOTFIX_MINUTES),
   label: "hotfix",
   deployment: "D21",
   title: "Players can use their own name",
@@ -829,12 +829,12 @@ const NAMES_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["names in any script are kept as typed", "the existing word list still blocks what it blocked before", "names built only from invisible characters are still refused", "spoofing defences and the length limit are unchanged"],
   reference: { label: "Play the game", href: "/play/" },
 };
-/** Running total through WG-043. */
-const POST_DELIVERY_MINUTES_THROUGH_WG043 = POST_DELIVERY_MINUTES_THROUGH_WG042 + NAMES_HOTFIX_MINUTES;
+/** Running total through ST-043. */
+const POST_DELIVERY_MINUTES_THROUGH_ST043 = POST_DELIVERY_MINUTES_THROUGH_ST042 + NAMES_HOTFIX_MINUTES;
 const POLICIES_MINUTES = 34;
 const POLICIES_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-044",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG043 + POLICIES_MINUTES),
+  id: "ST-044",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST043 + POLICIES_MINUTES),
   label: "feature",
   deployment: "D22",
   title: "Publish the policies the standards ask for",
@@ -842,12 +842,12 @@ const POLICIES_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["four documents, each naming the clauses it is the record for", "the register links to them and they link back", "limits stated plainly where one person cannot separate a duty", "the AI document is exact that the sharks are rules, not a learned model"],
   reference: { label: "Policies", href: "/policies/" },
 };
-/** Running total through WG-044. */
-const POST_DELIVERY_MINUTES_THROUGH_WG044 = POST_DELIVERY_MINUTES_THROUGH_WG043 + POLICIES_MINUTES;
+/** Running total through ST-044. */
+const POST_DELIVERY_MINUTES_THROUGH_ST044 = POST_DELIVERY_MINUTES_THROUGH_ST043 + POLICIES_MINUTES;
 const GOVERNANCE_MINUTES = 58;
 const GOVERNANCE_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-045",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG044 + GOVERNANCE_MINUTES),
+  id: "ST-045",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST044 + GOVERNANCE_MINUTES),
   label: "feature",
   deployment: "D23",
   title: "Write down how risk is decided, and what the sharks actually are",
@@ -855,12 +855,12 @@ const GOVERNANCE_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["a risk method with worded scales and an acceptance threshold, not a colour chart", "twelve assessed risks with scores, decisions and what is left over", "the backup gap, the unscanned dependencies and the missing erasure route recorded as open", "four inaccurate descriptions found and corrected while checking them"],
   reference: { label: "Policies", href: "/policies/" },
 };
-/** Running total through WG-045. */
-const POST_DELIVERY_MINUTES_THROUGH_WG045 = POST_DELIVERY_MINUTES_THROUGH_WG044 + GOVERNANCE_MINUTES;
+/** Running total through ST-045. */
+const POST_DELIVERY_MINUTES_THROUGH_ST045 = POST_DELIVERY_MINUTES_THROUGH_ST044 + GOVERNANCE_MINUTES;
 const PARTIALS_MINUTES = 71;
 const PARTIALS_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-046",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES),
+  id: "ST-046",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST045 + PARTIALS_MINUTES),
   label: "feature",
   deployment: "D24",
   title: "Do the things the register said were only written down",
@@ -868,11 +868,11 @@ const PARTIALS_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["state copied daily and proven by a restore that compares digests, not by assertion", "the first restore drill failed, and the failure is published before the passes", "four recurring activities performed for the first time, each stating what was examined", "six controls excluded on the boundary the scope statement already drew, not on convenience", "internal audit stays partial because one person cannot be objective, and says so"],
   reference: { label: "Policies", href: "/policies/" },
 };
-const POST_DELIVERY_MINUTES_THROUGH_WG046 = POST_DELIVERY_MINUTES_THROUGH_WG045 + PARTIALS_MINUTES;
+const POST_DELIVERY_MINUTES_THROUGH_ST046 = POST_DELIVERY_MINUTES_THROUGH_ST045 + PARTIALS_MINUTES;
 const NAMESPACE_MINUTES = 96;
 const NAMESPACE_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-047",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES),
+  id: "ST-047",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST046 + NAMESPACE_MINUTES),
   label: "feature",
   deployment: "D25",
   title: "Split the site in two, because it was serving two audiences from one menu",
@@ -880,11 +880,11 @@ const NAMESPACE_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["one menu became two, and the game's competing seven-link menu became one link", "every figure on the trust page is computed from the source the owning page uses", "the receipt chain and the uptime, spend and incident counts each render in exactly one place", "the spend limit now closes the routes that generate the billable writes", "moved routes redirect and every evidence link in the register still resolves", "the agent count is published beside human occupancy, which the AI policy already said it was"],
   reference: { label: "Trust and operations", href: "/trust/" },
 };
-const POST_DELIVERY_MINUTES_THROUGH_WG047 = POST_DELIVERY_MINUTES_THROUGH_WG046 + NAMESPACE_MINUTES;
+const POST_DELIVERY_MINUTES_THROUGH_ST047 = POST_DELIVERY_MINUTES_THROUGH_ST046 + NAMESPACE_MINUTES;
 const TRUTHFULNESS_MINUTES = 88;
 const TRUTHFULNESS_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "WG-048",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_WG047 + TRUTHFULNESS_MINUTES),
+  id: "ST-048",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
   label: "feature",
   deployment: "D26",
   title: "Deploy the split, then close the four things it left behind",
@@ -892,61 +892,109 @@ const TRUTHFULNESS_ROADMAP_ENTRY: RoadmapEntry = {
   evidence: ["the split namespace is live, and the register's routes are routes the service serves", "the restore drill reads backups/state/latest.json and fails loudly when there is nothing to read", "the evidence-walk figures are derived from the register at render time, not transcribed", "a route deleted from the service now fails the link checker instead of passing on the game shell's 200", "/spend/ and /docs/ are reachable from all 27 server-rendered pages, including each of the 20 policy documents", "a trust page dropped from 45 KB to 7 KB, and all 22 delivery-chart links clear 24 by 24 with no overlap"],
   reference: { label: "Operations", href: "/status/#delivery" },
 };
+/* The public-repository era. These four are releases rather than timed hotfixes, so they
+ * carry no "closed in N minutes" figure — the clock those entries share stopped at ST-048.
+ * D27 and D28 are recorded from the provider's own deployment history; D29 is this one. */
+const PUBLIC_REPO_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "ST-049",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
+  label: "feature",
+  deployment: "D27",
+  title: "Cut production over to the public repository",
+  summary: "The service became a self-contained public repository with governance checks, release tags and provenance records, and production cut over to v1.0.1 with every durable object, bucket, cron and secret preserved.",
+  evidence: ["v1.0.1 deployed from the public repository", "46 evidence routes across 489 references passed", "stateful resources preserved, not renamed", "previous deployment retained as the rollback point"],
+  reference: { label: "Operations", href: "/status/#delivery" },
+};
+const GOVERNANCE_IA_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "ST-050",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
+  label: "feature",
+  deployment: "D28",
+  title: "Give each standard its own page, and make the evidence reachable",
+  summary: "The public record was reorganised so every standard has its own implementation page behind a live evidence index, and the governance controls and workload navigation were made operable without a mouse.",
+  evidence: ["one implementation page per standard", "evidence index computed from the register", "governed workload navigation", "controls reachable by keyboard"],
+  reference: { label: "Trust and operations", href: "/trust/" },
+};
+const CONCISE_RECORD_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "ST-051",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
+  label: "enhancement",
+  deployment: "D29",
+  title: "Measure the repository at deploy time",
+  summary: "Public change and evidence copy was shortened, the game case-study link was removed from the play page, and repository commit metrics are now refreshed by each production deploy rather than transcribed.",
+  evidence: ["commit count and velocity passed in as deployment variables", "case-study link removed from the game", "release identity reported at /version.json"],
+  reference: { label: "Operations", href: "/status/#delivery" },
+};
+const CONCISE_LOG_ROADMAP_ENTRY: RoadmapEntry = {
+  id: "ST-052",
+  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
+  label: "enhancement",
+  deployment: "D29",
+  title: "One sentence per change, under one identifier",
+  summary: "Every change-log entry is now a single sentence carrying the SharkTank identifier, the backup and meter explanations gave way to the tables that already stated the same facts, and the deployments since the public cutover were added to the record.",
+  evidence: ["48 entries renumbered from the legacy identifier", "every summary one sentence", "two explanatory paragraphs removed, no figure lost", "three deployments recorded from provider history"],
+  reference: { label: "Operations", href: "/status/#delivery" },
+};
 const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
   PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
   NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY,
-  TRUTHFULNESS_ROADMAP_ENTRY];
+  TRUTHFULNESS_ROADMAP_ENTRY,
+  PUBLIC_REPO_ROADMAP_ENTRY, GOVERNANCE_IA_ROADMAP_ENTRY, CONCISE_RECORD_ROADMAP_ENTRY, CONCISE_LOG_ROADMAP_ENTRY];
 
 /** Public change summaries stay short; implementation detail remains in source and evidence links. */
 const PUBLIC_ROADMAP_SUMMARIES: Readonly<Record<string, string>> = {
-  "WG-001": "Deployed the game and public operations pages from one Worker.",
-  "WG-002": "Moved movement, combat, agents, and room state to the server.",
-  "WG-003": "Added size-based combat, dash movement, and rockets.",
-  "WG-004": "Reduced rendering tears and input delay across supported controls.",
-  "WG-005": "Adapted the game for desktop, keyboard, mouse, and touch.",
-  "WG-006": "Published service and tank logs with downloadable records.",
-  "WG-007": "Aligned the debug drawer with the public log format.",
-  "WG-008": "Mapped product actions to the Cloudflare resources they consume.",
-  "WG-009": "Added a measured spend limit that can stop gameplay.",
-  "WG-010": "Centralized maintenance, billing, alerts, and security controls.",
-  "WG-011": "Separated restored service from an open incident investigation.",
-  "WG-012": "Added an append-only SHA-256 receipt chain for control actions.",
-  "WG-013": "Fixed tables that clipped timestamps and identifiers.",
-  "WG-014": "Kept status and evidence available while gameplay is closed.",
-  "WG-015": "Organized evidence against ISO/IEC 27001 and ISO/IEC 42001.",
-  "WG-016": "Standardized public wording and reason-coded evidence.",
-  "WG-017": "Refreshed the controlled-outage messages.",
-  "WG-018": "Required TLS and authenticated access for operations routes.",
-  "WG-019": "Added a visible arena boundary with authoritative collision behavior.",
-  "WG-020": "Added touch controls for movement and abilities.",
-  "WG-021": "Changed availability measurement to cover the project lifetime.",
-  "WG-022": "Combined billing data into one spend meter.",
-  "WG-023": "Added an incident chart showing cause, start, and duration.",
-  "WG-024": "Protected the game shutdown control with authentication.",
-  "WG-025": "Replaced full-page status reloads with pausable live updates.",
-  "WG-026": "Corrected dialog focus trapping and restoration.",
-  "WG-027": "Fixed low-contrast overlay text in light mode.",
-  "WG-028": "Scoped log throttling to each connection.",
-  "WG-029": "Enforced room capacity when a seat is claimed.",
-  "WG-030": "Bound the incident record to protect recovery paths.",
-  "WG-031": "Made search and paging announcements concise and stable.",
-  "WG-032": "Made chart points reachable without trapping keyboard focus.",
-  "WG-033": "Added a unique heading for every API endpoint.",
-  "WG-034": "Stopped the tank list from announcing every refresh.",
-  "WG-035": "Tightened the Content Security Policy for scripts.",
-  "WG-036": "Removed internal details from public errors and exports.",
-  "WG-037": "Verified the receipt chain whenever it is read.",
-  "WG-038": "Removed invisible control characters from display names.",
-  "WG-039": "Changed the spend view to a readable current-day scale.",
-  "WG-040": "Completed keyboard and screen-reader fixes across public pages.",
-  "WG-041": "Simplified the outage page so its state is immediately clear.",
-  "WG-042": "Added accessible status announcements for important game events.",
-  "WG-043": "Added persistent player display names.",
-  "WG-044": "Published the policy set referenced by the control register.",
-  "WG-045": "Documented risk decisions and the rule-based agent boundary.",
-  "WG-046": "Performed the operational activities previously marked partial.",
-  "WG-047": "Separated the game from the public governance routes.",
-  "WG-048": "Deployed the route split and corrected stale evidence claims."
+  "ST-001": "Deployed the game and public operations pages from one Worker.",
+  "ST-002": "Moved movement, combat, agents, and room state to the server.",
+  "ST-003": "Added size-based combat, dash movement, and rockets.",
+  "ST-004": "Reduced rendering tears and input delay across supported controls.",
+  "ST-005": "Adapted the game for desktop, keyboard, mouse, and touch.",
+  "ST-006": "Published service and tank logs with downloadable records.",
+  "ST-007": "Aligned the debug drawer with the public log format.",
+  "ST-008": "Mapped product actions to the Cloudflare resources they consume.",
+  "ST-009": "Added a measured spend limit that can stop gameplay.",
+  "ST-010": "Centralized maintenance, billing, alerts, and security controls.",
+  "ST-011": "Separated restored service from an open incident investigation.",
+  "ST-012": "Added an append-only SHA-256 receipt chain for control actions.",
+  "ST-013": "Fixed tables that clipped timestamps and identifiers.",
+  "ST-014": "Kept status and evidence available while gameplay is closed.",
+  "ST-015": "Organized evidence against ISO/IEC 27001 and ISO/IEC 42001.",
+  "ST-016": "Standardized public wording and reason-coded evidence.",
+  "ST-017": "Refreshed the controlled-outage messages.",
+  "ST-018": "Required TLS and authenticated access for operations routes.",
+  "ST-019": "Added a visible arena boundary with authoritative collision behavior.",
+  "ST-020": "Added touch controls for movement and abilities.",
+  "ST-021": "Changed availability measurement to cover the project lifetime.",
+  "ST-022": "Combined billing data into one spend meter.",
+  "ST-023": "Added an incident chart showing cause, start, and duration.",
+  "ST-024": "Protected the game shutdown control with authentication.",
+  "ST-025": "Replaced full-page status reloads with pausable live updates.",
+  "ST-026": "Corrected dialog focus trapping and restoration.",
+  "ST-027": "Fixed low-contrast overlay text in light mode.",
+  "ST-028": "Scoped log throttling to each connection.",
+  "ST-029": "Enforced room capacity when a seat is claimed.",
+  "ST-030": "Bound the incident record to protect recovery paths.",
+  "ST-031": "Made search and paging announcements concise and stable.",
+  "ST-032": "Made chart points reachable without trapping keyboard focus.",
+  "ST-033": "Added a unique heading for every API endpoint.",
+  "ST-034": "Stopped the tank list from announcing every refresh.",
+  "ST-035": "Tightened the Content Security Policy for scripts.",
+  "ST-036": "Removed internal details from public errors and exports.",
+  "ST-037": "Verified the receipt chain whenever it is read.",
+  "ST-038": "Removed invisible control characters from display names.",
+  "ST-039": "Changed the spend view to a readable current-day scale.",
+  "ST-040": "Completed keyboard and screen-reader fixes across public pages.",
+  "ST-041": "Simplified the outage page so its state is immediately clear.",
+  "ST-042": "Added accessible status announcements for important game events.",
+  "ST-043": "Added persistent player display names.",
+  "ST-044": "Published the policy set referenced by the control register.",
+  "ST-045": "Documented risk decisions and the rule-based agent boundary.",
+  "ST-046": "Performed the operational activities previously marked partial.",
+  "ST-047": "Separated the game from the public governance routes.",
+  "ST-048": "Deployed the route split and corrected stale evidence claims.",
+  "ST-049": "Cut production over to the public repository at v1.0.1.",
+  "ST-050": "Gave each standard its own page behind a live evidence index.",
+  "ST-051": "Refreshed repository commit metrics on every production deploy.",
+  "ST-052": "Shortened the change log and recorded the deployments since cutover."
 };
 
 function publicRoadmapEntry(entry: RoadmapEntry): RoadmapEntry {
@@ -1914,9 +1962,8 @@ function spendHtml(billing: Record<string, unknown>, embedded = false): string {
       ${metricCard(`$${numberValue(billing.hardLimitUsd).toFixed(2)}`, "Spend hard stop", headroom, "traffic", billing.hardLimitExceeded === true ? "tone-red" : "tone-green")}
     </div>
     <div class="card"><h2>Usage against the free tier</h2>
-      <p class="sub" style="margin:0 0 12px">Every meter reads the same way: what it is, what it has used to date, what the free tier allows, what <b>today</b> has spent against that allowance, and the lifetime daily average. Monthly allowances are shown as monthly but compared against a thirtieth of the month, so every bar shares one axis. Storage is a stock, so its cells show the level held rather than a rate.${todayPartial ? ` Today is measured from ${new Date(numberValue(today.since)).toISOString().slice(11, 16)} UTC, not from midnight — the day boundary is captured on the first reading of each day.` : ""}</p>
       <p class="meter-legend"><span><i></i> today, against a whole day's allowance</span><span><b></b> where the daily average sits</span><span>ticks mark 0.001 / 0.01 / 0.1 / 1 / 10 / 100% — the axis is logarithmic</span></p>
-      <div class="table-scroll" role="region" aria-label="Usage against the free tier" tabindex="0"><table class="billing-table meter-table"><caption class="sr-only">Usage against the free tier</caption><thead><tr><th scope="col">Service</th><th scope="col">Used to date</th><th scope="col">Limit</th><th scope="col">Today${todayPartial ? "*" : ""}</th><th scope="col">Daily average</th></tr></thead><tbody>
+      <div class="table-scroll" role="region" aria-label="Usage against the free tier" tabindex="0"><table class="billing-table meter-table"><caption class="sr-only">Usage against the free tier</caption><thead><tr><th scope="col">Service</th><th scope="col">Used to date</th><th scope="col">Limit</th><th scope="col">Today</th><th scope="col">Daily average</th></tr></thead><tbody>
       ${rows.map(meterRowHtml).join("")}
     </tbody></table></div><p class="sub" style="margin:12px 0 0">Sources: <a href="${esc(String(sources.workers ?? "#"))}">Workers</a>, <a href="${esc(String(sources.durableObjects ?? "#"))}">Durable Objects</a>, <a href="${esc(String(sources.r2 ?? "#"))}">R2</a>. Worker requests are not counted here: exact request billing is only available from account analytics.</p></div>`;
 }
@@ -2195,6 +2242,9 @@ const DEPLOYMENT_DATES: Readonly<Record<string, string>> = {
   D17: "2026-08-21T14:50:43.000Z",
   D18: "2026-08-21T16:02:54.000Z",
   D19: "2026-08-21T20:34:19.000Z",
+  // Read from `wrangler deployments list --env wizardgangprod`, not transcribed.
+  D27: "2026-08-29T01:37:29.785Z",
+  D28: "2026-08-29T22:39:59.043Z",
 };
 /** Deployment batches D01…Dnn, folded out of the `deployment` field on the roadmap entries. */
 interface DeploymentBatch { id: string; updates: number; firstEntry: string; from: number; to: number; elapsedMinutes: number; recorded: boolean }
@@ -2452,20 +2502,21 @@ function backupPanelHtml(backup?: BackupState): string {
     : "not yet taken";
   const drillTone = state.lastDrillAt === 0 ? "key-amber" : state.lastDrillOk ? "key-green" : "key-red";
   const drillWord = state.lastDrillAt === 0 ? "Not yet run" : state.lastDrillOk ? "Passed" : "Failed";
-  const rows: Array<[string, string]> = [
+  // The optional third member is a key-dot tone class. It is one of three literals
+  // chosen here, never caller input, so it is the only part of a row emitted unescaped.
+  const rows: Array<[string, string, string?]> = [
     ["Last copy taken", when(state.lastBackupAt)],
     ["What it covered", coverage],
     ["Copy digest (SHA-256)", state.lastBackupDigest ? state.lastBackupDigest : "—"],
     ["Copies retained", state.lastBackupAt ? `${state.retainedCopies} dated, plus the most recent` : "—"],
-    ["Last restore drill", `${drillWord}${state.lastDrillAt ? " · " + when(state.lastDrillAt) : ""}`],
+    ["Last restore drill", `${drillWord}${state.lastDrillAt ? " · " + when(state.lastDrillAt) : ""}`, drillTone],
     ["Drill result", state.lastDrillDetail || "—"],
   ];
   const failure = state.lastBackupError
     ? `<p class="sub" style="margin:8px 0 0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
     : "";
   return `<section class="card evidence-block" id="continuity" tabindex="-1"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
-    <p class="sub" style="margin:0 0 10px">Everything the tank holds — the control receipt chain, the 90-day action log, player profiles and spend history — is copied to object storage on a daily schedule. A restore drill reads the most recent copy back out of object storage, restores that copy into a scratch instance, and compares the scratch instance&rsquo;s export digest against the copy&rsquo;s; equal digests mean the stored copy reconstitutes the state it was taken from rather than merely something like it. If no copy can be read, the drill fails and says so rather than testing the live object instead. <span class="key-dot ${drillTone}"></span>${esc(drillWord)}.</p>
-    <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value]) => `<tr><td><strong>${esc(label)}</strong></td><td>${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</section>`;
+    <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value, tone]) => `<tr><td><strong>${esc(label)}</strong></td><td>${tone ? `<span class="key-dot ${tone}"></span>` : ""}${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</section>`;
 }
 
 /**

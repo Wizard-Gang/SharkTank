@@ -29,8 +29,8 @@ describe("concise public copy", () => {
 
   it("provides one short public summary for every change listing", () => {
     const block = worker.match(/const PUBLIC_ROADMAP_SUMMARIES:[\s\S]*?\n};/)?.[0] ?? "";
-    const summaries = [...block.matchAll(/"WG-\d{3}": "([^"]+)"/g)].map((match) => match[1]);
-    expect(summaries).toHaveLength(48);
+    const summaries = [...block.matchAll(/"ST-\d{3}": "([^"]+)"/g)].map((match) => match[1]);
+    expect(summaries).toHaveLength(52);
     for (const summary of summaries) {
       expect(summary.length).toBeLessThanOrEqual(140);
       expect(summary.match(/[.!?](?:\s|$)/g)?.length ?? 0).toBeLessThanOrEqual(2);
