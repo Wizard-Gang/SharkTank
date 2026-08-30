@@ -42,3 +42,4 @@ ST-040,c03123f265a1efcb9d60eb5f4c8097075a8b64b7,,,,forward-change,v1.3.1,one-sen
 ST-041,v1.3.1,,,,controlled-record,v1.3.1,record the v1.3.1 release covering dependency automation the concise public change log and the deployments since cutover
 ST-042,v1.3.2,,,,forward-change,v1.3.2,let the newest deployment report its own time from the deploy variable instead of the project clock
 ST-043,v1.3.3,,,,forward-change,v1.3.3,gate the production deploy on the authenticated Cloudflare deployment list because the public site answers CI runners with a managed challenge
+ST-044,v1.3.4,,,,forward-change,v1.3.4,report the output of a failed captured command in the production deploy script instead of exiting silently

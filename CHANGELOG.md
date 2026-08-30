@@ -4,6 +4,10 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+## v1.3.4 — 2026-08-30
+
+- ST-044 Report the output of a failed captured command in the production deploy script instead of exiting silently.
+
 ## v1.3.3 — 2026-08-30
 
 - ST-043 Gate the production deploy on the authenticated Cloudflare deployment list, because the public site answers CI runners with a Cloudflare managed challenge.
