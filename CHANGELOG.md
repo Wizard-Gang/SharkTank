@@ -4,6 +4,8 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+- ST-045 Consolidate SharkTank backup objects into the shared demo R2 bucket with isolated development and production prefixes.
+
 ## v1.3.4 — 2026-08-30
 
 - ST-044 Report the output of a failed captured command in the production deploy script instead of exiting silently.
