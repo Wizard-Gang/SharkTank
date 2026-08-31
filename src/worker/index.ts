@@ -33,6 +33,7 @@ interface Env {
   PHP_ORIGIN_TOKEN?: string;
   /** Object storage. Bound in wrangler.jsonc; holds the state copies runBackup writes. */
   R2_ASSETS?: R2Bucket;
+  R2_PREFIX?: string;
 }
 
 /** Applied to every response this Worker emits. HSTS keeps clients off plaintext after one visit. */
@@ -3135,8 +3136,8 @@ catch(err){show('Unable to send test alert.',true);}finally{b.disabled=false;}})
    retention window, and the outcome — success or failure — is receipted into the same
    chain the copy protects. Restoring is a separate, deliberate act; see runRestoreDrill,
    which proves the path works without touching live state. */
-const BACKUP_PREFIX = "backups/state/";
-const BACKUP_LATEST_KEY = BACKUP_PREFIX + "latest.json";
+const BACKUP_PATH = "backups/state/";
+const backupPrefix = (env: Env) => `${env.R2_PREFIX ?? ""}${BACKUP_PATH}`;
 /** How many dated copies are kept. Daily copies, so this is roughly a month of history. */
 const BACKUP_RETAIN = 30;
 
@@ -3164,18 +3165,20 @@ async function runBackup(env: Env): Promise<Record<string, unknown>> {
     return { ok: false, error: "no object storage bound" };
   }
   try {
+    const prefix = backupPrefix(env);
+    const latestKey = `${prefix}latest.json`;
     const data = await fetchStateExport(env);
     if (!data) throw new Error("export refused");
     const body = JSON.stringify(data);
     const stamp = new Date(data.takenAt).toISOString().replace(/[:.]/g, "-");
-    const key = `${BACKUP_PREFIX}${stamp}.json`;
+    const key = `${prefix}${stamp}.json`;
     const headers = { httpMetadata: { contentType: "application/json" }, customMetadata: { digest: String(data.digest ?? ""), takenAt: String(data.takenAt) } };
     await env.R2_ASSETS.put(key, body, headers);
-    await env.R2_ASSETS.put(BACKUP_LATEST_KEY, body, headers);
+    await env.R2_ASSETS.put(latestKey, body, headers);
 
     // Prune to the retention window. Keys are ISO-stamped, so lexical order is time order.
-    const listed = await env.R2_ASSETS.list({ prefix: BACKUP_PREFIX, limit: 1000 });
-    const dated = listed.objects.map((object) => object.key).filter((k) => k !== BACKUP_LATEST_KEY).sort();
+    const listed = await env.R2_ASSETS.list({ prefix, limit: 1000 });
+    const dated = listed.objects.map((object) => object.key).filter((k) => k !== latestKey).sort();
     const doomed = dated.slice(0, Math.max(0, dated.length - BACKUP_RETAIN));
     for (const old of doomed) await env.R2_ASSETS.delete(old);
 
@@ -3214,13 +3217,14 @@ async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
   // holding a full copy of every profile behind after every drill.
   const scratch = env.LOBBY.get(env.LOBBY.idFromName("state-restore-drill"));
   try {
+    const latestKey = `${backupPrefix(env)}latest.json`;
     // No bucket, or nothing in it, is a failed drill and not a reason to test something else.
     if (!env.R2_ASSETS) throw new Error("no object storage bound, so there is no stored copy to restore");
-    const stored = await env.R2_ASSETS.get(BACKUP_LATEST_KEY);
-    if (!stored) throw new Error(`no copy at ${BACKUP_LATEST_KEY} to restore; take one before drilling`);
+    const stored = await env.R2_ASSETS.get(latestKey);
+    if (!stored) throw new Error(`no copy at ${latestKey} to restore; take one before drilling`);
     let source: StateExportShape | null = null;
     try { source = (await stored.json()) as StateExportShape; }
-    catch { throw new Error(`the copy at ${BACKUP_LATEST_KEY} is not readable JSON`); }
+    catch { throw new Error(`the copy at ${latestKey} is not readable JSON`); }
     if (!source || typeof source !== "object") throw new Error("the stored copy is not an export");
     // Without a digest on the copy there is nothing to compare the restore against, and a
     // drill that cannot compare must not report a pass.
@@ -3251,10 +3255,10 @@ async function runRestoreDrill(env: Env): Promise<Record<string, unknown>> {
       ? new Date(source.takenAt).toISOString().slice(0, 16).replace("T", " ") + "Z"
       : "unknown time";
     const detail = match
-      ? `copy of ${takenLabel} read back from ${BACKUP_LATEST_KEY}; digest ${String(source.digest).slice(0, 16)}…; ${countOf(source.counts?.kv ?? 0, "key")}, ${countOf(source.counts?.controlHistory ?? 0, "receipt")}, ${countOf(source.counts?.audit ?? 0, "log row")}; ${drift}`
+      ? `copy of ${takenLabel} read back from ${latestKey}; digest ${String(source.digest).slice(0, 16)}…; ${countOf(source.counts?.kv ?? 0, "key")}, ${countOf(source.counts?.controlHistory ?? 0, "receipt")}, ${countOf(source.counts?.audit ?? 0, "log row")}; ${drift}`
       : `stored copy ${String(source.digest).slice(0, 16)}… vs restored ${String(copy.digest).slice(0, 16)}…`;
     await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: match, detail }), headers: { "content-type": "application/json" } }));
-    return { ok: match, detail, restoredFrom: BACKUP_LATEST_KEY, storedTakenAt: source.takenAt ?? null, storedBytes: stored.size, storedDigest: source.digest, liveDigest: live?.digest ?? null, liveMatchesStored: Boolean(live?.digest) && live?.digest === source.digest, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
+    return { ok: match, detail, restoredFrom: latestKey, storedTakenAt: source.takenAt ?? null, storedBytes: stored.size, storedDigest: source.digest, liveDigest: live?.digest ?? null, liveMatchesStored: Boolean(live?.digest) && live?.digest === source.digest, sourceCounts: source.counts ?? null, restoredCounts: copy.counts ?? null, elapsedMs: Date.now() - started };
   } catch (e) {
     const detail = e instanceof Error ? e.message : "unknown failure";
     await lobbyStub(env).fetch(new Request("https://lobby/backup/drill-result", { method: "POST", body: JSON.stringify({ ok: false, detail }), headers: { "content-type": "application/json" } }));

@@ -95,6 +95,7 @@ interface Env {
   CF_VERSION_METADATA?: WorkerVersionMetadata;
   R2_ASSETS?: R2Bucket;
   R2_BUCKET_NAME?: string;
+  R2_PREFIX?: string;
   ROOM: DurableObjectNamespace;
 }
 interface Report {
@@ -389,7 +390,7 @@ export class Lobby implements DurableObject {
     checkedAt: 0,
     objectCount: 0,
     storageBytes: 0,
-    bucket: "wizardgang-3d-assets-prod",
+    bucket: "wizardgang-demo-assets",
     truncated: false,
   };
   private billingWindow: BillingWindow = {
@@ -2372,7 +2373,7 @@ export class Lobby implements DurableObject {
       operations = 0,
       truncated = false;
     do {
-      const page = await this.env.R2_ASSETS.list({ limit: 1000, cursor });
+      const page = await this.env.R2_ASSETS.list({ prefix: this.env.R2_PREFIX ?? "", limit: 1000, cursor });
       operations += 1;
       objectCount += page.objects.length;
       storageBytes += page.objects.reduce(
@@ -2387,7 +2388,7 @@ export class Lobby implements DurableObject {
       checkedAt: Date.now(),
       objectCount,
       storageBytes,
-      bucket: this.env.R2_BUCKET_NAME ?? "wizardgang-3d-assets-prod",
+      bucket: this.env.R2_BUCKET_NAME ?? "wizardgang-demo-assets",
       truncated,
     };
     this.countWrites(2);
