@@ -9,6 +9,17 @@ const gameShell = read("../index.html");
 const gameMenu = read("../vendor/ModuleReact3Fiber/src/client/ui/MainMenu.tsx");
 
 describe("concise public copy", () => {
+  it("uses the current WizardGang mark on the evidence site and game menu", () => {
+    expect(worker).toContain('class="brand-mark" aria-hidden="true"');
+    expect(worker).toContain('<strong>WIZARDGANG</strong><small>SharkTank</small>');
+    expect(worker).toContain("background:#d9ff43;box-shadow:.5rem -.5rem 0 #a489ff");
+    expect(gameMenu).toContain('className="wizardgang-menu-mark"');
+    expect(gameMenu).toContain("<span>WIZARDGANG</span>");
+    expect(gameShell).toContain('rel="icon"');
+    expect(gameShell).toContain("%23d9ff43");
+    expect(gameShell).toContain("%23a489ff");
+  });
+
   it("removes the retired explanatory blocks and game case-study link", () => {
     for (const text of [
       "Engineering case study",

@@ -22,9 +22,9 @@ export function MainMenu({
     <div className="center-screen">
       <div className="stack shark-menu" style={{ width: "min(620px, 100%)", textAlign: "center" }}>
         <div className="shark-menu__brand">
-          <SharkTankMark />
+          <span className="wizardgang-menu-mark" aria-hidden="true" />
           <div>
-            <span>Wizard Gang</span>
+            <span>WIZARDGANG</span>
             <h1>Shark Tank</h1>
           </div>
         </div>
@@ -64,21 +64,6 @@ export function MainMenu({
 
       </div>
     </div>
-  );
-}
-
-function SharkTankMark() {
-  return (
-    <svg className="shark-menu__mark" viewBox="0 0 180 110" role="img" aria-label="Goofy Shark Tank mascot">
-      <path d="M35 55 4 26l8 30-8 29 31-25c12 26 67 35 112 4 12-8 20-8 29-9-9-2-17-4-29-12C102 13 47 27 35 55Z" fill="#22e6ff" stroke="#070b14" strokeWidth="5" strokeLinejoin="round" />
-      <path d="M76 29 91 5l19 28M76 75 90 102l14-29" fill="#0891b2" stroke="#070b14" strokeWidth="5" strokeLinejoin="round" />
-      <path d="M41 48c24-15 62-22 106-5-43-8-79 1-105 19Z" fill="#fff" opacity=".18" />
-      <circle cx="137" cy="40" r="13" fill="#fff" stroke="#070b14" strokeWidth="4" />
-      <circle cx="142" cy="43" r="5" fill="#070b14" />
-      <path d="M119 66q21 16 42-2-21 31-42 2Z" fill="#47142a" stroke="#070b14" strokeWidth="4" strokeLinejoin="round" />
-      <path d="m126 69 5 10 6-8 6 8 5-11" fill="#fff" stroke="#070b14" strokeWidth="2" strokeLinejoin="round" />
-      <circle cx="158" cy="48" r="3" fill="#070b14" />
-    </svg>
   );
 }
 
