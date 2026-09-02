@@ -4,6 +4,8 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+- ST-046 Replace stale site and game logos with the current WizardGang offset-square mark.
+
 - ST-045 Consolidate SharkTank backup objects into the shared demo R2 bucket with isolated development and production prefixes.
 
 ## v1.3.4 — 2026-08-30
