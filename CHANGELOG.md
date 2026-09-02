@@ -4,7 +4,12 @@ All notable reconstructed phases and forward public-repository changes are recor
 
 ## Unreleased
 
+## v1.3.7 — 2026-09-02
+
+- ST-047 Correct the release identity so the brand update resolves to its structured source commit.
 - ST-046 Replace stale site and game logos with the current WizardGang offset-square mark.
+
+## v1.3.5 — 2026-08-31
 
 - ST-045 Consolidate SharkTank backup objects into the shared demo R2 bucket with isolated development and production prefixes.
 
