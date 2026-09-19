@@ -47,3 +47,4 @@ ST-045,v1.3.5,,,,forward-change,v1.3.5,consolidate SharkTank backups into the sh
 ST-046,d21b6b162c5f80e13c2a83f1a9fde6a5256c7a50,,,,forward-change,v1.3.7,replace stale SharkTank brand marks and browser icons with the current WizardGang identity
 ST-047,v1.3.7,,,,controlled-record,v1.3.7,correct the brand release identity after the rejected v1.3.6 tag named a merge commit instead of the structured source commit
 ST-048,v1.3.8,,,,forward-change,v1.3.8,adopt the WizardGang repository baseline and reconcile package identity to the latest published release
+ST-049,v1.3.9,,,,forward-change,v1.3.9,define the repository normalization plan and contributor instructions for the WG-ARCH-001 convergence sequence
