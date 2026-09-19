@@ -13,6 +13,6 @@ SharkTank is a public, self-contained reconstruction. Preserve the buildable his
 
 ## Required checks
 
-Run `npm ci` once, then run `npm run verify`. When trust routes change, also start the local Worker and run `npm run check:evidence -- http://127.0.0.1:8787`.
+Run `npm ci` once, then run `npm run check`. When trust routes change, also start the local Worker and run `npm run check:evidence -- http://127.0.0.1:8787`.
 
 Deployment is tag-driven and requires the protected GitHub production environment. Do not invoke the production deploy script merely to validate a pull request; use its dry-run mode.
