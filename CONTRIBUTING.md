@@ -4,11 +4,11 @@ Thank you for helping improve SharkTank. This repository contains the complete W
 
 ## Local setup
 
-Use Node.js 24, npm, and PHP 8.2 or newer:
+Use the Node.js version pinned in `.node-version`, npm 11, and PHP 8.2 or newer:
 
 ```sh
 npm ci
-npm run verify
+npm run check
 ```
 
 For the local Worker, copy `.env.example` to an ignored local configuration file, provide non-production values, and run:

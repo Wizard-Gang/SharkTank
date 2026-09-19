@@ -13,10 +13,10 @@ npm run dev
 
 The Worker and browser client run locally on port 8787. The optional PHP runtime is managed with the `php:*` scripts in `package.json`.
 
-## Verify
+## Check
 
 ```bash
-npm run verify
+npm run check
 ```
 
 This runs TypeScript checks, unit tests, the PHP replay check, the production build, and the dependency audit.

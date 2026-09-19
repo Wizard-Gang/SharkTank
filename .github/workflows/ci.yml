@@ -22,12 +22,12 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          node-version-file: .nvmrc
+          node-version-file: .node-version
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Verify TypeScript, tests, PHP parity, build, and dependency audit
-        run: npm run verify
+      - name: Check TypeScript, tests, PHP parity, build, and dependency audit
+        run: npm run check
       - name: Verify structured reconstruction history
         run: npm run check:history
       - name: Verify reconstruction provenance
