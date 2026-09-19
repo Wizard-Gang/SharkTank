@@ -1,18 +1,66 @@
 # SharkTank contributor instructions
 
-SharkTank is a public, self-contained reconstruction. Preserve the buildable history, the evidence-bearing behavior, and the provenance records.
+SharkTank is a WizardGang production product repository. WG-ARCH-001 §27 is the organization repository baseline, and `implementation_plan.md` is the authoritative sequence for the current normalization work.
 
-## Change discipline
+Historical reconstruction evidence is preserved only where it is still required to prove provenance. Do not expand historical Markdown or provenance ledgers into a parallel forward changelog.
 
-- Work on a branch. Do not rewrite published commits or tags.
-- Keep changes focused and use a subject shaped like `[ST-NNN] [TYPE] Imperative summary`.
-- Dependabot's GitHub-verified `build(deps): bump ...` and `build(deps-dev): bump ...` commits are the only exception to the ST subject/body shape; the scope may be `deps` or `deps-dev` and the verb may be capitalised or not. CI verifies the bot author and noreply identity before accepting that exception.
-- Include these commit-body headings: `Change`, `Reason`, `Impact`, `Risk`, `Controls`, `Validation`, and `Evidence`, followed by either `Notes` or explicit `Source` and `Release` fields. Add `Rollback` for medium- or high-risk operational changes.
-- Update `docs/history/CHANGE-MAP.csv` when a change represents migrated history or alters an existing mapping.
-- Never commit credentials, `.env` files, Cloudflare identifiers intended to remain private, production exports, or operator receipts containing private values.
+## Read first
 
-## Required checks
+Before a controlled change, read:
 
-Run `npm ci` once, then run `npm run check`. When trust routes change, also start the local Worker and run `npm run check:evidence -- http://127.0.0.1:8787`.
+1. `implementation_plan.md` for the current task, dependencies, invariants, and acceptance criteria;
+2. `docs/ARCHITECTURE.md`;
+3. `docs/CHANGE-MANAGEMENT.md`;
+4. `docs/RELEASE-MANAGEMENT.md` when release/deploy behavior is in scope.
 
-Deployment is tag-driven and requires the protected GitHub production environment. Do not invoke the production deploy script merely to validate a pull request; use its dry-run mode.
+For organization-baseline questions, read WG-ARCH-001 §27 in `SouthernGentlemen/wizardgang-architecture-demo/docs/ARCHITECTURE-STANDARD.md` and treat it as the higher-level baseline. Project-specific behavior may extend it only when SharkTank has a real requirement.
+
+## Controlled-change discipline
+
+- Work from an up-to-date `main` on one focused branch.
+- Use the next free sequential `ST` identifier. Branches use `st-NNN-imperative-summary`.
+- Commit and pull-request titles use `[ST-NNN] [TYPE] Imperative summary` with exactly one type from: `INIT`, `FEAT`, `FIX`, `SEC`, `API`, `A11Y`, `I18N`, `AI`, `DB`, `OPS`, `TEST`, `DOCS`, `REFACTOR`, `PERF`, `BUILD`, `REVERT`, `CHORE`.
+- Dependabot's GitHub-verified dependency-bump commits are the only automated title/body exception currently accepted by repository validation.
+- Include commit-body headings: `Change`, `Reason`, `Impact`, `Risk`, `Controls`, `Validation`, and `Evidence`, followed by either `Notes` or explicit `Source` and `Release` fields. Add `Rollback` for medium/high-risk operational changes.
+- Never rewrite published commits or tags.
+- Never commit credentials, `.env` files, private Cloudflare identifiers, production exports, or operator receipts containing private values.
+
+Until ST-050 lands, preserve the existing provenance validator's requirements, including any mapping row mechanically required for the current controlled change. ST-050 is the planned cutover that makes Git history authoritative for forward ST sequencing. After that cutover, do not add forward change-history rows merely to duplicate Git.
+
+## Normalization rules
+
+- Follow the ST task order in `implementation_plan.md`; do not jump ahead across declared dependencies.
+- Keep structural migrations behavior-preserving unless the task explicitly changes behavior.
+- Do not grow `src/worker/index.ts` to implement presentation work. Extract focused modules instead.
+- The realtime game is the explicit client-application boundary. Ordinary human documentation/operations pages must remain complete without JavaScript and must not become a hydrated SPA.
+- Do not introduce D1, GraphQL, MCP, SAML, Tailwind, or another supported platform feature solely for conformity. Add only what the product needs.
+- Preserve Durable Object identities/migrations, R2 production state boundaries, protocol semantics, PHP parity, and fail-closed release/deploy behavior unless the task explicitly authorizes a change.
+- No production deployment is implied by a normalization task.
+
+## Required validation
+
+Current pre-ST-052 gate:
+
+```sh
+npm ci
+npm run check
+npm run check:history
+npm run check:provenance
+git diff --check
+```
+
+When trust/public IA behavior changes before ST-052, also run the local Worker acceptance required by the affected scripts (including `check:evidence` and/or `check:public-ia`). Do not invoke the production deploy path merely to validate a PR; use dry-run behavior when deployment code itself is in scope.
+
+ST-052 is planned to make `npm run check` the complete credential-free acceptance gate. After it lands, follow the then-current package scripts rather than preserving duplicate commands in prose.
+
+## Completion workflow
+
+The normal completion path is:
+
+```text
+branch -> implement -> validate -> commit -> pull request -> exact-head CI -> merge
+```
+
+If the current PR is the authoritative/up-to-date change, its exact head is green, and GitHub reports it mergeable, merge it. Do not stop at “ready to merge” unless the user explicitly says not to merge. Re-fetch the PR head and CI state before merging so a stale green run is never used as evidence.
+
+Do not begin the next ST task until the current task's dependency state on `main` is authoritative.
