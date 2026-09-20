@@ -76,7 +76,7 @@ Those choices are now constraints, not items to revisit during the normalization
 
 Unless a task explicitly authorizes a change, preserve:
 
-- `Room` and `Lobby` Durable Object class identityes and migration tag `v1`;
+- `Room` and `Lobby` Durable Object class identities and migration tag `v1`;
 - the stable `global` Lobby identity and room-ID semantics;
 - R2 production/development prefix separation and existing production object namespace;
 - WebSocket protocol and deterministic game/replay behavior;
@@ -85,21 +85,13 @@ Unless a task explicitly authorizes a change, preserve:
 - fail-closed production deployment and exact-tag release identity;
 - public evidence claims only when backed by executable/runtime evidence.
 
-## 6. Sequenced controlled changes
+## 6. Task lifecycle and handoff
 
-### ST-050 — REFACTOR — Separate provenance from forward change history
+`implementation_plan.md` contains only current and future normalization work. The pull request that completes a task removes that task's section from this file, so the successful merge purges completed work from `main`. Git commits, pull requests, CI runs, tags, and releases retain the historical record; do not preserve completed task narratives here.
 
-**Depends on:** ST-049.
+After a task is successfully merged and its plan entry is therefore purged, finish the working session with a ready-to-run prompt for the next remaining task. The handoff prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope and acceptance criteria, validation commands, and the merge/purge completion rule. Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
 
-Make Git history the authority for forward ST sequencing while preserving reconstruction provenance only where it proves imported source lineage.
-
-Required outcome:
-
-- `check:history` validates strict sequential ST IDs from Git non-merge history and enforces the exact WG-ARCH-001 §16 type vocabulary;
-- `check:provenance` validates immutable reconstruction/source mappings without requiring a new `CHANGE-MAP.csv` row for every forward change;
-- stop extending reconstruction ledgers as a parallel forward changelog;
-- update change-management documentation to state the new authority clearly;
-- preserve enough immutable source mapping to substantiate the public reconstruction without fabricating or rewriting history.
+## 7. Sequenced controlled changes
 
 ### ST-051 — BUILD — Enforce the controlled-change contract in CI
 
@@ -282,7 +274,7 @@ Required outcome:
 - verify canonical public routes, APIs, WebSockets, Durable Object behavior, PHP parity, evidence routes, build artifacts, and ordinary unknown-path behavior;
 - record remaining justified project-specific departures, if any, in `docs/ARCHITECTURE.md` rather than silently diverging.
 
-## 7. Completion definition
+## 8. Completion definition
 
 Normalization is complete when ST-064 is merged and green. At that point:
 

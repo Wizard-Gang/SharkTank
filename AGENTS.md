@@ -25,7 +25,7 @@ For organization-baseline questions, read WG-ARCH-001 §27 in `SouthernGentlemen
 - Never rewrite published commits or tags.
 - Never commit credentials, `.env` files, private Cloudflare identifiers, production exports, or operator receipts containing private values.
 
-Until ST-050 lands, preserve the existing provenance validator's requirements, including any mapping row mechanically required for the current controlled change. ST-050 is the planned cutover that makes Git history authoritative for forward ST sequencing. After that cutover, do not add forward change-history rows merely to duplicate Git.
+Git history is authoritative for forward ST sequencing. Provenance ledgers are limited to imported source lineage from the reconstruction and must not receive forward change-history rows merely to duplicate Git.
 
 ## Normalization rules
 
@@ -52,6 +52,14 @@ git diff --check
 When trust/public IA behavior changes before ST-052, also run the local Worker acceptance required by the affected scripts (including `check:evidence` and/or `check:public-ia`). Do not invoke the production deploy path merely to validate a PR; use dry-run behavior when deployment code itself is in scope.
 
 ST-052 is planned to make `npm run check` the complete credential-free acceptance gate. After it lands, follow the then-current package scripts rather than preserving duplicate commands in prose.
+
+## Implementation-plan maintenance and session handoff
+
+- `implementation_plan.md` is current/future-state only. The PR that completes a planned task removes that task's section, so a successful merge purges completed work from `main`.
+- Do not keep completed task summaries in the plan for historical purposes; Git, PRs, CI, tags, and releases are the history.
+- After a successful merge and plan purge, end the session with a complete ready-to-run prompt for the next remaining task.
+- That prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope/acceptance criteria, validation, and the same merge/purge completion rule.
+- Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
 
 ## Completion workflow
 
