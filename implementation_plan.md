@@ -93,18 +93,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-051 — BUILD — Enforce the controlled-change contract in CI
-
-**Depends on:** ST-050.
-
-Required outcome:
-
-- validate PR titles as `[ST-NNN] [TYPE] Imperative summary` with exactly one §16 type;
-- validate the `st-NNN-imperative-summary` branch convention for human controlled changes;
-- keep the narrow verified Dependabot exception without broadening it to arbitrary commits;
-- make CI call the repository authority commands rather than duplicating policy in YAML;
-- reject duplicate, skipped, or out-of-order controlled IDs.
-
 ### ST-052 — TEST — Make `npm run check` the complete credential-free acceptance gate
 
 **Depends on:** ST-051.

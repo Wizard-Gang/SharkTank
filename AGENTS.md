@@ -55,6 +55,11 @@ ST-052 is planned to make `npm run check` the complete credential-free acceptanc
 
 ## Implementation-plan maintenance and session handoff
 
+- Standing shorthand: when the user says `do needful`, treat that as authorization to read current `main`, `AGENTS.md`, and `implementation_plan.md`; select the first remaining task whose dependencies are satisfied; and execute its complete workflow without requiring the user to restate the task.
+- For `do needful`, perform branch -> implement -> validate -> commit -> pull request -> exact-head CI -> merge -> verify `main` -> purge the completed plan item. Do not stop at planning or "ready to merge" when the current change is green, current, and mergeable.
+- After that merge/purge, end the session with the ready-to-run prompt for the next remaining task. Do not automatically start that subsequent task in the same session unless the user explicitly says to continue or says `do needful` again.
+- If no task is open or the first open task has an unsatisfied dependency, report that state rather than inventing work.
+
 - `implementation_plan.md` is current/future-state only. The PR that completes a planned task removes that task's section, so a successful merge purges completed work from `main`.
 - Do not keep completed task summaries in the plan for historical purposes; Git, PRs, CI, tags, and releases are the history.
 - After a successful merge and plan purge, end the session with a complete ready-to-run prompt for the next remaining task.
