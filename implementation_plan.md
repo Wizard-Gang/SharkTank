@@ -83,18 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-057 — REFACTOR — Render human documents with React 19 on the Worker
-
-**Depends on:** ST-056.
-
-Required outcome:
-
-- `/`, `/controls/`, `/evidence/`, authenticated `/admin/`, maintenance/error human documents, and other Worker-owned HTML render from React/TSX using server/static rendering;
-- documents remain complete and useful without JavaScript;
-- progressively enhanced behavior moves to first-party TypeScript modules instead of inline script blocks where practical;
-- raw HTML insertion, if still required for a narrow artifact, is confined to one audited component with explicit tests;
-- no client hydration is introduced for ordinary documentation/operations pages.
-
 ### ST-058 — REFACTOR — Generate the game document shell from React
 
 **Depends on:** ST-055. May run after ST-057 to reuse presentation primitives.

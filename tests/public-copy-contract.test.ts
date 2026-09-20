@@ -5,6 +5,7 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 const worker = read("../src/worker/index.ts");
 const env = read("../src/worker/env.ts");
 const presentation = read("../src/worker/presentation.ts");
+const reactPresentation = read("../src/worker/presentation-react.tsx");
 const conformance = read("../src/worker/conformance.ts");
 const deploy = read("../scripts/deploy-prod.mjs");
 const gameShell = read("../index.html");
@@ -12,8 +13,8 @@ const gameMenu = read("../vendor/ModuleReact3Fiber/src/client/ui/MainMenu.tsx");
 
 describe("concise public copy", () => {
   it("uses the current WizardGang mark on the evidence site and game menu", () => {
-    expect(presentation).toContain('class="brand-mark" aria-hidden="true"');
-    expect(presentation).toContain('<strong>WIZARDGANG</strong><small>SharkTank</small>');
+    expect(reactPresentation).toContain('className="brand-mark" aria-hidden="true"');
+    expect(reactPresentation).toContain("<strong>WIZARDGANG</strong><small>SharkTank</small>");
     expect(presentation).toContain("background:#d9ff43;box-shadow:.5rem -.5rem 0 #a489ff");
     expect(gameMenu).toContain('className="wizardgang-menu-mark"');
     expect(gameMenu).toContain("<span>WIZARDGANG</span>");
@@ -29,7 +30,7 @@ describe("concise public copy", () => {
       "Scheduled tank downtime is tracked separately",
       "Records older than 24 hours are purged at the source",
       "The public evidence estate and the game’s menus",
-    ]) expect(worker + presentation + gameShell + gameMenu).not.toContain(text);
+    ]) expect(worker + presentation + reactPresentation + gameShell + gameMenu).not.toContain(text);
 
     for (const text of [
       "The implementation starts with the governed system",
