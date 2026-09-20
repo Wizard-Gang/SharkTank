@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 // compiles its .tsx (aliases win over the node_modules `file:` link, which is kept
 // so the Worker bundler can resolve the same specifiers).
 const sub = (rel: string) => fileURLToPath(new URL(`./vendor/ModuleReact3Fiber/src/${rel}`, import.meta.url));
+const gameDocumentEntry = fileURLToPath(new URL("./index.html", import.meta.url));
+const humanDocsEntry = fileURLToPath(new URL("./src/client/human-docs.ts", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -22,6 +24,19 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        index: gameDocumentEntry,
+        "human-docs": humanDocsEntry,
+      },
+      output: {
+        // Worker-rendered documents need one stable, first-party enhancement module path.
+        // The game entry and its lazy chunks remain content-hashed as before.
+        entryFileNames: (chunk) => chunk.name === "human-docs"
+          ? "assets/human-docs.js"
+          : "assets/[name]-[hash].js",
+      },
+    },
     // The 3D arena is intentionally lazy-loaded; its ~230 kB gzip payload includes Three.js.
     // Keep warnings focused on accidental growth beyond the known game-runtime boundary.
     chunkSizeWarningLimit: 900,

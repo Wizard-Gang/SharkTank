@@ -27,15 +27,11 @@ import {
   PAGE_CSS_PATH,
   POST_DELIVERY_ENTRIES,
   ROADMAP_MANIFEST,
-  adminViewerHtml,
   backupPanelHtml,
   controlHistoryListHtml,
-  controlsHtml,
   deliverySection,
   deploymentMetrics,
-  downtimeResponse,
   esc,
-  evidenceDashboardHtml,
   formatCompactDuration,
   gameLogText,
   incidentSummary,
@@ -52,7 +48,6 @@ import {
   statusLiveScript,
   tankCopy,
   timelineLegend,
-  trustHtml,
   type ControlHistoryEntry,
   type ControlHistoryIntegrity,
   type GameLogWireEvent,
@@ -61,6 +56,16 @@ import {
   type PublicLogEvent,
   type RoadmapAvailability,
 } from "./presentation.js";
+import {
+  renderAdminDocument,
+  renderControlsDocument,
+  renderDowntimeDocument,
+  renderEvidenceDocument,
+  renderNotFoundDocument,
+  renderOpenApiDocument,
+  renderOverviewDocument,
+  renderPolicyNotFoundDocument,
+} from "./presentation-react.js";
 
 export { HUMAN_REDIRECTS } from "./routes.js";
 
@@ -235,7 +240,7 @@ function maintenanceBypass(path: string, method: string): boolean {
   if (METERED_PUBLIC_WRITES.has(path) && method !== "GET" && method !== "HEAD") return false;
   // The stylesheet the bypassed trust pages link. Without this it would answer with the
   // downtime page under a text/css request and every bypassed page would render unstyled.
-  if (path.startsWith("/styles/")) return true;
+  if (path.startsWith("/styles/") || path === "/assets/human-docs.js") return true;
   return path === "/" || path === "/robots.txt" || path === "/sitemap.xml" ||
     path === "/api" || path.startsWith("/api/") ||
     path === "/docs" || path.startsWith("/docs/") || path === "/openapi.json" ||
@@ -504,7 +509,10 @@ export default {
         if (state.enabled) {
           // An API caller gets the machine-readable refusal, not the downtime page.
           if (path.startsWith("/api/")) return json({ ok: false, error: "service gated", reason: state.reason || "Safety control active" }, 503);
-          return downtimeResponse(state);
+          const response = html(renderDowntimeDocument(state), 503);
+          response.headers.set("retry-after", "60");
+          response.headers.set("cache-control", "no-store");
+          return response;
         }
       }
       // The page stylesheet, ahead of every other route and of the asset fallback. Only the
@@ -530,7 +538,7 @@ export default {
       if (legacyPolicy) {
         const doc = findGovernanceDoc(legacyPolicy[1]);
         if (doc) return movedTo(url, `/controls/#${doc.id}`);
-        return html(shell("SharkTank — Policy not found", `<section class="page-intro"><div class="eyebrow">Not found</div><h1>Policy record not found.</h1><p class="sub">There is no maintained control document with the identifier <code>${esc(legacyPolicy[1])}</code>. <a href="/controls/#policies">Browse the complete policy record →</a></p></section>`), 404);
+        return html(renderPolicyNotFoundDocument(legacyPolicy[1]), 404);
       }
 
       // Same-origin facade keeps the TypeScript ⇄ PHP proof-of-concept toggle usable
@@ -717,19 +725,14 @@ export default {
         return json(OPENAPI);
       }
       if (path === "/docs" || path === "/docs/") {
-        const response = html(shell("Shark — API Docs", openApiToHtml(OPENAPI)));
+        const response = html(renderOpenApiDocument(openApiToHtml(OPENAPI)));
         response.headers.set("x-robots-tag", "noindex");
         return response;
       }
 
       if (path === "/controls") return movedTo(url, "/controls/");
       if (path === "/controls/") {
-        return html(shell(
-          "SharkTank — ISO 27001, ISO 42001, and production controls",
-          controlsHtml(),
-          "SharkTank's information-security, AI-management, accessibility, continuity, change, and operational controls with complete registers and policy records.",
-          "/controls/",
-        ));
+        return html(renderControlsDocument());
       }
       if (path === "/evidence") return movedTo(url, "/evidence/");
       if (path === "/evidence/") {
@@ -739,12 +742,7 @@ export default {
           publicLogData(env),
         ]);
         const data = (await statusRes.json()) as PublicEvidenceStatus;
-        return html(shell(
-          "SharkTank — Live production evidence",
-          evidenceDashboardHtml(data, incidentRecord, logs, deploymentMetrics(env)),
-          "Live availability, incidents, continuity, spend governance, controlled degradation, logs, receipts, and delivery evidence from the running SharkTank production workload.",
-          "/evidence/",
-        ));
+        return html(renderEvidenceDocument(data, incidentRecord, logs, deploymentMetrics(env)));
       }
 
       if (path === "/roadmap.json") {
@@ -821,7 +819,7 @@ export default {
         const billing = publicBillingWindow(data.billingWindow ?? {});
         const summary = summarise(ALL_CONTROLS);
         const lastEntry = [...ROADMAP_MANIFEST, ...POST_DELIVERY_ENTRIES].at(-1) ?? null;
-        return html(shell("SharkTank — Governed realtime production engineering", trustHtml({
+        return html(renderOverviewDocument({
           portal: incidentSummary([]),
           tank: incidentSummary(incidents),
           incidents,
@@ -830,7 +828,7 @@ export default {
           hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
           readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
           lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
-        }), "A running realtime production system demonstrating ISO/IEC 27001, ISO/IEC 42001, WCAG-oriented accessibility, reliability, continuity, and controlled spend through live evidence.", "/"));
+        }));
       }
 
       if (path === "/policies.json") return json(governanceManifest());
@@ -960,7 +958,7 @@ export default {
       // Authenticated control room (HTML). Everything above this line under /admin/ is its
       // data; everything it does lands in the public record the conformance register cites.
       if (path === "/admin" || path === "/admin/") {
-        return html(shell("Shark — Admin", adminViewerHtml()));
+        return html(renderAdminDocument());
       }
     } catch (e) {
       // The message can carry internal paths, binding names and storage keys, and this
@@ -976,7 +974,7 @@ export default {
     const gameShell = isGameShellPath(path);
     const staticAsset = isStaticAssetPath(path);
     if (!gameShell && !staticAsset) {
-      return html(shell("Shark Tank — Route not found", `<section><p class="eyebrow">404</p><h1>Route not found</h1><p>This Shark Tank route does not exist.</p><p><a class="button" href="/play/">Play Shark Tank</a></p></section>`, "The requested Shark Tank route does not exist."), 404);
+      return html(renderNotFoundDocument(), 404);
     }
 
     // Game shell and immutable static assets.

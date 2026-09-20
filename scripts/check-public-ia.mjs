@@ -46,7 +46,7 @@ async function main() {
     if (path !== "/play/") {
       if (response.headers.get("cache-control") !== "no-store") fail(`${path} expected cache-control no-store`);
       const canonicalHref = `https://sharktank.wizardgang.ai${path}`;
-      if (!html.includes(`<link rel="canonical" href="${canonicalHref}">`)) fail(`${path} is missing canonical link ${canonicalHref}`);
+      if (!html.includes(`<link rel="canonical" href="${canonicalHref}"`)) fail(`${path} is missing canonical link ${canonicalHref}`);
     }
     if (path !== "/play/" && !html.includes('<nav aria-label="Primary">')) fail(`${path} is missing the primary navigation`);
     if (path !== "/play/" && (html.match(/<h1(?:\s|>)/g) || []).length !== 1) fail(`${path} must contain exactly one h1`);

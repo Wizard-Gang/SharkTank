@@ -5,6 +5,8 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 
 const worker = read("../src/worker/index.ts");
 const presentation = read("../src/worker/presentation.ts");
+const reactPresentation = read("../src/worker/presentation-react.tsx");
+const humanDocs = read("../src/client/human-docs.ts");
 const routes = read("../src/worker/routes.ts");
 const app = read("../vendor/ModuleReact3Fiber/src/client/App.tsx");
 const focusTrap = read("../vendor/ModuleReact3Fiber/src/client/a11y/useFocusTrap.ts");
@@ -14,18 +16,18 @@ const settings = read("../vendor/ModuleReact3Fiber/src/client/ui/Settings.tsx");
 
 describe("public accessibility contract", () => {
   it("keeps a keyboard bypass, visible focus, contrast, motion, and hash focus handling on evidence pages", () => {
-    expect(presentation).toContain('class="skip-link" href="#main"');
-    expect(presentation).toContain('<main id="main" tabindex="-1">');
+    expect(reactPresentation).toContain('className="skip-link" href="#main"');
+    expect(reactPresentation).toContain('<main id="main" tabIndex={-1}>');
     expect(presentation).toContain(":focus-visible{outline:3px solid var(--focus)");
     expect(presentation).toContain("@media(prefers-reduced-motion:reduce)");
     expect(presentation).toContain("@media(prefers-contrast:more)");
-    expect(presentation).toContain('el.focus({preventScroll:true})');
+    expect(humanDocs).toContain("target.focus({ preventScroll: true })");
   });
 
   it("keeps the validated WCAG claim without the removed explanatory block", () => {
-    expect(presentation).toContain("WCAG 2.0 AA");
-    expect(worker + presentation).not.toContain("The public evidence estate and the game’s menus");
-    expect(worker + presentation).not.toContain("The claim is deliberately scoped");
+    expect(reactPresentation).toContain("WCAG 2.0 AA");
+    expect(worker + presentation + reactPresentation).not.toContain("The public evidence estate and the game’s menus");
+    expect(worker + presentation + reactPresentation).not.toContain("The claim is deliberately scoped");
   });
 
   it("keeps the game operable by keyboard with managed focus and reduced motion", () => {
@@ -45,7 +47,7 @@ describe("public accessibility contract", () => {
 
 describe("canonical public information architecture", () => {
   it("keeps exactly four primary navigation destinations", () => {
-    const nav = presentation.match(/const TRUST_NAV:[\s\S]*?\n\];/)?.[0] ?? "";
+    const nav = reactPresentation.match(/const PRIMARY_NAV = \[[\s\S]*?\n\] as const;/)?.[0] ?? "";
     expect(nav).toContain('["/", "Overview"]');
     expect(nav).toContain('["/controls/", "Controls"]');
     expect(nav).toContain('["/evidence/", "Evidence"]');
