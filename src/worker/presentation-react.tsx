@@ -41,7 +41,8 @@ interface OverviewPresentationInput {
   spendUsd: number;
   hardLimitUsd: number;
   readiness: { percent: number; met: number; partial: number; total: number };
-  lastDeployment: { id: string; title: string } | null;
+  release: string;
+  environment: string;
 }
 
 interface GeneratedMainProps {
@@ -226,7 +227,7 @@ function OverviewMain({ input }: { input: OverviewPresentationInput }) {
         <div className="trust-grid">
           <ProofTile href="/evidence/#availability" label="Server availability" value={input.portal.availabilityPercent + "%"} detail={input.portal.windowLabel + " measured"} tone="tone-green" />
           <ProofTile href="/evidence/#spend" label="Metered resource cost" value={"$" + input.spendUsd.toFixed(4)} detail={"of the $" + input.hardLimitUsd.toFixed(2) + " hard stop"} tone="tone-cyan" />
-          <ProofTile href="/evidence/#changes" label="Last deployment" value={input.lastDeployment?.id ?? "—"} detail={input.lastDeployment?.title ?? "no deployment recorded"} tone="tone-cyan" />
+          <ProofTile href="/version.json" label="Current release" value={input.release} detail={input.environment + " environment"} tone="tone-cyan" />
           <ProofTile href="/evidence/#receipts" label="Receipt chain" value={chainOk ? "Verified" : "Unverified"} detail={input.integrity.entryCount + " receipts · " + input.integrity.algorithm} tone={chainOk ? "tone-green" : "tone-red"} />
         </div>
       </section>
@@ -323,7 +324,7 @@ export function renderEvidenceDocument(...args: Parameters<typeof evidenceDashbo
   return renderGeneratedDocument(
     {
       title: "SharkTank — Live production evidence",
-      description: "Live availability, incidents, continuity, spend governance, controlled degradation, logs, receipts, and delivery evidence from the running SharkTank production workload.",
+      description: "Live availability, incidents, continuity, spend governance, controlled degradation, logs, receipts, and release identity from the running SharkTank production workload.",
       canonicalPath: "/evidence/",
     },
     "evidence",

@@ -139,7 +139,7 @@ export const OPENAPI = {
       get: {
         tags: ["ops"],
         summary: "Consolidated live production evidence",
-        description: "Availability, incidents, state copies and restore drills, receipt integrity, spend and controlled degradation, reason-coded logs, changes, and raw evidence endpoints.",
+        description: "Availability, incidents, state copies and restore drills, receipt integrity, spend and controlled degradation, reason-coded logs, current release identity, and raw evidence endpoints.",
         responses: { "200": htmlResponse("Live production evidence dashboard") },
       },
     },
@@ -149,21 +149,6 @@ export const OPENAPI = {
         summary: "Governance overview compatibility route",
         description: "Permanently redirects to `/`.",
         responses: { "301": { description: "Moved to /" } },
-      },
-    },
-    "/roadmap/": {
-      get: {
-        tags: ["ops"],
-        summary: "Change record (moved)",
-        description: "Permanently redirects to `/evidence/#changes`, where the change record now lives. `/roadmap.json` did not move.",
-        responses: { "301": { description: "Moved to /evidence/#changes" } },
-      },
-    },
-    "/roadmap.json": {
-      get: {
-        tags: ["ops"],
-        summary: "Mission and feature-to-deployment map (JSON)",
-        responses: { "200": jsonResponse("Availability, delivery velocity, elapsed time, deployment batches, and feature updates") },
       },
     },
     "/status/": {
@@ -278,7 +263,7 @@ export const OPENAPI = {
     "/admin/maintenance": {
       post: {
         tags: ["ops"], summary: "Enable or disable maintenance mode",
-        description: "Same-origin Admin action. Enabling creates a separate operator-maintenance incident, closes active WebSockets, and returns the controlled 503 page for the game shell, game assets, and tank traffic while Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, the conformance register, and Admin remain online. Disabling records the end of service impact but leaves independent security reports active until separately resolved. Every transition is persisted to the action log and the control-history receipt chain.",
+        description: "Same-origin Admin action. Enabling creates a separate operator-maintenance incident, closes active WebSockets, and returns the controlled 503 page for the game shell, game assets, and tank traffic while API, Docs, Status, Incidents, Inquiry, Logs, the conformance register, and Admin remain online. Disabling records the end of service impact but leaves independent security reports active until separately resolved. Every transition is persisted to the action log and the control-history receipt chain.",
         security: [{ opsBasic: [] }],
         parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["maintenance"] } }],
         requestBody: { required: true, content: { "application/json": { schema: obj({ enabled: { type: "boolean" }, reason: str() }) } } },
@@ -307,7 +292,7 @@ export const OPENAPI = {
     "/admin/security-report": {
       post: {
         tags: ["ops"], summary: "File a security report and take the game down",
-        description: "Same-origin Admin action. Records the same report, audit event, and control-history receipt as the public intake, and additionally opens an active security incident, enables game maintenance, and disconnects active tanks pending operator review. Restoring game traffic records the end of service impact but does not resolve or close the security report; that is /admin/security-resolve. At most one security-report lockdown is open at a time — a repeat call while one is open returns the existing incident and creates no second incident or receipt. Roadmap, Status, Incidents, Inquiry, Logs, Docs, API, the conformance register, and authenticated Admin remain available throughout.",
+        description: "Same-origin Admin action. Records the same report, audit event, and control-history receipt as the public intake, and additionally opens an active security incident, enables game maintenance, and disconnects active tanks pending operator review. Restoring game traffic records the end of service impact but does not resolve or close the security report; that is /admin/security-resolve. At most one security-report lockdown is open at a time — a repeat call while one is open returns the existing incident and creates no second incident or receipt. Status, Incidents, Inquiry, Logs, Docs, API, the conformance register, and authenticated Admin remain available throughout.",
         security: [{ opsBasic: [] }],
         parameters: [{ name: "X-WG-Ops-Action", in: "header", required: true, schema: { type: "string", enum: ["security-report"] } }],
         responses: { "200": jsonResponse("Linked lockdown and report receipt"), "401": { description: "Operations authentication required" }, "403": { description: "Same-origin operation required" }, "502": { description: "Report and lockdown could not be persisted" } },

@@ -1,9 +1,8 @@
 import { conformanceHtml, summarise, ALL_CONTROLS } from "./conformance.js";
 import { governanceControlsHtml } from "./governance.js";
 import type { BackupState } from "./lobby-do.js";
-import type { Env, MaintenanceState } from "./env.js";
+import type { MaintenanceState } from "./env.js";
 import { SECURITY_HEADERS, html } from "./responses.js";
-import { canonicalPublicHref } from "./routes.js";
 import { numberValue, publicBillingWindow, recordValue } from "./presentation-data.js";
 
 const DOWNTIME_HEADLINES = [
@@ -33,36 +32,6 @@ const DOWNTIME_QUIPS = [
   "The sharks formed a procurement committee. Nine meetings later, they approved a stapler.",
   "A great white filed a jet ski under transportation. Audit filed it under no.",
   "The sharks ordered premium chum for the table. Finance approved tap water.",
-] as const;
-type ChangeLabel = "feature" | "enhancement" | "fix" | "bonus" | "hotfix";
-interface RoadmapEntry {
-  id: string;
-  at: string;
-  label: ChangeLabel;
-  deployment: string;
-  title: string;
-  summary: string;
-  evidence: string[];
-  /** Public evidence this entry answers to, e.g. the security report that triggered a hotfix. */
-  reference?: { label: string; href: string };
-}
-const ROADMAP_MANIFEST: readonly RoadmapEntry[] = [
-  { id: "ST-001", at: "00:00", label: "feature", deployment: "D01", title: "Serve the game and its operations pages from one Worker", summary: "Host the game and public operations as one controlled deployment.", evidence: ["Worker routing", "Durable Object tanks", "public operations routes"] },
-  { id: "ST-002", at: "00:25", label: "feature", deployment: "D01", title: "Run the game simulation on the server", summary: "Run movement, growth, collisions, bots, and state on the server.", evidence: ["WebSocket simulation", "ocean-named tanks", "durable room state"] },
-  { id: "ST-003", at: "00:55", label: "enhancement", deployment: "D01", title: "Add size-based combat, a dash and rockets", summary: "Large sharks eat smaller sharks; rockets beat every shark.", evidence: ["size-based combat", "dash ability", "rocket dot explosions"] },
-  { id: "ST-004", at: "01:20", label: "fix", deployment: "D02", title: "Fix frame tearing and input lag", summary: "Tighten rendering and steering for mouse, keyboard, and touch.", evidence: ["snapshot interpolation", "local prediction", "large hit targets"] },
-  { id: "ST-005", at: "01:50", label: "enhancement", deployment: "D02", title: "Adapt the game UI to any screen and input", summary: "Support desktop, keyboard-only, mouse-only, and mobile play.", evidence: ["ability controls", "gear menu", "responsive HUD"] },
-  { id: "ST-006", at: "02:15", label: "feature", deployment: "D03", title: "Publish service and tank logs with downloads", summary: "Publish service and tank evidence without internal player identifiers.", evidence: ["/logs/", "sortable captures", "TXT CSV-style downloads"] },
-  { id: "ST-007", at: "02:40", label: "enhancement", deployment: "D03", title: "Match the debug drawer to the public log format", summary: "Align the selected debug language with public tank logs.", evidence: ["desktop debug drawer", "language toggle", "matching log schema"] },
-  { id: "ST-008", at: "03:05", label: "feature", deployment: "D03", title: "Map every product action to the usage it bills", summary: "Map product actions to Workers, Durable Objects, D1, and R2 usage.", evidence: ["/spend/", "binding-aware coverage", "free-tier anchors"] },
-  { id: "ST-009", at: "03:30", label: "enhancement", deployment: "D04", title: "Stop gameplay when spend reaches the limit", summary: "Reset current-spend tracking and stop gameplay at the measured limit.", evidence: ["billing reset", "$5 threshold", "service-level gate"] },
-  { id: "ST-010", at: "04:00", label: "feature", deployment: "D04", title: "Put maintenance, billing and alerts behind one panel", summary: "Keep maintenance, billing, alerts, and security controls together.", evidence: ["/admin/", "maintenance toggle", "four-character test alerts"] },
-  { id: "ST-011", at: "04:25", label: "fix", deployment: "D04", title: "Restore gameplay without closing the investigation", summary: "Restoring gameplay ends impact without closing the investigation.", evidence: ["immediate lockdown", "separate maintenance event", "open investigation state"] },
-  { id: "ST-012", at: "04:50", label: "enhancement", deployment: "D05", title: "Chain every control decision into a signed receipt", summary: "Link control decisions in an append-only SHA-256 receipt chain.", evidence: ["linked receipts", "incident references", "digestible history"] },
-  { id: "ST-013", at: "05:15", label: "fix", deployment: "D05", title: "Stop tables clipping timestamps and identifiers", summary: "Contain timestamps, subjects, schemas, and identifiers at every viewport.", evidence: ["one-line identity cells", "controlled detail wrap", "contained horizontal scroll"] },
-  { id: "ST-014", at: "05:35", label: "enhancement", deployment: "D05", title: "Keep the site up while the tank is closed", summary: "Keep the portal online while billing or operators close the Shark Tank.", evidence: ["independent delivery path", "controlled game access", "game-independent status surface"] },
-  { id: "ST-015", at: "06:30", label: "enhancement", deployment: "D06", title: "Organise the evidence for ISO 27001 and 42001", summary: "Organize evidence toward ISO/IEC 27001 and ISO/IEC 42001.", evidence: ["risk and control evidence", "incident accountability", "independent assessment required"] },
-  { id: "ST-016", at: "08:00", label: "fix", deployment: "D07", title: "Unify the wording across every page", summary: "Unify Shark Tank language, reason-coded evidence, and the final sales narrative.", evidence: ["mission-led roadmap", "reason-coded logs", "cross-route copy pass"] },
 ] as const;
 
 function downtimeResponse(state: MaintenanceState): Response {
@@ -108,598 +77,6 @@ function tickPick<T>(items: readonly T[], tick: number, salt: number): T {
   for (let i = 0; i < n && gcd(step, n) !== 1; i += 1) step = (step % (n - 1)) + 1;
   const offset = mix(cycle * 3 + salt + 1) % n;
   return items[(position * step + offset) % n];
-}
-
-/** Post-delivery entries are stamped in elapsed project time, continuing past the
- *  eight-hour build. One formatter keeps them monotonic as hotfixes accumulate. */
-function roadmapClock(minutesAfterBuild: number): string {
-  const total = 9 * 60 + minutesAfterBuild;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-/** The security report that drove the ST-018 hotfix. Public id, no internal detail. */
-const HOTFIX_REPORT_ID = "white-hat-ce395a2b-6d48-49bd-b8e3-f58e6b58b162";
-const HOTFIX_MINUTES = 7;
-/** Hour nine of an eight-hour build. Shown on the map, deliberately excluded from every metric. */
-const BONUS_ROADMAP_ENTRY: RoadmapEntry = { id: "ST-017", at: "09:00", label: "bonus", deployment: "D08", title: "Rewrite the outage jokes", summary: "Spent the bonus hour rewriting the outage jokes. Shipped zero business value, on time and under budget.", evidence: ["setup-and-punchline downtime copy", "tick-driven rotation, no repeats", "no measurable business value"] };
-/** Emergency response to an independent white-hat report against the operations gate. */
-const HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-018",
-  at: roadmapClock(HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D09",
-  title: "Require TLS and a token on the operations gate",
-  summary: `Closed in ${HOTFIX_MINUTES} minutes. Operations auth had an unauthenticated fallback when no token was set. It now accepts only the minted token, over TLS, and denies when there is none.`,
-  evidence: ["TLS required on every route", "no unauthenticated fallback path", "HSTS on every response", "constant-time token comparison"],
-  reference: { label: "Security report and control receipts", href: "/status/#incidents" },
-};
-/** Everything after the eight-hour build. Rendered on the map, excluded from every metric. */
-/** Second hotfix: the arena wall was lethal but never drawn, so deaths looked random. */
-const GAME_HOTFIX_MINUTES = 10;
-const GAME_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-019",
-  at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D10",
-  title: "Draw the arena boundary that kills on contact",
-  summary: `Closed in ${GAME_HOTFIX_MINUTES} minutes. The arena radius killed on contact but was never drawn. It now renders, with a warning band inside it.`,
-  evidence: ["arena boundary drawn every frame", "red proximity band inside the last 14 units", "rockets restricted to players"],
-  reference: { label: "Reproduced on production before the fix", href: "/logs/" },
-};
-/** Third hotfix: mobile play was unusable and the tank was too small to hold a lobby. */
-const MOBILE_HOTFIX_MINUTES = 38;
-const MOBILE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-020",
-  at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D11",
-  title: "Add a thumbstick and ability pads for touch",
-  summary: `Closed in ${MOBILE_HOTFIX_MINUTES} minutes. Tapping to steer spent the dash on every tap. Touch play now steers from a thumbstick, with the abilities on their own pads.`,
-  evidence: ["floating thumbstick, pads under the other thumb", "32 sharks per tank", "centre-weighted dot spawns", "non-modal respawn card", "Feeding Frenzy event"],
-  reference: { label: "Controls and layout verified on a phone viewport", href: "/status/#delivery" },
-};
-/** Fourth hotfix: copy that described the product instead of reporting on it, an
- *  availability window that forgot yesterday, and a log page showing 40 rows of a
- *  90-day record. */
-const EVIDENCE_HOTFIX_MINUTES = 21;
-const EVIDENCE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-021",
-  at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D12",
-  title: "Measure availability from project start, not 24 hours",
-  summary: `Closed in ${EVIDENCE_HOTFIX_MINUTES} minutes. A rolling 24-hour availability window forgot every incident older than a day. Availability now runs from project start, and the logs page carries the full record.`,
-  evidence: ["availability measured since project start", "labelled lanes, counted legend", "every marker links to its record", "full 90-day and 24-hour log windows"],
-  reference: { label: "Availability bar and legend", href: "/status/#incidents" },
-};
-/** Fifth hotfix: three spend tables in three different shapes, and cost reported as a
- *  single instantaneous number with no trend. */
-const INQUIRY_HOTFIX_MINUTES = 13;
-const INQUIRY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-022",
-  at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D13",
-  title: "Merge three billing tables into one meter",
-  summary: `Closed in ${INQUIRY_HOTFIX_MINUTES} minutes. Three billing tables in three column shapes compared against nothing. One meter now reads every service on a shared axis, and spend is sampled hourly and charted.`,
-  evidence: ["one four-column meter for every service", "monthly limits normalised per day", "headroom bar on every row", "hourly spend samples charted"],
-  reference: { label: "Usage against the free tier", href: "/spend/" },
-};
-/** Sixth hotfix: the incident report was showing the status page's availability bar. */
-const INCIDENT_HOTFIX_MINUTES = 13;
-const INCIDENT_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-023",
-  at: roadmapClock(HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES + INCIDENT_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D14",
-  title: "Chart incidents by cause, start and duration",
-  summary: `Closed in ${INCIDENT_HOTFIX_MINUTES} minutes. The incident page redrew the status page's availability bar and said nothing about the incidents themselves. It now charts each incident by cause, start and duration.`,
-  evidence: ["one lane per incident cause", "duration bars, diamonds for point events", "inception-to-now axis", "every mark links to its record", "shared with the roadmap"],
-  reference: { label: "Incident chart", href: "/status/#incidents" },
-};
-/** Running total of post-delivery development minutes through ST-023. The security and
- *  accessibility hotfixes below continue the same clock. */
-const POST_DELIVERY_MINUTES_THROUGH_ST023 =
-  HOTFIX_MINUTES + GAME_HOTFIX_MINUTES + MOBILE_HOTFIX_MINUTES + EVIDENCE_HOTFIX_MINUTES + INQUIRY_HOTFIX_MINUTES + INCIDENT_HOTFIX_MINUTES;
-
-/* ST-024 to ST-027 answer an independent security and accessibility review: one critical
- * security finding and three critical accessibility findings, shipped together as D15. */
-const TAKEDOWN_HOTFIX_MINUTES = 12;
-const TAKEDOWN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-024",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D15",
-  title: "Put taking the game offline behind authentication",
-  summary: `Closed in ${TAKEDOWN_HOTFIX_MINUTES} minutes. The route that disabled the game was gated by two forgeable headers, one of them published in the public API document. Reporting and taking the game down are now separate operations, and only the takedown is authenticated.`,
-  evidence: ["public intake records, never disables", "downtime moved behind operations auth", "one open lockdown at a time", "accepted reports throttled to one a minute"],
-  reference: { label: "Control receipts", href: "/status/#incidents" },
-};
-const STATUS_HOTFIX_MINUTES = 6;
-const STATUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-025",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D15",
-  title: "Stop the status page reloading itself",
-  summary: `Closed in ${STATUS_HOTFIX_MINUTES} minutes. A three-second full-page reload wiped screen-reader position and keyboard focus, with no way to stop it. Figures now update in place, and the refresh can be paused.`,
-  evidence: ["no full-page reload", "values patched into a polite live region", "visible pause control", "20 origin hits a minute down to 4"],
-  reference: { label: "Availability status", href: "/status/" },
-};
-const FOCUS_HOTFIX_MINUTES = 4;
-const FOCUS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-026",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D15",
-  title: "Stop dialogs stealing keyboard focus",
-  summary: `Closed in ${FOCUS_HOTFIX_MINUTES} minutes. The in-game dialogs re-armed their focus trap on every re-render, throwing keyboard users back to the Close button twice a minute. The trap now arms once per dialog.`,
-  evidence: ["focus trap arms once, not per render", "Escape and Tab cycling unchanged", "fix applies to every dialog"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-const CONTRAST_HOTFIX_MINUTES = 5;
-const CONTRAST_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-027",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D15",
-  title: "Fix unreadable overlay text in light mode",
-  summary: `Closed in ${CONTRAST_HOTFIX_MINUTES} minutes. The light theme turned overlay text near-black but left the panels behind it dark, hiding the score at 1.05:1. On-canvas overlays now keep one palette in both themes.`,
-  evidence: ["1.05:1 to 18:1 in light mode", "dark mode unchanged", "covers heads-up display, leaderboard, banner, tools rail", "contrast preferences still honoured"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-/** Running total through ST-027. The three high-severity fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_ST027 =
-  POST_DELIVERY_MINUTES_THROUGH_ST023 + TAKEDOWN_HOTFIX_MINUTES + STATUS_HOTFIX_MINUTES + FOCUS_HOTFIX_MINUTES + CONTRAST_HOTFIX_MINUTES;
-
-/* ST-028 to ST-030 answer the three high-severity findings from the same independent
- * review, shipped together as D16. Each closes an unauthenticated abuse path. */
-const AUDITFLOOD_HOTFIX_MINUTES = 14;
-const AUDITFLOOD_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-028",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D16",
-  title: "Key log throttling to the connection, not a cookie",
-  summary: `Closed in ${AUDITFLOOD_HOTFIX_MINUTES} minutes. Public log writes were throttled against the visitor's own cookie, so dropping it bought a fresh allowance every request. Throttling is now keyed to the connection, under a ceiling shared by every visitor at once.`,
-  evidence: ["rate key taken from the edge, never from the client", "global ceiling across every public writer", "public rows held to their own retention floor", "one storage call per write instead of two"],
-  reference: { label: "Public service log", href: "/logs/" },
-};
-const SEATS_HOTFIX_MINUTES = 4;
-const SEATS_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-029",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D16",
-  title: "Check tank capacity when a seat is taken",
-  summary: `Closed in ${SEATS_HOTFIX_MINUTES} minutes. Seats were counted when a connection opened rather than when it sat down, so one client could open enough connections to claim every seat. Capacity is now checked at the moment a seat is taken.`,
-  evidence: ["capacity enforced where the seat is claimed", "12 connections, 8 seated, 4 refused", "human seats unchanged at 8 per tank"],
-  reference: { label: "Tank occupancy", href: "/status/" },
-};
-const INCIDENTCAP_HOTFIX_MINUTES = 9;
-const INCIDENTCAP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-030",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D16",
-  title: "Bound the incident record so it cannot block recovery",
-  summary: `Closed in ${INCIDENTCAP_HOTFIX_MINUTES} minutes. Incidents were stored as one ever-growing record, written by the same operation that restores service, so a long enough history would have blocked recovery. The record is now bounded, and only resolved incidents are archived.`,
-  evidence: ["record kept well under the storage limit", "active incidents never archived", "oldest resolved incidents archived first", "every archival recorded with a reason code"],
-  reference: { label: "Incident record", href: "/status/#incidents" },
-};
-/** Running total through ST-030. The seven accessibility fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_ST030 =
-  POST_DELIVERY_MINUTES_THROUGH_ST027 + AUDITFLOOD_HOTFIX_MINUTES + SEATS_HOTFIX_MINUTES + INCIDENTCAP_HOTFIX_MINUTES;
-const STATUSMSG_HOTFIX_MINUTES = 11;
-const STATUSMSG_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-031",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D17",
-  title: "Announce search and paging results once",
-  summary: `Closed in ${STATUSMSG_HOTFIX_MINUTES} minutes. Searching or paging the evidence tables rewrote the record count in silence, and a paging button that switched itself off dropped the keyboard to the top of the page. The count now speaks the whole result once per settled search, and the buttons keep their place.`,
-  evidence: ["one announcement per settled query, not per keystroke", "match count and page position in a single sentence", "paging buttons never take focus away", "same fix on the authenticated control panes"],
-  reference: { label: "Public evidence", href: "/logs/" },
-};
-const CHARTSTOP_HOTFIX_MINUTES = 3;
-const CHARTSTOP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-032",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D17",
-  title: "Stop chart marks swallowing the keyboard",
-  summary: `Closed in ${CHARTSTOP_HOTFIX_MINUTES} minutes. Each mark on the incident and availability charts was a keyboard stop that announced nothing and showed no focus ring. The marks are pointer shortcuts again, and the same records are ordinary links beside each chart.`,
-  evidence: ["no unnamed stops left in either chart", "mouse and touch behaviour unchanged", "every mark still reachable from the list below", "page copy states the keyboard route"],
-  reference: { label: "Incidents", href: "/status/#incidents" },
-};
-const APIHEADING_HOTFIX_MINUTES = 8;
-const APIHEADING_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-033",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D17",
-  title: "Give every API endpoint its own heading",
-  summary: `Closed in ${APIHEADING_HOTFIX_MINUTES} minutes. The API reference had one heading and thirty-one identically named sections beneath it, so assistive software could not reach a particular endpoint. Every operation is now its own heading, with an index of all thirty-one at the top.`,
-  evidence: ["one heading per operation, no skipped levels", "thirty-one uniquely named sections", "operation index links every endpoint", "index doubles as the page's skip target"],
-  reference: { label: "API reference", href: "/docs/" },
-};
-const GAMEA11Y_HOTFIX_MINUTES = 9;
-const GAMEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-034",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D17",
-  title: "Stop the tank list reading itself aloud",
-  summary: `Closed in ${GAMEA11Y_HOTFIX_MINUTES} minutes. The tank list read every tank's counts aloud every three seconds, because a moving top score rewrote the whole sentence. It now speaks only what changed, and the same pass fixed the light theme's status colours.`,
-  evidence: ["score movement no longer announces anything", "full and open transitions still spoken", "light-theme status colours clear 4.5:1 on every surface", "Feeding Frenzy small print from 2.2:1 to 5.9:1"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-/** Running total through ST-034. The four security fixes below share the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_ST034 =
-  POST_DELIVERY_MINUTES_THROUGH_ST030 + STATUSMSG_HOTFIX_MINUTES + CHARTSTOP_HOTFIX_MINUTES + APIHEADING_HOTFIX_MINUTES + GAMEA11Y_HOTFIX_MINUTES;
-const CSP_HOTFIX_MINUTES = 24;
-const CSP_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-035",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D18",
-  title: "Replace the content policy that allowed any script",
-  summary: `Closed in ${CSP_HOTFIX_MINUTES} minutes. The pages carried a content security policy that allowed any inline script, which is the one thing such a policy exists to refuse. Each response now mints a single-use token and runs only the scripts carrying it.`,
-  evidence: ["fresh token per response, never reused", "unmarked scripts are inert", "the game shell is covered for the first time", "forms and embedded objects restricted"],
-  reference: { label: "Public evidence", href: "/logs/" },
-};
-const LEAK_HOTFIX_MINUTES = 12;
-const LEAK_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-036",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D18",
-  title: "Strip internal detail from errors and exports",
-  summary: `Closed in ${LEAK_HOTFIX_MINUTES} minutes. Internal failure messages, build identifiers and exported player names all reached public output, the last of them as text a spreadsheet would run as a formula. All three now say only what a reader needs.`,
-  evidence: ["failures return a generic message; detail goes to the operator log", "build and storage identifiers removed from public output", "operator view keeps the full record", "exported names cannot become formulas"],
-  reference: { label: "Cost and capacity meters", href: "/spend/" },
-};
-const CHAIN_HOTFIX_MINUTES = 21;
-const CHAIN_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-037",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D18",
-  title: "Verify the receipt chain on every read",
-  summary: `Closed in ${CHAIN_HOTFIX_MINUTES} minutes. This page called the control history tamper-evident, but nothing re-checked it and its head was only ever compared against itself. Every receipt is now re-derived on read, and the verdict is stated on the page.`,
-  evidence: ["every receipt re-derived from its own contents", "an edited receipt is named by number", "removing entries is detected by the separate record", "verdict shown on the page, not just in the data"],
-  reference: { label: "Control receipts", href: "/status/#control-history" },
-};
-const ABUSE_HOTFIX_MINUTES = 14;
-const ABUSE_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-038",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D18",
-  title: "Strip invisible characters from display names",
-  summary: `Closed in ${ABUSE_HOTFIX_MINUTES} minutes. A display name could carry invisible characters that reversed the leaderboard around it or impersonated another player, and saved players had no ceiling. Those characters are stripped, and new saved entries are bounded without evicting a real player.`,
-  evidence: ["text-reversing and invisible characters removed", "look-alike names collapse to the same text", "names in every other script still work", "existing players never evicted, at any load"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-/** Running total through ST-038. */
-const POST_DELIVERY_MINUTES_THROUGH_ST038 =
-  POST_DELIVERY_MINUTES_THROUGH_ST034 + CSP_HOTFIX_MINUTES + LEAK_HOTFIX_MINUTES + CHAIN_HOTFIX_MINUTES + ABUSE_HOTFIX_MINUTES;
-/** Free-tier allowances reset daily; the cost page only ever reported lifetime figures. */
-const INQUIRY_TODAY_HOTFIX_MINUTES = 18;
-const INQUIRY_TODAY_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-039",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST038 + INQUIRY_TODAY_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D19",
-  title: "Report today's spend on a readable scale",
-  summary: `Closed in ${INQUIRY_TODAY_HOTFIX_MINUTES} minutes. Every included allowance resets daily, but the cost page reported lifetime totals on a linear bar where 0.008% of an allowance and 8% were the same invisible sliver. It now measures the day and plots every meter on a logarithmic axis.`,
-  evidence: ["day boundary captured once a day, per meter", "today compared against a whole day's allowance", "average spend per day and spend today, in dollars", "meters on a logarithmic axis with decade ticks", "spend trend on round axis values, current value labelled"],
-  reference: { label: "Usage against the free tier", href: "/spend/" },
-};
-/** Running total through ST-039. The accessibility batch below shares the clock. */
-const POST_DELIVERY_MINUTES_THROUGH_ST039 =
-  POST_DELIVERY_MINUTES_THROUGH_ST038 + INQUIRY_TODAY_HOTFIX_MINUTES;
-const PAGEA11Y_HOTFIX_MINUTES = 26;
-const PAGEA11Y_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-040",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D20",
-  title: "Every page can be navigated without a mouse or a screen",
-  summary: `Closed in ${PAGEA11Y_HOTFIX_MINUTES} minutes. None of these pages let you jump past the navigation, so reaching the content meant tabbing through the same links every visit. Sorted columns showed which way they were sorted with an arrow and nothing else. Tables carried no name, and nothing tied a column heading to the figures beneath it. Following a link to a particular receipt scrolled to it but left the keyboard behind.`,
-  evidence: ["a skip link on every page", "sort direction stated, not only drawn", "every table named, every column tied to its figures", "a link to a receipt takes the keyboard with it"],
-  reference: { label: "Public evidence", href: "/logs/" },
-};
-const READABILITY_HOTFIX_MINUTES = 11;
-const READABILITY_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-041",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D20",
-  title: "The outage page says there is an outage",
-  summary: `Closed in ${READABILITY_HOTFIX_MINUTES} minutes. When the game was taken down, the page announced itself with a randomised joke in the browser tab and in its only heading — funny, but it never said the game was down. The availability chart had the same fault in another form: the picture carried the downtime, the text beside it did not. Two faint colours were also too close to their background to read comfortably.`,
-  evidence: ["the outage page states the outage; the joke keeps its place", "the chart's description carries the downtime it draws", "faint text and links meet the contrast floor", "confetti is not built at all when motion is reduced"],
-  reference: { label: "Status", href: "/status/" },
-};
-const GAMEA11Y2_HOTFIX_MINUTES = 19;
-const GAMEA11Y2_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-042",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D20",
-  title: "The game stops going quiet at the moments that matter",
-  summary: `Closed in ${GAMEA11Y2_HOTFIX_MINUTES} minutes. Anything said twice in a row was only said once: a second death at the same score, or a second disconnect, passed in silence. Losing the connection was drawn on screen but never spoken. Turning off the on-screen radar also removed the spoken description of where you are, so a visual setting silenced a non-visual aid. The help shortcut fired from one keypress with no way to switch it off, including while typing.`,
-  evidence: ["a repeated message is spoken again", "losing the connection is announced, not only drawn", "spoken position survives turning the radar off", "the single-key shortcut can be switched off and ignores typing"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-/** Running total through ST-042. */
-const POST_DELIVERY_MINUTES_THROUGH_ST042 =
-  POST_DELIVERY_MINUTES_THROUGH_ST039 + PAGEA11Y_HOTFIX_MINUTES + READABILITY_HOTFIX_MINUTES + GAMEA11Y2_HOTFIX_MINUTES;
-const NAMES_HOTFIX_MINUTES = 9;
-const NAMES_HOTFIX_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-043",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST042 + NAMES_HOTFIX_MINUTES),
-  label: "hotfix",
-  deployment: "D21",
-  title: "Players can use their own name",
-  summary: `Closed in ${NAMES_HOTFIX_MINUTES} minutes. A name written entirely in Chinese, Cyrillic, Greek, Hebrew, Korean or emoji was refused and the player was renamed to Player, while a name mixing one of those with Latin letters was fine. The name check compared against Latin letters only, so a name containing none of them looked empty rather than unscreenable. Names are now accepted on what they actually contain.`,
-  evidence: ["names in any script are kept as typed", "the existing word list still blocks what it blocked before", "names built only from invisible characters are still refused", "spoofing defences and the length limit are unchanged"],
-  reference: { label: "Play the game", href: "/play/" },
-};
-/** Running total through ST-043. */
-const POST_DELIVERY_MINUTES_THROUGH_ST043 = POST_DELIVERY_MINUTES_THROUGH_ST042 + NAMES_HOTFIX_MINUTES;
-const POLICIES_MINUTES = 34;
-const POLICIES_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-044",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST043 + POLICIES_MINUTES),
-  label: "feature",
-  deployment: "D22",
-  title: "Publish the policies the standards ask for",
-  summary: `Built in ${POLICIES_MINUTES} minutes. The conformance register recorded what this service does against two standards, but the written record behind it did not exist — and the largest block of missing rows was not engineering, it was four documents nobody had written. They are now published at /policies/ as pages rather than filed as documents nobody can check: what the service is and where its boundary sits, what it protects and refuses to do, who is accountable for what, and what the computer-controlled sharks actually are. Twenty-seven gaps closed; readiness moved from 45 to 61 per cent.`,
-  evidence: ["four documents, each naming the clauses it is the record for", "the register links to them and they link back", "limits stated plainly where one person cannot separate a duty", "the AI document is exact that the sharks are rules, not a learned model"],
-  reference: { label: "Policies", href: "/policies/" },
-};
-/** Running total through ST-044. */
-const POST_DELIVERY_MINUTES_THROUGH_ST044 = POST_DELIVERY_MINUTES_THROUGH_ST043 + POLICIES_MINUTES;
-const GOVERNANCE_MINUTES = 58;
-const GOVERNANCE_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-045",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST044 + GOVERNANCE_MINUTES),
-  label: "feature",
-  deployment: "D23",
-  title: "Write down how risk is decided, and what the sharks actually are",
-  summary: `Built in ${GOVERNANCE_MINUTES} minutes. The register said what this service does but not how it decides what to do about anything. There is now a stated method for scoring a risk, an assessment that names the twelve this service actually carries — the spend ceiling, one durable object holding the receipt chain with no backup, display-name abuse, a provider outage, unscanned dependencies — and objectives measured from live routes rather than asserted. Five more documents cover how the computer-controlled sharks are built and checked, how code is written and released, who may reach what, and which laws and licences apply. Writing them turned up four things the service was describing inaccurately, and those were corrected rather than left flattering. Sixteen gaps closed; readiness moved from 61 to 77 per cent.`,
-  evidence: ["a risk method with worded scales and an acceptance threshold, not a colour chart", "twelve assessed risks with scores, decisions and what is left over", "the backup gap, the unscanned dependencies and the missing erasure route recorded as open", "four inaccurate descriptions found and corrected while checking them"],
-  reference: { label: "Policies", href: "/policies/" },
-};
-/** Running total through ST-045. */
-const POST_DELIVERY_MINUTES_THROUGH_ST045 = POST_DELIVERY_MINUTES_THROUGH_ST044 + GOVERNANCE_MINUTES;
-const PARTIALS_MINUTES = 71;
-const PARTIALS_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-046",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST045 + PARTIALS_MINUTES),
-  label: "feature",
-  deployment: "D24",
-  title: "Do the things the register said were only written down",
-  summary: `Built in ${PARTIALS_MINUTES} minutes. Forty-two rows were marked partial, and sorting them showed most were not missing writing at all — they were activities defined and never performed, or one piece of engineering nobody had built. The engineering came first: everything the tank holds — the receipt chain, the ninety-day log, player profiles, spend history — is now copied daily to object storage under a digest, and the copy is proven by restoring it into a scratch instance and checking the two digests match. The first drill failed for a real reason and that failure is on the public chain in front of the passes. Then four activities were run for the first time and recorded — an access review, a supplier check, a compliance review and the AI policy review — and seven documents written for what remained. Ten rows are still open and named: no dependency scanning, no erasure route, no audit independence, and supplier certificates nobody has obtained. Readiness moved from 77 to 93 per cent.`,
-  evidence: ["state copied daily and proven by a restore that compares digests, not by assertion", "the first restore drill failed, and the failure is published before the passes", "four recurring activities performed for the first time, each stating what was examined", "six controls excluded on the boundary the scope statement already drew, not on convenience", "internal audit stays partial because one person cannot be objective, and says so"],
-  reference: { label: "Policies", href: "/policies/" },
-};
-const POST_DELIVERY_MINUTES_THROUGH_ST046 = POST_DELIVERY_MINUTES_THROUGH_ST045 + PARTIALS_MINUTES;
-const NAMESPACE_MINUTES = 96;
-const NAMESPACE_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-047",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST046 + NAMESPACE_MINUTES),
-  label: "feature",
-  deployment: "D25",
-  title: "Split the site in two, because it was serving two audiences from one menu",
-  summary: `Built in ${NAMESPACE_MINUTES} minutes. The site is a game and a public conformance record, for two sets of people who want nothing from each other, and every page carried the same ten-item menu listing both. Thirteen of the site's sixty thousand words were for players. The game keeps one link out; the record gets its own front door at /trust/ with six figures on it, each one a link to the page that owns it and none of them stored twice. The roadmap and incident pages folded into operations, so the receipt chain renders once instead of on two pages and the uptime and spend numbers appear only where they are measured. Cost moved to /spend/, because "inquiry" was being used for the billing page and for the whole record at the same time. The policy set became one route per document with an anchor on every section — it was 201 KB with no identifier on any of its 144 headings, so nothing in it could be cited. Old addresses redirect and the published JSON did not move. Also fixed on the way through: money could be spent on routes the spend limit exempted, saving a profile had nothing bounding it, a body-size check a chunked request walked straight past, a header set on one branch of the router, chart links no keyboard could reach, thirteen tables with no header row, a button that told a screen reader the opposite of what was happening, and a register that needed three screens of sideways scrolling on a phone.`,
-  evidence: ["one menu became two, and the game's competing seven-link menu became one link", "every figure on the trust page is computed from the source the owning page uses", "the receipt chain and the uptime, spend and incident counts each render in exactly one place", "the spend limit now closes the routes that generate the billable writes", "moved routes redirect and every evidence link in the register still resolves", "the agent count is published beside human occupancy, which the AI policy already said it was"],
-  reference: { label: "Trust and operations", href: "/trust/" },
-};
-const POST_DELIVERY_MINUTES_THROUGH_ST047 = POST_DELIVERY_MINUTES_THROUGH_ST046 + NAMESPACE_MINUTES;
-const TRUTHFULNESS_MINUTES = 88;
-const TRUTHFULNESS_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-048",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
-  label: "feature",
-  deployment: "D26",
-  title: "Deploy the split, then close the four things it left behind",
-  summary: `Built in ${TRUTHFULNESS_MINUTES} minutes. The previous version was written and never deployed, so for its whole life the register pointed at routes the live service did not serve; that went out first. Then four things that were written down but not true. The restore drill said it restored the most recent copy and did not: it exported the live object and restored that, which proves the object can copy itself and proves nothing about object storage. It now reads the copy back out of the bucket, and with no bucket or no copy it fails and says so instead of quietly testing something else. Three policy records stated the evidence walk's result as a present-tense measurement and all three had the previous version's numbers; they are read off the register when the page is built, so they cannot go stale again. The link checker accepted any 200 as proof a route exists, but every unrouted path here answers 200 with the game — it now requires each response to carry something only the real page emits. And the split had left the spend and API pages reachable from two of the seven trust pages, so every page carries the whole estate in its footer. Two other things: the stylesheet was 38.6 KB re-sent on every page view and is now fetched once and cached, and every link on the delivery chart is a 24-pixel target instead of nine.`,
-  evidence: ["the split namespace is live, and the register's routes are routes the service serves", "the restore drill reads backups/state/latest.json and fails loudly when there is nothing to read", "the evidence-walk figures are derived from the register at render time, not transcribed", "a route deleted from the service now fails the link checker instead of passing on the game shell's 200", "/spend/ and /docs/ are reachable from all 27 server-rendered pages, including each of the 20 policy documents", "a trust page dropped from 45 KB to 7 KB, and all 22 delivery-chart links clear 24 by 24 with no overlap"],
-  reference: { label: "Operations", href: "/status/#delivery" },
-};
-/* The public-repository era. These four are releases rather than timed hotfixes, so they
- * carry no "closed in N minutes" figure — the clock those entries share stopped at ST-048.
- * D27 and D28 are recorded from the provider's own deployment history; D29 is this one. */
-const PUBLIC_REPO_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-049",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
-  label: "feature",
-  deployment: "D27",
-  title: "Cut production over to the public repository",
-  summary: "The service became a self-contained public repository with governance checks, release tags and provenance records, and production cut over to v1.0.1 with every durable object, bucket, cron and secret preserved.",
-  evidence: ["v1.0.1 deployed from the public repository", "46 evidence routes across 489 references passed", "stateful resources preserved, not renamed", "previous deployment retained as the rollback point"],
-  reference: { label: "Operations", href: "/status/#delivery" },
-};
-const GOVERNANCE_IA_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-050",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
-  label: "feature",
-  deployment: "D28",
-  title: "Give each standard its own page, and make the evidence reachable",
-  summary: "The public record was reorganised so every standard has its own implementation page behind a live evidence index, and the governance controls and workload navigation were made operable without a mouse.",
-  evidence: ["one implementation page per standard", "evidence index computed from the register", "governed workload navigation", "controls reachable by keyboard"],
-  reference: { label: "Trust and operations", href: "/trust/" },
-};
-const CONCISE_RECORD_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-051",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
-  label: "enhancement",
-  deployment: "D29",
-  title: "Measure the repository at deploy time",
-  summary: "Public change and evidence copy was shortened, the game case-study link was removed from the play page, and repository commit metrics are now refreshed by each production deploy rather than transcribed.",
-  evidence: ["commit count and velocity passed in as deployment variables", "case-study link removed from the game", "release identity reported at /version.json"],
-  reference: { label: "Operations", href: "/status/#delivery" },
-};
-const CONCISE_LOG_ROADMAP_ENTRY: RoadmapEntry = {
-  id: "ST-052",
-  at: roadmapClock(POST_DELIVERY_MINUTES_THROUGH_ST047 + TRUTHFULNESS_MINUTES),
-  label: "enhancement",
-  deployment: "D29",
-  title: "One sentence per change, under one identifier",
-  summary: "Every change-log entry is now a single sentence carrying the SharkTank identifier, the backup and meter explanations gave way to the tables that already stated the same facts, and the deployments since the public cutover were added to the record.",
-  evidence: ["48 entries renumbered from the legacy identifier", "every summary one sentence", "two explanatory paragraphs removed, no figure lost", "three deployments recorded from provider history"],
-  reference: { label: "Operations", href: "/status/#delivery" },
-};
-const POST_DELIVERY_ENTRIES: readonly RoadmapEntry[] = [BONUS_ROADMAP_ENTRY, HOTFIX_ROADMAP_ENTRY, GAME_HOTFIX_ROADMAP_ENTRY, MOBILE_HOTFIX_ROADMAP_ENTRY, EVIDENCE_HOTFIX_ROADMAP_ENTRY, INQUIRY_HOTFIX_ROADMAP_ENTRY, INCIDENT_HOTFIX_ROADMAP_ENTRY, TAKEDOWN_HOTFIX_ROADMAP_ENTRY, STATUS_HOTFIX_ROADMAP_ENTRY, FOCUS_HOTFIX_ROADMAP_ENTRY, CONTRAST_HOTFIX_ROADMAP_ENTRY, AUDITFLOOD_HOTFIX_ROADMAP_ENTRY, SEATS_HOTFIX_ROADMAP_ENTRY, INCIDENTCAP_HOTFIX_ROADMAP_ENTRY, STATUSMSG_HOTFIX_ROADMAP_ENTRY, CHARTSTOP_HOTFIX_ROADMAP_ENTRY, APIHEADING_HOTFIX_ROADMAP_ENTRY, GAMEA11Y_HOTFIX_ROADMAP_ENTRY, CSP_HOTFIX_ROADMAP_ENTRY, LEAK_HOTFIX_ROADMAP_ENTRY, CHAIN_HOTFIX_ROADMAP_ENTRY, ABUSE_HOTFIX_ROADMAP_ENTRY, INQUIRY_TODAY_ROADMAP_ENTRY,
-  PAGEA11Y_HOTFIX_ROADMAP_ENTRY, READABILITY_HOTFIX_ROADMAP_ENTRY, GAMEA11Y2_HOTFIX_ROADMAP_ENTRY,
-  NAMES_HOTFIX_ROADMAP_ENTRY, POLICIES_ROADMAP_ENTRY, GOVERNANCE_ROADMAP_ENTRY, PARTIALS_ROADMAP_ENTRY, NAMESPACE_ROADMAP_ENTRY,
-  TRUTHFULNESS_ROADMAP_ENTRY,
-  PUBLIC_REPO_ROADMAP_ENTRY, GOVERNANCE_IA_ROADMAP_ENTRY, CONCISE_RECORD_ROADMAP_ENTRY, CONCISE_LOG_ROADMAP_ENTRY];
-
-/** Public change summaries stay short; implementation detail remains in source and evidence links. */
-const PUBLIC_ROADMAP_SUMMARIES: Readonly<Record<string, string>> = {
-  "ST-001": "Deployed the game and public operations pages from one Worker.",
-  "ST-002": "Moved movement, combat, agents, and room state to the server.",
-  "ST-003": "Added size-based combat, dash movement, and rockets.",
-  "ST-004": "Reduced rendering tears and input delay across supported controls.",
-  "ST-005": "Adapted the game for desktop, keyboard, mouse, and touch.",
-  "ST-006": "Published service and tank logs with downloadable records.",
-  "ST-007": "Aligned the debug drawer with the public log format.",
-  "ST-008": "Mapped product actions to the Cloudflare resources they consume.",
-  "ST-009": "Added a measured spend limit that can stop gameplay.",
-  "ST-010": "Centralized maintenance, billing, alerts, and security controls.",
-  "ST-011": "Separated restored service from an open incident investigation.",
-  "ST-012": "Added an append-only SHA-256 receipt chain for control actions.",
-  "ST-013": "Fixed tables that clipped timestamps and identifiers.",
-  "ST-014": "Kept status and evidence available while gameplay is closed.",
-  "ST-015": "Organized evidence against ISO/IEC 27001 and ISO/IEC 42001.",
-  "ST-016": "Standardized public wording and reason-coded evidence.",
-  "ST-017": "Refreshed the controlled-outage messages.",
-  "ST-018": "Required TLS and authenticated access for operations routes.",
-  "ST-019": "Added a visible arena boundary with authoritative collision behavior.",
-  "ST-020": "Added touch controls for movement and abilities.",
-  "ST-021": "Changed availability measurement to cover the project lifetime.",
-  "ST-022": "Combined billing data into one spend meter.",
-  "ST-023": "Added an incident chart showing cause, start, and duration.",
-  "ST-024": "Protected the game shutdown control with authentication.",
-  "ST-025": "Replaced full-page status reloads with pausable live updates.",
-  "ST-026": "Corrected dialog focus trapping and restoration.",
-  "ST-027": "Fixed low-contrast overlay text in light mode.",
-  "ST-028": "Scoped log throttling to each connection.",
-  "ST-029": "Enforced room capacity when a seat is claimed.",
-  "ST-030": "Bound the incident record to protect recovery paths.",
-  "ST-031": "Made search and paging announcements concise and stable.",
-  "ST-032": "Made chart points reachable without trapping keyboard focus.",
-  "ST-033": "Added a unique heading for every API endpoint.",
-  "ST-034": "Stopped the tank list from announcing every refresh.",
-  "ST-035": "Tightened the Content Security Policy for scripts.",
-  "ST-036": "Removed internal details from public errors and exports.",
-  "ST-037": "Verified the receipt chain whenever it is read.",
-  "ST-038": "Removed invisible control characters from display names.",
-  "ST-039": "Changed the spend view to a readable current-day scale.",
-  "ST-040": "Completed keyboard and screen-reader fixes across public pages.",
-  "ST-041": "Simplified the outage page so its state is immediately clear.",
-  "ST-042": "Added accessible status announcements for important game events.",
-  "ST-043": "Added persistent player display names.",
-  "ST-044": "Published the policy set referenced by the control register.",
-  "ST-045": "Documented risk decisions and the rule-based agent boundary.",
-  "ST-046": "Performed the operational activities previously marked partial.",
-  "ST-047": "Separated the game from the public governance routes.",
-  "ST-048": "Deployed the route split and corrected stale evidence claims.",
-  "ST-049": "Cut production over to the public repository at v1.0.1.",
-  "ST-050": "Gave each standard its own page behind a live evidence index.",
-  "ST-051": "Refreshed repository commit metrics on every production deploy.",
-  "ST-052": "Shortened the change log and recorded the deployments since cutover."
-};
-
-function publicRoadmapEntry(entry: RoadmapEntry): RoadmapEntry {
-  return { ...entry, summary: PUBLIC_ROADMAP_SUMMARIES[entry.id] ?? entry.summary };
-}
-
-const ROADMAP_ELAPSED_MINUTES = 8 * 60;
-interface RoadmapAvailability { portal: ReturnType<typeof incidentSummary>; tank: ReturnType<typeof incidentSummary>; gateEnabled: boolean }
-interface DeploymentMetrics {
-  release: string;
-  deployedAt: string | null;
-  commitCount: number;
-  windowHours: number;
-  commitsPerDay: number;
-}
-function deploymentMetrics(env: Env): DeploymentMetrics {
-  const numeric = (value: string | undefined) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-  };
-  const commitCount = Math.floor(numeric(env.SHARKTANK_COMMIT_COUNT));
-  const windowHours = numeric(env.SHARKTANK_COMMIT_WINDOW_HOURS);
-  const suppliedVelocity = numeric(env.SHARKTANK_COMMIT_VELOCITY);
-  const commitsPerDay = suppliedVelocity || (commitCount > 0 && windowHours > 0 ? commitCount / (windowHours / 24) : 0);
-  return {
-    release: env.SHARKTANK_RELEASE ?? "development",
-    deployedAt: env.SHARKTANK_DEPLOYED_AT || null,
-    commitCount,
-    windowHours,
-    commitsPerDay,
-  };
-}
-const formatElapsed = (minutes: number) => minutes < 60 ? `${minutes}m` : minutes % 60 === 0 ? `${minutes / 60}h` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-/**
- * The delivery record, as a section of the operations page.
- *
- * It used to be its own route and it led with five metric cards: server uptime, tank
- * uptime, deployment batches, incident count and metered spend. Three of those five are
- * owned by somewhere else — two by the availability section directly above this one, one
- * by the incident section directly below it, one by the spend page — and the spend figure
- * was printed here to four decimal places and there to eight, so the same number read
- * differently depending on which page you opened. Only the two figures delivery actually
- * owns are stated here; the rest are links.
- *
- * The combined chart stays: correlating deployments against incidents and spend on one
- * time axis is the delivery-shaped question, and every series in it is read from the same
- * source the owning page reads.
- */
-function deliverySection(entries: readonly RoadmapEntry[], deployment: DeploymentMetrics, incidents: IncidentRecord[] = [], history: ControlHistoryEntry[] = [], billing: Record<string, unknown> = {}): string {
-  const now = Date.now(), all = [...entries, ...POST_DELIVERY_ENTRIES].map(publicRoadmapEntry);
-  const portal = incidentSummary([], now), tank = incidentSummary(incidents, now);
-  const allTime = recordValue(billing.allTime);
-  // Spend is the all-time metered figure, matching the series `spendHistory` samples and
-  // the number /spend/ leads with. The per-deploy billing window would reset the chart
-  // to zero every time the page changed.
-  const spendUsd = numberValue(allTime.estimatedVariableUsd);
-  const hardLimitUsd = numberValue(billing.hardLimitUsd) || 5;
-  const samples = Array.isArray(billing.spendHistory) ? billing.spendHistory as Array<{ ts: number; usd: number }> : [];
-  const liveDeployedAt = deployment.deployedAt ? Date.parse(deployment.deployedAt) || 0 : 0;
-  const showcase: ShowcaseInput = { entries: all, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now, liveDeployedAt };
-  const batchCount = deploymentBatches(all, liveDeployedAt).length;
-  const rows = all.map((entry) => { const duration = roadmapElapsedMinutes(entry.at); return `<tr id="${roadmapRowAnchor(entry.id)}" data-id="${Number(entry.id.slice(3))}" data-type="${entry.label}" data-duration="${duration}"${entry.label === "bonus" ? ' class="roadmap-row--bonus"' : entry.label === "hotfix" ? ' class="roadmap-row--hotfix"' : ""}><td class="cell-code"><code>${esc(entry.id)}</code></td><td class="cell-key">${esc(entry.label)}</td><td><strong>${esc(entry.title)}</strong><span class="roadmap-summary">${esc(entry.summary)}</span>${entry.reference ? `<a class="roadmap-ref" href="${esc(canonicalPublicHref(entry.reference.href))}">${esc(entry.reference.label)} →</a>` : ""}</td><td class="cell-time">${esc(entry.at)}</td><td class="cell-code" title="Production deployment batch"><code>${esc(entry.deployment)}</code></td></tr>`; }).join("");
-  const elapsedHours = ROADMAP_ELAPSED_MINUTES / 60;
-  const velocity = deployment.commitsPerDay > 0 ? `${deployment.commitsPerDay.toFixed(1)}/day` : "Pending deploy";
-  const velocityDetail = deployment.commitCount > 0
-    ? `${deployment.commitCount} commits through ${deployment.release}`
-    : "populated by the production deploy";
-  return `<section id="changes" class="evidence-block" tabindex="-1" aria-labelledby="delivery-heading">
-    <div class="eyebrow">Project record</div>
-    <h2 id="delivery-heading" class="u-m-6-0-10">Delivery</h2>
-    <p class="sub">Every feature update, the deployment batch that carried it, and how those batches line up against the availability above and the <a href="#spend">metered spend</a>. The same record is available as <a href="/roadmap.json">data</a>.</p>
-    <div class="card hero-card">
-      <div class="metric-grid showcase-metrics">
-        ${metricCard(batchCount, "Deployment batches", `${all.length} feature updates shipped`, "rooms", "tone-cyan")}
-        ${metricCard(velocity, "Commit velocity", velocityDetail, "requests", "tone-violet")}
-      </div>
-      ${showcaseChartSvg(showcase)}
-    </div>
-    <section aria-labelledby="project-goals"><div class="portal-signoff"><div><div class="eyebrow">Project goals</div><h3 id="project-goals">Built for speed. Operated with evidence.</h3></div><span class="goal-status">Next goal · ISO/IEC 42001 + ISO/IEC 27001 certification · In progress</span></div>
-      <div class="goal-grid">
-        <article class="card"><strong>Speed</strong><p>Ship a complete playable and operational proof of concept inside one working day.</p></article>
-        <article class="card"><strong>Security</strong><p>Stop gameplay immediately without hiding status, incidents, or control history.</p></article>
-        <article class="card"><strong>Accessibility</strong><p>Support keyboard, mouse, touch, responsive layouts, and readable evidence.</p></article>
-        <article class="card"><strong>Human accountable</strong><p>Keep high-impact controls authenticated, attributable, and receipt-backed.</p></article>
-      </div>
-    </section>
-    <section><div class="portal-signoff"><div><div class="eyebrow">${Math.floor(elapsedHours)}h initial build</div><h3>Feature-to-deployment map</h3></div><div class="delivery-velocity"><strong>Commit velocity: ${velocity}</strong><span>${velocityDetail} · ${batchCount} deployment batches</span></div></div><div class="table-scroll" role="region" aria-label="Sortable feature-to-deployment map" tabindex="0"><table class="roadmap-table" id="roadmap-table"><caption class="sr-only">Sortable feature-to-deployment map</caption><thead><tr><th scope="col" aria-sort="ascending"><button class="table-sort" data-key="id" data-direction="asc">ID</button></th><th scope="col" aria-sort="none"><button class="table-sort" data-key="type">Type</button></th><th scope="col">Feature update</th><th scope="col" aria-sort="none"><button class="table-sort" data-key="duration">Elapsed</button></th><th scope="col">Deployment</th></tr></thead><tbody>${rows}</tbody></table></div></section>${roadmapSortScript()}
-  </section>`;
 }
 
 function formatCompactDuration(ms: number): string { const seconds = Math.round(ms / 1000); return seconds < 60 ? `${seconds}s` : seconds < 3600 ? `${Math.round(seconds / 60)}m` : `${(seconds / 3600).toFixed(1)}h`; }
@@ -773,7 +150,6 @@ function statusLiveScript(): string {
 }());</script>`;
 }
 
-function roadmapSortScript(): string { return `<script nonce="__WG_CSP_NONCE__">(()=>{const table=document.getElementById('roadmap-table'),body=table.tBodies[0],buttons=[...table.querySelectorAll('.table-sort')];buttons.forEach(button=>button.addEventListener('click',()=>{const key=button.dataset.key,direction=button.dataset.direction==='asc'?'desc':'asc',factor=direction==='asc'?1:-1;buttons.forEach(item=>{item.removeAttribute('data-direction');if(item.parentElement)item.parentElement.setAttribute('aria-sort','none');});button.dataset.direction=direction;if(button.parentElement)button.parentElement.setAttribute('aria-sort',direction==='asc'?'ascending':'descending');const rows=[...body.rows].sort((a,b)=>{const left=a.dataset[key]||'',right=b.dataset[key]||'';return (key==='type'?left.localeCompare(right):Number(left)-Number(right))*factor;});rows.forEach(row=>body.appendChild(row));}));})();</script>`; }
 
 const PAGE_CSS = `
   :root{color-scheme:dark;--bg:#0b0a14;--surface-1:#16142a;--surface-2:#201d3b;--surface-3:#2b2750;--text:#f3f1ff;--muted:#b9b4d6;--faint:#958eb5;--accent:#9580ff;--cyan:#22e6ff;--border:#3a355e;--strong:#847cb4;--focus:#ffd54a}
@@ -826,7 +202,7 @@ const PAGE_CSS = `
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   .kpi{font-size:1.6rem;font-weight:800}
   .kpi small{display:block;font-size:.75rem;color:#b9b4d6;font-weight:600}
-  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 14px}.metric-grid>*{min-width:0}.stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.status-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.showcase-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}.spend-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.spend-metrics .metric-value{display:-webkit-box;min-height:2.15em;overflow:hidden;white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 14px}.metric-grid>*{min-width:0}.stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.status-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.spend-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.spend-metrics .metric-value{display:-webkit-box;min-height:2.15em;overflow:hidden;white-space:normal;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2}
   .metric-card{position:relative;display:grid;grid-template-rows:auto auto auto 1fr;align-content:start;overflow:hidden;min-width:0;min-height:124px;padding:15px 16px;border:1px solid #3a355e;border-radius:14px;background:linear-gradient(145deg,#19172f,#121123)}
   .metric-card:after{content:"";position:absolute;right:-35px;bottom:-45px;width:110px;height:110px;border-radius:50%;background:color-mix(in srgb,currentColor 10%,transparent)}
   .metric-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.metric-icon{width:30px;height:30px;color:#a78bff}.metric-icon svg{display:block;width:100%;height:100%}
@@ -888,7 +264,7 @@ const PAGE_CSS = `
   .meter-legend b{display:inline-block;width:2px;height:13px;border-radius:1px;background:#e9e6ff}
   .meter-none,.meter-note{color:var(--faint);font-style:italic}
   @media(max-width:860px){.spend-hero{grid-template-columns:1fr}}
-  .roadmap-hero{padding:clamp(22px,5vw,42px);border:1px solid var(--border);border-radius:18px;background:linear-gradient(135deg,rgba(34,230,255,.1),rgba(143,123,255,.14))}.roadmap-row--bonus{opacity:.85}.roadmap-row--bonus .cell-code code{border-color:#ffe14d;color:#ffe14d}.roadmap-row--hotfix .cell-code code{border-color:#ff6b6b;color:#ff6b6b}.roadmap-ref{display:block;margin-top:5px;color:var(--cyan);font-size:.76rem;font-weight:700}.mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.goal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.goal-grid .card{min-width:0}.goal-grid strong{display:block;color:var(--cyan);font-size:1.05rem}.goal-grid p{margin:5px 0 0;color:var(--muted)}.goal-status{max-width:31rem;padding:7px 11px;border:1px solid #f6c445;border-radius:999px;color:#f6c445;font-size:.74rem;font-weight:850}.delivery-velocity{display:grid;gap:2px;text-align:right}.delivery-velocity strong{color:var(--cyan)}.delivery-velocity span{color:var(--muted);font-size:.74rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.availability-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg{display:block;min-width:2400px;width:100%;height:auto}.showcase-chart svg+svg{margin-top:14px}.showcase-chart svg a:focus-visible{outline:none}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.portal-signoff{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.portal-signoff strong{font-size:1.1rem}.roadmap-table{--table-min:820px;table-layout:fixed!important}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}.roadmap-table td:nth-child(3){white-space:normal}.roadmap-table td:nth-child(3)>strong{display:block;margin-bottom:3px;overflow-wrap:anywhere}.roadmap-summary{display:block;color:var(--muted);font-size:.82rem;line-height:1.45;white-space:normal;overflow-wrap:anywhere}.roadmap-table .cell-key{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+  .mission-card{border-color:#5d54a0}.mission-card h2{max-width:30ch;font-size:clamp(1.5rem,3vw,2.25rem);margin:6px 0}.mission-card p{max-width:72ch;margin:0;color:var(--muted);font-size:1.02rem}.timeline-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.timeline-scroll:focus-visible{outline:3px solid var(--focus);outline-offset:3px}.timeline-scroll svg{display:block;min-width:520px;width:100%;height:112px}.incident-chart svg{min-width:768px}.availability-chart svg{min-width:768px}.timeline-key{display:grid;gap:8px;margin:10px 0 0;color:var(--muted);font-size:.76rem}.timeline-key__group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.timeline-key__label{min-width:9.5rem;color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.timeline-key :is(span,a){display:inline-flex;align-items:center;gap:6px}.timeline-key :is(span,a)>b{color:var(--text);font-variant-numeric:tabular-nums}.timeline-key a{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:inherit;text-decoration:none}.timeline-key a:hover,.timeline-key a:focus-visible{border-color:var(--cyan);color:var(--text)}.timeline-key i{width:10px;height:10px;border-radius:3px;flex:none}.timeline-key-note{grid-column:1/-1;margin:2px 0 0;color:var(--faint);font-size:.72rem;font-style:italic}svg a{cursor:pointer}svg a:focus-visible{outline:2px solid var(--focus)}@media(max-width:560px){.timeline-key__label{min-width:100%}}.showcase-chart svg a:focus-visible :is(rect,path,circle){stroke:var(--focus);stroke-width:2.5;paint-order:stroke}.key-green{background:#4ade80}.key-violet{background:#8f7bff}.key-red{background:#ff6b6b}.key-indigo{background:#6d8bff}.key-amber{background:#ff8a1f}.key-crimson{background:#e5484d}.key-yellow{background:#ffe14d}.roadmap-table :is(th,td){vertical-align:top}.roadmap-table :is(th,td):nth-child(1){width:6.5rem}.roadmap-table :is(th,td):nth-child(2){width:8rem}.roadmap-table :is(th,td):nth-child(4){width:6.5rem}.roadmap-table :is(th,td):nth-child(5){width:7.5rem}
   .log-room{padding:0;overflow:hidden}.log-room>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:14px 18px;cursor:pointer;list-style:none}.log-room>summary::-webkit-details-marker{display:none}.log-room>summary:after{content:"+";color:var(--cyan);font-size:1.35rem;font-weight:900}.log-room[open]>summary{border-bottom:1px solid var(--border)}.log-room[open]>summary:after{content:"−"}.log-summary{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}.log-count{padding:2px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.72rem;font-weight:800}.log-room-body{padding:16px 18px 4px}.log-actions{display:flex;justify-content:flex-end;margin-bottom:10px}.log-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) minmax(150px,.42fr) auto;gap:10px;align-items:end;margin:0 0 14px}.log-toolbar label{display:grid;gap:4px;color:var(--muted);font-size:.7rem;font-weight:850;letter-spacing:.06em;text-transform:uppercase}.log-toolbar :is(input,select){width:100%;min-height:42px;border:1px solid var(--strong);border-radius:9px;background:var(--surface-1);color:var(--text);padding:8px 10px;font:inherit}.log-visible-count{padding:10px 0;color:var(--faint);font-size:.74rem;white-space:nowrap}.table-sort{min-height:0;padding:0;border-radius:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;box-shadow:none}.table-sort:active{transform:none;box-shadow:none}.table-sort:after{content:" ↕";color:var(--faint)}.table-sort[data-direction="asc"]:after{content:" ↑";color:var(--cyan)}.table-sort[data-direction="desc"]:after{content:" ↓";color:var(--cyan)}
   pre{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto}
   /* ── Conformance register (/audit/) ──────────────────────────────────────────
@@ -958,9 +334,9 @@ const PAGE_CSS = `
   @media(max-width:900px){.iso-readiness-grid{grid-template-columns:1fr}.iso-process__grid{grid-template-columns:1fr;gap:10px}}
   @media(max-width:760px){.iso-toolbar{grid-template-columns:1fr 1fr}.iso-toolbar button{grid-column:1/-1}}
   @media(max-width:420px){.iso-toolbar{grid-template-columns:1fr}}
-  @media(max-width:900px){.goal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:760px){.site-header{align-items:flex-start;flex-direction:column}.site-header nav{justify-content:flex-start}.site-header{padding:14px 12px 0}main{padding:22px 12px 48px}.gauge-layout{grid-template-columns:1fr}.metric-grid,.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-metrics,.spend-metrics,.showcase-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric-card{min-height:112px;padding:12px}.metric-icon{width:25px;height:25px}.metric-value{font-size:clamp(1.05rem,5vw,1.45rem)}th,td{padding:8px}.history-item{grid-template-columns:1fr}.history-receipt{max-width:100%}.delivery-velocity{text-align:left}.log-toolbar{grid-template-columns:1fr 1fr}.log-visible-count{grid-column:1/-1;padding:0}}
-  @media(max-width:420px){nav a{padding:5px 9px}.brand-copy small{display:none}.goal-grid{grid-template-columns:1fr}.spend-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.spend-metrics .metric-value{font-size:clamp(.95rem,4.4vw,1.2rem)}.log-room>summary{padding:12px}.log-room-body{padding:12px 12px 2px}.log-toolbar{grid-template-columns:1fr}}
+  @media(max-width:900px){}
+  @media(max-width:760px){.site-header{align-items:flex-start;flex-direction:column}.site-header nav{justify-content:flex-start}.site-header{padding:14px 12px 0}main{padding:22px 12px 48px}.gauge-layout{grid-template-columns:1fr}.metric-grid,.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.status-metrics,.spend-metrics,.metric-card{min-height:112px;padding:12px}.metric-icon{width:25px;height:25px}.metric-value{font-size:clamp(1.05rem,5vw,1.45rem)}th,td{padding:8px}.history-item{grid-template-columns:1fr}.history-receipt{max-width:100%}.log-toolbar{grid-template-columns:1fr 1fr}.log-visible-count{grid-column:1/-1;padding:0}}
+  @media(max-width:420px){nav a{padding:5px 9px}.brand-copy small{display:none}.spend-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.spend-metrics .metric-value{font-size:clamp(.95rem,4.4vw,1.2rem)}.log-room>summary{padding:12px}.log-room-body{padding:12px 12px 2px}.log-toolbar{grid-template-columns:1fr}}
 
   /* ── Trust overview ── */
   .trust-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
@@ -1145,7 +521,7 @@ const PAGE_CSS = `
   .u-m-6-0-10{margin:6px 0 10px}.u-m-14-0-0{margin:14px 0 0}.u-m-12-0-0{margin:12px 0 0}.u-m-8-0-0{margin:8px 0 0}.u-card-heading{margin-top:0;font-size:1.1rem}.u-m-10-0-0{margin:10px 0 0}.u-m-0{margin:0}.u-m-6-0-14{margin:6px 0 14px}.u-m-6-0-0{margin:6px 0 0}.u-incident-heading{margin:0 0 4px;font-size:1.1rem}.u-m-0-0-10{margin:0 0 10px}.u-panel-heading{margin:0 0 10px;font-size:1.1rem}.u-panel-heading-tight{margin:0 0 8px;font-size:1.1rem}.u-mt-0{margin-top:0}.u-ops-pulse-heading{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:#b9b4d6}.u-mt-14{margin-top:14px}.u-m-0-0-8{margin:0 0 8px}.u-font-1rem{font-size:1rem}.u-api-description{margin:6px 0 0;color:#b9b4d6}.u-index-heading{margin:0 0 10px;font-size:1.05rem}.coverage-reference{margin-left:8px}
   .tr-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-value{fill:#22e6ff;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-today{fill:#8f7bff;font:700 9px ui-monospace,SFMono-Regular,Consolas,monospace}
   .ic-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.ic-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.ic-count{fill:#8f89ae;font-weight:800}a:focus-visible .ic-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}
-  .sc-axis{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-lane{fill:#f3f1ff;font:700 11px ui-sans-serif,system-ui,sans-serif}.sc-unit{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-band-value{fill:#0b0a14;font:800 11px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-note{fill:#b9b4d6;font:600 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-build{fill:#22e6ff;font:700 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-pct{fill:#4ade80;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}
+
   .tl-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.tl-axis{fill:#8f89ae;font:500 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tl-marker{transition:transform 120ms ease}a:hover .tl-marker,a:focus-visible .tl-marker{transform:translateY(-2px)}a:focus-visible .tl-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}
   .meter-bar{display:block;width:100%;height:9px;overflow:visible}.meter-track{fill:#292544}.meter-ticks{fill:none;stroke:rgba(233,230,255,.22);stroke-width:.5}.meter-fill{fill:#4ade80}.meter-bar.is-amber .meter-fill{fill:#f6c445}.meter-bar.is-red .meter-fill{fill:#ff5f66}.meter-marker{stroke:#e9e6ff;stroke-width:2}
   @media(prefers-reduced-motion:reduce){.tl-marker{transition:none}}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}
@@ -1799,280 +1175,6 @@ function incidentChartSvg(incidents: IncidentRecord[], now: number, history: Con
 /** Stable anchor for an incident card, so a marker always has somewhere to land. */
 function incidentAnchor(incident: IncidentRecord): string { return `incident-${incident.id.replace(/[^a-zA-Z0-9-]/g, "-")}`; }
 
-/** Roadmap `at` is an elapsed HH:MM offset from the first commit, not a clock reading. */
-const roadmapElapsedMinutes = (at: string) => at.split(":").reduce((total, part) => total * 60 + Number(part), 0);
-/**
- * When a deployment batch actually went live, read off the platform's own release history.
- *
- * A roadmap entry's `at` is elapsed build time, not a clock reading, so bridging it onto the
- * wall clock only tells the truth while the two clocks still agree. They stop agreeing after
- * the first day: the batches below shipped across three more, and plotting their build-clock
- * offsets put every one of them on the wrong date.
- *
- * D01 to D07 have no entry here on purpose. The build ran continuously from PROJECT_START_MS
- * and the first release of this Worker lands at the end of it, so those seven are milestones
- * inside the eight-hour window the chart already shades — the bridge is the honest position
- * for them, and there is no separate release to point at.
- */
-const DEPLOYMENT_DATES: Readonly<Record<string, string>> = {
-  D08: "2026-08-19T01:12:12.000Z",
-  D09: "2026-08-19T01:26:39.000Z",
-  D10: "2026-08-19T01:39:16.000Z",
-  D11: "2026-08-19T02:29:54.000Z",
-  D12: "2026-08-19T02:57:21.000Z",
-  D13: "2026-08-19T03:15:17.000Z",
-  D14: "2026-08-19T03:29:22.000Z",
-  D15: "2026-08-20T23:43:49.000Z",
-  D16: "2026-08-21T00:46:01.000Z",
-  D17: "2026-08-21T14:50:43.000Z",
-  D18: "2026-08-21T16:02:54.000Z",
-  D19: "2026-08-21T20:34:19.000Z",
-  // Read from `wrangler deployments list --env wizardgangprod`, not transcribed.
-  D27: "2026-08-29T01:37:29.785Z",
-  D28: "2026-08-29T22:39:59.043Z",
-};
-/** Deployment batches D01…Dnn, folded out of the `deployment` field on the roadmap entries. */
-interface DeploymentBatch { id: string; updates: number; firstEntry: string; from: number; to: number; elapsedMinutes: number; recorded: boolean }
-function deploymentBatches(entries: readonly RoadmapEntry[], liveDeployedAt = 0): DeploymentBatch[] {
-  // The newest batch is the deployment currently serving this page, so it cannot carry a
-  // date in DEPLOYMENT_DATES: that map is baked into the artifact being deployed, and any
-  // value written there would name the deployment before this one. It reports its own time
-  // instead, from the deployment variable the deploy script sets. Without that variable it
-  // falls back to the project clock, as the older undated batches do.
-  const newest = entries.reduce((max, entry) => (entry.deployment > max ? entry.deployment : max), "");
-  const batches = new Map<string, DeploymentBatch>();
-  for (const entry of entries) {
-    const recorded = DEPLOYMENT_DATES[entry.deployment];
-    const live = !recorded && entry.deployment === newest && liveDeployedAt > 0 ? liveDeployedAt : 0;
-    const at = recorded ? Date.parse(recorded) : live || PROJECT_START_MS + roadmapElapsedMinutes(entry.at) * 60_000;
-    const found = batches.get(entry.deployment);
-    if (found) { found.updates += 1; found.from = Math.min(found.from, at); found.to = Math.max(found.to, at); }
-    else batches.set(entry.deployment, { id: entry.deployment, updates: 1, firstEntry: entry.id, from: at, to: at, elapsedMinutes: 0, recorded: Boolean(recorded) || live > 0 });
-  }
-  // Elapsed is read back off the plotted time, so the label a mark announces always matches
-  // where the mark actually sits.
-  for (const batch of batches.values()) batch.elapsedMinutes = Math.max(0, Math.round((batch.to - PROJECT_START_MS) / 60_000));
-  return [...batches.values()].sort((a, b) => a.id.localeCompare(b.id));
-}
-/** Row anchor for a feature update, so a deployment column has somewhere to land. */
-const roadmapRowAnchor = (id: string) => `entry-${id.replace(/[^a-zA-Z0-9-]/g, "-")}`;
-
-interface ShowcaseInput {
-  entries: readonly RoadmapEntry[];
-  liveDeployedAt: number;
-  incidents: IncidentRecord[];
-  history: ControlHistoryEntry[];
-  portal: ReturnType<typeof incidentSummary>;
-  tank: ReturnType<typeof incidentSummary>;
-  samples: Array<{ ts: number; usd: number }>;
-  spendUsd: number;
-  hardLimitUsd: number;
-  now: number;
-}
-
-/**
- * The whole project on one clock: two graphs, one time axis.
- *
- * TIME AXIS. Both graphs run PROJECT_START_MS → now with identical geometry, so a vertical
- * line means the same instant in either. They share one scroller for the same reason: two
- * scrollers would drift apart the moment a phone scrolled one of them.
- *
- * ONE FACT, ONE PLACE. Deployments sit on the server band and incidents on the tank band,
- * because that is the thing each one happened to. Nothing is drawn twice in two shapes.
- * Scheduled downtime sits inside the tank band since it is excluded from availability; an
- * unscheduled outage cuts through it, which is what it does to the number.
- *
- * NO LEGEND. Uptime is a percentage, spend is dollars and deployments are counts — one shared
- * y-axis cannot hold them, so each graph carries its own scale and names its own units in the
- * gutter. Every mark is a real link, individually named, and the chart is labelled through
- * `<title>`/`<desc>` rather than `role="img"`, so nothing depends on a key beside it.
- */
-function showcaseChartSvg(input: ShowcaseInput): string {
-  const { entries, incidents, history, portal, tank, samples, spendUsd, hardLimitUsd, now, liveDeployedAt } = input;
-  const start = PROJECT_START_MS, span = Math.max(1, now - start);
-  // 2400 units wide, not 1000, and pinned by .showcase-chart to render at least that many
-  // pixels -- so one unit is one pixel and a time bucket is 26.8 px across. At the old width
-  // a bucket was 10 px, and SC 2.5.8's 24 px minimum was unreachable for the deployment marks
-  // however they were padded: eight of them sit in consecutive buckets, so any 24 px target
-  // overlapped its neighbour. Only the horizontal unit count changed; the heights are as they
-  // were, so the chart got wider rather than taller and still scrolls inside .timeline-scroll.
-  const width = 2400, left = 132, right = 20, plot = width - left - right;
-  const x = (ts: number) => left + ((Math.max(start, Math.min(now, ts)) - start) / span) * plot;
-  const batches = deploymentBatches(entries, liveDeployedAt);
-  const buildEnd = start + ROADMAP_ELAPSED_MINUTES * 60_000;
-
-  const dayMs = 86_400_000, dayTicks: number[] = [];
-  for (let ts = Math.ceil(start / dayMs) * dayMs; ts <= now; ts += dayMs) dayTicks.push(ts);
-  const gridLines = (top: number, bottom: number) => dayTicks
-    .map((ts) => `<line x1="${x(ts).toFixed(1)}" y1="${top}" x2="${x(ts).toFixed(1)}" y2="${bottom}" stroke="#3a355e" stroke-width="1" opacity=".7"/>`).join("");
-  const frame = (top: number, bottom: number) =>
-    `<rect x="${x(start).toFixed(1)}" y="${top}" width="${Math.max(2, x(buildEnd) - x(start)).toFixed(1)}" height="${bottom - top}" fill="rgba(34,230,255,.05)"/>`
-    + `<line x1="${x(buildEnd).toFixed(1)}" y1="${top}" x2="${x(buildEnd).toFixed(1)}" y2="${bottom}" stroke="#22e6ff" stroke-width="1" stroke-dasharray="2 4" opacity=".75"/>`
-    + gridLines(top, bottom)
-    + `<line x1="${(left + plot).toFixed(1)}" y1="${top}" x2="${(left + plot).toFixed(1)}" y2="${bottom}" stroke="#22e6ff" stroke-width="1.5" stroke-dasharray="3 3"/>`;
-  const laneLabel = (name: string, unit: string, y: number) =>
-    `<text x="${left - 10}" y="${y}" class="sc-lane" text-anchor="end">${esc(name)} <tspan class="sc-unit">${esc(unit)}</tspan></text>`;
-
-  // ── Graph one: availability, as two segmented strips.
-  //
-  // A solid bar with marks stamped through it was the wrong shape twice over: a deployment
-  // drawn as a dark tick reads as a hole punched in the bar, which is what an outage looks
-  // like, and 100% uptime drawn as an unbroken slab is a lot of colour carrying one fact.
-  // Slicing each strip into equal time buckets and colouring the bucket by what happened in
-  // it gives the bar texture, puts every event *in* the timeline instead of on top of it, and
-  // never lets a good event borrow an outage's shape.
-  const aTop = 24, serverY = 34, bandH = 20, tankY = 70, aBottom = tankY + bandH, aHeight = 104;
-  const TICKS = 84, bucketMs = span / TICKS, tickW = plot / TICKS, segW = Math.max(2.5, tickW - 1.7);
-  const bucketOf = (ts: number) => Math.max(0, Math.min(TICKS - 1, Math.floor((Math.max(start, Math.min(now, ts)) - start) / bucketMs)));
-  const segX = (index: number) => left + index * tickW;
-  const seg = (index: number, y: number, fill: string, inset = 0) =>
-    `<rect x="${segX(index).toFixed(1)}" y="${(y + inset).toFixed(1)}" width="${segW.toFixed(1)}" height="${(bandH - inset * 2).toFixed(1)}" rx="2" fill="${fill}"/>`;
-  /**
-   * The transparent hit area behind a mark, one bucket wide and 24 units tall.
-   *
-   * The coloured slice is 20 units at most and a hotfix slice is 10, so the visible mark never
-   * reaches the 24 px minimum on its own. Adjacent buckets meet edge to edge and never overlap,
-   * so this clears SC 2.5.8 outright rather than leaning on the spacing exception -- which the
-   * marks would not qualify for anyway, being closer together than 24 px before the widening.
-   */
-  const HIT = 24;
-  // A hair under one bucket wide: x and width are each emitted to one decimal, and rounding
-  // them independently can push a rect 0.1 units past its neighbour's edge. Trimming 0.4
-  // guarantees a gap at every bucket while leaving the target comfortably over 24.
-  const hitW = Math.max(HIT, tickW - 0.4);
-  const hit = (index: number, y: number) =>
-    `<rect x="${segX(index).toFixed(1)}" y="${(y + bandH / 2 - HIT / 2).toFixed(1)}" width="${hitW.toFixed(1)}" height="${HIT}" fill="transparent"/>`;
-
-  const isHotfix = (batch: DeploymentBatch) => entries.filter((entry) => entry.deployment === batch.id).every((entry) => entry.label === "hotfix");
-  const deployBuckets = new Map<number, { batches: DeploymentBatch[]; release: boolean }>();
-  for (const batch of batches) {
-    const index = bucketOf(batch.to), found = deployBuckets.get(index) ?? { batches: [], release: false };
-    found.batches.push(batch);
-    found.release = found.release || !isHotfix(batch);
-    deployBuckets.set(index, found);
-  }
-  // Highest-impact state wins the bucket: an outage is never hidden by a maintenance window
-  // that overlaps it, and neither is hidden by a test alert.
-  const incidentBuckets = new Map<number, { incident: IncidentRecord; rank: number; colour: string }>();
-  for (const incident of incidents) {
-    const from = incidentTime(incident.startedAt, now), to = incidentImpactEnd(incident, now);
-    const scheduled = SCHEDULED_INCIDENT_CAUSES.has(incident.cause), lasted = to - from > 30_000;
-    const rank = !lasted ? 1 : scheduled ? 2 : 3;
-    const colour = lasted && !scheduled ? "#ff6b6b" : incidentTone(incident.cause).color;
-    const last = lasted ? bucketOf(to) : bucketOf(from);
-    for (let index = bucketOf(from); index <= last; index += 1) {
-      const found = incidentBuckets.get(index);
-      if (!found || rank > found.rank) incidentBuckets.set(index, { incident, rank, colour });
-    }
-  }
-
-  // The green base runs the whole strip and events sit on top of it, so an inset mark still
-  // has uptime behind it instead of a hole punched through the bar.
-  const strip = (y: number, name: string) =>
-    `<a href="/evidence/#availability" aria-label="${esc(name)}"><title>${esc(name)}</title>`
-    // The coloured band is 20 units tall by design, which leaves the strip's own link 4 px
-    // short of the 24 px minimum. The marks that sit on it are drawn afterwards and so keep
-    // their own hit areas; this only makes the bare stretches of strip reachable.
-    + `<rect x="${left}" y="${(y + bandH / 2 - HIT / 2).toFixed(1)}" width="${plot}" height="${HIT}" fill="transparent"/>`
-    + Array.from({ length: TICKS }, (_, index) => seg(index, y, "#4ade80")).join("") + `</a>`;
-
-  const deployMarks = [...deployBuckets.entries()].sort((a, b) => a[0] - b[0]).map(([index, entry]) => {
-    const updates = entry.batches.reduce((total, batch) => total + batch.updates, 0);
-    const first = entry.batches[0], kind = entry.release ? "release" : "hotfix";
-    const when = first.recorded ? `${new Date(first.to).toISOString().replace("T", " ").slice(0, 16)}Z` : `${formatElapsed(first.elapsedMinutes)} into the build`;
-    const name = esc(`${entry.batches.map((batch) => batch.id).join(" and ")} · ${kind} · ${updates} update${updates === 1 ? "" : "s"} · ${when}`);
-    return `<g role="listitem"><a href="#${roadmapRowAnchor(first.firstEntry)}" aria-label="${name}"><title>${name}</title>`
-      + hit(index, serverY) + seg(index, serverY, "#22e6ff", entry.release ? 0 : 5) + `</a></g>`;
-  }).join("");
-
-  const incidentMarks = [...incidentBuckets.entries()].sort((a, b) => a[0] - b[0]).map(([index, entry]) => {
-    const { incident, colour } = entry;
-    const from = incidentTime(incident.startedAt, now), to = incidentImpactEnd(incident, now);
-    const tone = incidentTone(incident.cause), anchor = receiptAnchor(incident, history) ?? incidentAnchor(incident);
-    const scheduled = SCHEDULED_INCIDENT_CAUSES.has(incident.cause), lasted = to - from > 30_000;
-    const when = `${new Date(from).toISOString().replace("T", " ").slice(0, 16)}Z`;
-    const kind = scheduled ? "scheduled, excluded from availability" : lasted ? "unscheduled outage" : "no impact";
-    const name = esc(`${tone.label} · ${incident.title} · ${when} · ${formatCompactDuration(Math.max(0, to - from))} · ${kind}`);
-    return `<g role="listitem"><a href="#${anchor}" aria-label="${name}"><title>${name}</title>`
-      + hit(index, tankY) + seg(index, tankY, colour, entry.rank === 3 ? 0 : 5) + `</a></g>`;
-  }).join("");
-
-  // The percentage lives beside the name, so the strip itself carries nothing but its slices.
-  const stripLabel = (name: string, percent: number, y: number) =>
-    `<text x="${left - 10}" y="${y}" class="sc-lane" text-anchor="end">${esc(name)}</text>`
-    + `<text x="${left - 10}" y="${y + 12}" class="sc-pct" text-anchor="end">${percent}% uptime</text>`;
-
-  const availability = `<svg viewBox="0 0 ${width} ${aHeight}" role="group" aria-labelledby="wg-uptime-title wg-uptime-desc">
-    <title id="wg-uptime-title">${esc(`Server and tank availability across ${formatWindow(span)} of project time`)}</title>
-    <desc id="wg-uptime-desc">${esc(`Each strip is ${TICKS} equal slices of the project. Server availability ${portal.availabilityPercent} percent, with the slices carrying the ${batches.length} deployments picked out. Tank availability ${tank.availabilityPercent} percent, with the slices carrying its ${incidents.length} incidents picked out, of which ${formatCompactDuration(tank.scheduledDowntimeMs)} was scheduled downtime excluded from the figure.`)}</desc>
-    ${frame(aTop, aBottom)}
-    ${dayTicks.map((ts) => `<text x="${x(ts).toFixed(1)}" y="13" class="sc-axis" text-anchor="middle">${new Date(ts).toISOString().slice(5, 10)}</text>`).join("")}
-    <text x="${(x(buildEnd) + 5).toFixed(1)}" y="21" class="sc-build">${esc(`${formatElapsed(ROADMAP_ELAPSED_MINUTES)} build ends`)}</text>
-    ${stripLabel("Server", portal.availabilityPercent, serverY + 9)}
-    ${strip(serverY, `Server availability ${portal.availabilityPercent}% over ${portal.windowLabel}, no unscheduled downtime`)}
-    <g role="list" aria-label="${esc(`${batches.length} deployments`)}">${deployMarks}</g>
-    ${stripLabel("Shark Tank", tank.availabilityPercent, tankY + 9)}
-    ${strip(tankY, `Tank availability ${tank.availabilityPercent}% over ${tank.windowLabel}`)}
-    <g role="list" aria-label="${esc(`${incidents.length} incidents`)}">${incidentMarks}</g>
-  </svg>`;
-
-  // ── Graph two: spend, on the same geometry. Its own scale, its own units, and stepped in
-  // whole cents — sub-cent gridlines were six digits of noise on a bill under three cents.
-  const bTop = 12, spendTop = 20, spendH = 68, spendBase = spendTop + spendH;
-  const capY = 104, capH = 14, bHeight = 142, axisY = 134;
-  const values = samples.map((sample) => sample.usd);
-  let series: string;
-  if (samples.length >= 2) {
-    const hi = Math.max(...values), lo = Math.min(...values);
-    const step = Math.max(0.01, Math.ceil(niceAxisStep(Math.max(hi - lo, 1e-9)) / 0.01) * 0.01);
-    let base = Math.max(0, Math.floor(lo / step) * step);
-    if (base <= step * 1.5) base = 0;
-    const ceiling = Math.max(Math.ceil((hi + step * 0.35) / step) * step, base + step);
-    const sy = (usd: number) => spendBase - ((usd - base) / (ceiling - base)) * spendH;
-    const ticks: string[] = [];
-    for (let value = base; value <= ceiling + step / 2 && ticks.length < 6; value += step) {
-      const gy = sy(value);
-      ticks.push(`<line x1="${left}" y1="${gy.toFixed(1)}" x2="${(left + plot).toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#2b2750" stroke-width="1"/>`
-        + `<text x="${left + 5}" y="${(gy - 3).toFixed(1)}" class="sc-axis">$${value.toFixed(2)}</text>`);
-    }
-    const first = samples[0], last = samples[samples.length - 1];
-    const line = samples.map((sample, index) => `${index ? "L" : "M"}${x(sample.ts).toFixed(1)} ${sy(sample.usd).toFixed(1)}`).join(" ");
-    // Sampling started partway through, so the untracked stretch is held at the first reading
-    // rather than left as a hole in the lane.
-    const baseline = x(first.ts) - left > 4
-      ? `<path d="M${left + 48} ${sy(first.usd).toFixed(1)} L${x(first.ts).toFixed(1)} ${sy(first.usd).toFixed(1)}" fill="none" stroke="#f0abfc" stroke-width="2" stroke-dasharray="4 4" opacity=".5"/>`
-      : "";
-    series = `${ticks.join("")}${baseline}`
-      + `<g role="listitem"><a href="/evidence/#spend" aria-label="${esc(`Metered spend $${last.usd.toFixed(4)}, from $${lo.toFixed(4)} across ${samples.length} hourly samples; the dashed stretch is the baseline for the days before sampling began`)}"><title>${esc(`$${last.usd.toFixed(4)} metered`)}</title>`
-      + `<rect x="${left}" y="${spendTop}" width="${plot}" height="${spendH}" fill="transparent"/>`
-      + `<path d="${line}" fill="none" stroke="#f0abfc" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`
-      + `<circle cx="${x(last.ts).toFixed(1)}" cy="${sy(last.usd).toFixed(1)}" r="3.5" fill="#f0abfc"/></a></g>`;
-  } else {
-    series = `<text x="${left + 8}" y="${(spendTop + spendH / 2 + 4).toFixed(1)}" class="sc-note">${esc(samples.length ? `$${(values[0] ?? 0).toFixed(4)} metered. The line draws once a second hourly sample lands.` : "No spend samples recorded yet.")}</text>`;
-  }
-  const used = Math.max(0, Math.min(1, spendUsd / Math.max(hardLimitUsd, 1e-9)));
-  const capBar = `<rect x="${left}" y="${capY}" width="${plot}" height="${capH}" rx="4" fill="#2b2750"/>`
-    + `<g role="listitem"><a href="/evidence/#spend" aria-label="${esc(`Metered spend $${spendUsd.toFixed(4)} of the $${hardLimitUsd.toFixed(2)} hard stop, ${(used * 100).toFixed(2)} percent used`)}"><title>${esc(`$${spendUsd.toFixed(4)} of $${hardLimitUsd.toFixed(2)}`)}</title>`
-    + `<rect x="${left}" y="${(capY + capH / 2 - 12).toFixed(1)}" width="${Math.max(24, used * plot).toFixed(1)}" height="24" fill="transparent"/>`
-    + `<rect x="${left}" y="${capY}" width="${Math.max(3, used * plot).toFixed(1)}" height="${capH}" rx="4" fill="#f0abfc"/></a></g>`
-    + `<text x="${left + 10}" y="${(capY + 11).toFixed(1)}" class="sc-note">${esc(`$${spendUsd.toFixed(4)} used · ${(used * 100).toFixed(2)}% of the $${hardLimitUsd.toFixed(2)} hard stop`)}</text>`
-    + `<text x="${(left + plot).toFixed(1)}" y="${(capY - 4).toFixed(1)}" class="sc-axis" text-anchor="end">$${hardLimitUsd.toFixed(2)}</text>`;
-
-  const spend = `<svg viewBox="0 0 ${width} ${bHeight}" role="group" aria-labelledby="wg-spend-title wg-spend-desc">
-    <title id="wg-spend-title">${esc(`Metered spend across the same ${formatWindow(span)}`)}</title>
-    <desc id="wg-spend-desc">${esc(`Metered spend reached $${spendUsd.toFixed(4)}, ${(used * 100).toFixed(2)} percent of the $${hardLimitUsd.toFixed(2)} hard stop that closes the game.`)}</desc>
-    ${frame(bTop, spendBase)}
-    ${laneLabel("Metered spend", "USD", spendTop + 30)}
-    <g role="list" aria-label="Metered spend">${series}</g>
-    <text x="${left - 10}" y="${capY + 11}" class="sc-lane" text-anchor="end">Budget used</text>
-    <g role="list" aria-label="Budget used">${capBar}</g>
-    <text x="${left}" y="${axisY}" class="sc-axis">${new Date(start).toISOString().slice(0, 10)} · project start</text>
-    <text x="${(left + plot).toFixed(1)}" y="${axisY}" class="sc-axis" text-anchor="end">now · ${esc(formatWindow(span))} measured</text>
-  </svg>`;
-
-  return `<div class="timeline-scroll showcase-chart" role="region" aria-label="Project record: availability, deployments, incidents and spend" tabindex="0">${availability}${spend}</div>`;
-}
-
 /** Status-page incident strip: active first, each row linking to its receipt in the control log. */
 /**
  * What /status/ says about backups. Deliberately reports shape and timing rather than
@@ -2307,56 +1409,6 @@ var m=matching(),i=m.indexOf(target);if(i<0){search.value='';code.value='';m=mat
 if(i>=0){page=Math.floor(i/PER);render(0);target.classList.add('history-item--focus');target.scrollIntoView({block:'center'});if(!target.hasAttribute('tabindex'))target.setAttribute('tabindex','-1');target.focus({preventScroll:true});}}
 render(0);reveal();window.addEventListener('hashchange',reveal);}());</script>`;
 }
-/**
- * The trust estate's front door, and the page that defines its vocabulary.
- *
- * Six figures, each one a link to the page that owns it. Nothing here is restated as a
- * literal: every number is computed from the same value the owning page renders, so the
- * two cannot drift apart and be separately true. That is the whole design constraint —
- * a summary page that keeps its own copy of a number is a second source of truth, and a
- * second source of truth on a conformance estate is a finding.
- */
-interface TrustInput {
-  portal: ReturnType<typeof incidentSummary>;
-  tank: ReturnType<typeof incidentSummary>;
-  incidents: IncidentRecord[];
-  integrity: ControlHistoryIntegrity;
-  spendUsd: number;
-  hardLimitUsd: number;
-  readiness: { percent: number; met: number; partial: number; total: number };
-  lastDeployment: { id: string; title: string } | null;
-}
-function trustHtml(input: TrustInput): string {
-  const { portal, integrity, spendUsd, hardLimitUsd, lastDeployment } = input;
-  const chainOk = integrity.chainStatus === "verified";
-  const tile = (href: string, label: string, value: string, detail: string, tone: string) =>
-    `<a class="trust-tile ${tone}" href="${href}"><span class="trust-tile__label">${esc(label)}</span><span class="trust-tile__value">${value}</span><span class="trust-tile__detail">${esc(detail)}</span><span class="trust-tile__go" aria-hidden="true">→</span></a>`;
-  const uptimeClaim = portal.availabilityPercent === 100 ? "100% uptime maintained" : `${portal.availabilityPercent}% server availability`;
-  return `<section class="governance-hero home-hero">
-    <div class="home-hero__copy"><div class="eyebrow">SharkTank · governed realtime production workload</div>
-    <h1>Governance you can inspect.</h1>
-    <p>SharkTank is a running realtime application that demonstrates how ISO/IEC 27001, ISO/IEC 42001, reliability, accessibility, operational continuity, and spend governance become measurable production requirements.</p>
-    <div class="proof-row" aria-label="Demonstrated production capabilities"><span>ISO 27001</span><span>ISO 42001</span><span>${esc(uptimeClaim)}</span><span>WCAG 2.0 AA</span><span>Controlled spend</span><span>Live evidence</span></div>
-    <div class="action-links"><a class="button" href="/controls/">Explore Controls →</a><a class="button secondary" href="/evidence/">Inspect Evidence →</a><a class="button secondary" href="/play/">Play →</a><a class="button secondary" href="https://github.com/Wizard-Gang/SharkTank">GitHub →</a></div></div>
-    <figure class="governance-art"><img src="/sharktank-art.jpg" width="1280" height="720" alt="SharkTank main menu showing the interactive production workload"><figcaption>Live workload · the system behind the evidence</figcaption></figure>
-  </section>
-  <section class="governance-flow" aria-label="SharkTank governance evidence model"><div><strong>Running system</strong><span>Realtime software with users, agents, state, change, and failure modes.</span></div><i aria-hidden="true">↓</i><div><strong>Operational evidence</strong><span>Status, incidents, logs, receipts, backups, recovery, and resource use.</span></div><i aria-hidden="true">↓</i><div><strong>Controls</strong><span>Technical and operational responses tied to requirements.</span></div><i aria-hidden="true">↓</i><div><strong>Management system</strong><span>Scope, risk, policy, objectives, review, and continuous improvement.</span></div></section>
-  <section class="standard-pair" aria-label="Implemented management systems">
-    <a class="standard-card" href="/controls/#iso-27001"><span>ISO/IEC 27001:2022</span><h2>Information Security Management</h2><p>Scope, risk treatment, Annex A applicability, secure development, operations, recovery, and improvement.</p><strong>Inspect implementation →</strong></a>
-    <a class="standard-card" href="/controls/#iso-42001"><span>ISO/IEC 42001:2023</span><h2>AI Management System</h2><p>Purpose, intended use, impact, human authority, monitoring, transparency, change, and known limitations.</p><strong>Inspect implementation →</strong></a>
-  </section>
-  <section class="case-principle"><div><div class="eyebrow">Evidence rule</div><h2>Requirement → meaning → implementation → proof.</h2></div><p>A control is not treated as evidenced merely because it is described. Each supported position resolves to a live route or operational record. Partial implementations and gaps stay visible rather than being flattened into a compliance score.</p></section>
-  <section aria-labelledby="live-snapshot"><div class="section-head"><div><div class="eyebrow">Live system snapshot</div><h2 id="live-snapshot">Current operational evidence.</h2></div><a class="action-link" href="/evidence/">Open the evidence index →</a></div>
-    <div class="trust-grid">
-      ${tile("/evidence/#availability", "Server availability", `${portal.availabilityPercent}%`, `${portal.windowLabel} measured`, "tone-green")}
-      ${tile("/evidence/#spend", "Metered resource cost", `$${spendUsd.toFixed(4)}`, `of the $${hardLimitUsd.toFixed(2)} hard stop`, "tone-cyan")}
-      ${tile("/evidence/#changes", "Last deployment", lastDeployment ? esc(lastDeployment.id) : "—", lastDeployment ? lastDeployment.title : "no deployment recorded", "tone-cyan")}
-      ${tile("/evidence/#receipts", "Receipt chain", chainOk ? "Verified" : "Unverified", `${integrity.entryCount} receipts · ${esc(integrity.algorithm)}`, chainOk ? "tone-green" : "tone-red")}
-    </div>
-  </section>
-  <section class="workload-card"><div><div class="eyebrow">Running workload</div><h2>The game gives the controls something real to govern.</h2><p>Authentication, authorization, availability, application state, secure development, change control, monitoring, incidents, recovery, operational logging, resource consumption, and AI-system governance are exercised against a live realtime application.</p></div><div>${SHARK_MARK_SVG}<a class="button" href="/play/">Play →</a></div></section>`;
-}
-
 function iso27001Html(embedded = false): string {
   const heading = embedded ? "h2" : "h1";
   return `<section class="standard-hero controls-block" id="iso-27001" tabindex="-1"><div class="eyebrow">ISO/IEC 27001:2022</div><${heading}>Information Security Management System</${heading}><div class="action-links"><a class="button" href="#iso27001-clauses">Open 27001 register →</a><a class="button secondary" href="#statement-of-applicability">Statement of Applicability →</a></div></section>
@@ -2368,7 +1420,7 @@ function iso27001Html(embedded = false): string {
     <article><span>05</span><h3>Operations &amp; recovery</h3><p>Availability, incidents, state copies, restore drills, resource ceilings, and append-only receipts are recorded by the service they describe.</p><a href="/evidence/#continuity">Operational record →</a></article>
     <article><span>06</span><h3>Continuous improvement</h3><p>Findings, nonconformities, corrective action, management review, and system evolution remain part of the public record, including known limits in independent assurance.</p><a href="#audit-and-review">Audit and review →</a></article>
   </section>
-  <section class="control-example"><div><div class="eyebrow">Example control</div><h3>A.8.32<br>Change management</h3><span class="iso-pill is-met">Evidenced</span></div><dl><dt>Purpose</dt><dd>Production changes are assessed, authorized, tested, and recorded.</dd><dt>Implementation</dt><dd>Git-based controlled change workflow, required verification, an authenticated deployment path, and append-only operational receipts.</dd><dt>Evidence</dt><dd><a href="/evidence/#changes">Deployment record</a> · <a href="/evidence/#receipts">Control receipts</a> · <a href="#secure-development">Secure development procedure</a></dd><dt>Current gaps</dt><dd>Independent assurance remains outside the project’s current boundary; the public register does not claim certification.</dd></dl></section>`;
+  <section class="control-example"><div><div class="eyebrow">Example control</div><h3>A.8.32<br>Change management</h3><span class="iso-pill is-met">Evidenced</span></div><dl><dt>Purpose</dt><dd>Production changes are assessed, authorized, tested, and recorded.</dd><dt>Implementation</dt><dd>Git-based controlled change workflow, required verification, an authenticated deployment path, and append-only operational receipts.</dd><dt>Evidence</dt><dd><a href="https://github.com/Wizard-Gang/SharkTank/commits/main">Git history</a> · <a href="/evidence/#receipts">Control receipts</a> · <a href="#secure-development">Secure development procedure</a></dd><dt>Current gaps</dt><dd>Independent assurance remains outside the project’s current boundary; the public register does not claim certification.</dd></dl></section>`;
 }
 
 function iso42001Html(embedded = false): string {
@@ -2533,7 +1585,6 @@ function evidenceDashboardHtml(
   data: PublicEvidenceStatus,
   incidentRecord: { incidents: IncidentRecord[]; history: ControlHistoryEntry[]; historyIntegrity: ControlHistoryIntegrity },
   logs: { serviceEvents: PublicLogEvent[]; service: PublicServiceLogRecord[]; tanks: PublicTankLog[]; caps: { serviceTruncated: boolean; captureTruncated: boolean } },
-  deployment: DeploymentMetrics,
 ): string {
   const rooms = data.rooms ?? [];
   const players = rooms.reduce((n, room) => n + room.players, 0);
@@ -2546,7 +1597,7 @@ function evidenceDashboardHtml(
   const gateClosed = billing.hardLimitExceeded === true;
   const roomRows = rooms.map((room) => `<tr><td><strong>${esc(room.name)}</strong></td><td>${room.players}</td><td>${room.bots}</td><td>${room.topScore}</td><td>${esc(room.topName)}</td></tr>`).join("");
 
-  return `<section class="page-intro evidence-intro"><div class="eyebrow">Evidence · generated by the running service</div><h1>Production claims, with inspectable proof.</h1><p class="sub">Availability, incidents, continuity, spend, degradation, reason-coded logs, control receipts, and changes share this dashboard. The raw endpoints remain available for independent checks.</p><nav class="evidence-jump" aria-label="Evidence sections"><a href="#availability">Availability</a><a href="#incidents">Incidents</a><a href="#continuity">Continuity</a><a href="#spend">Spend</a><a href="#degradation">Degradation</a><a href="#logs">Logs</a><a href="#changes">Changes</a><a href="#machine-data">JSON</a></nav></section>
+  return `<section class="page-intro evidence-intro"><div class="eyebrow">Evidence · generated by the running service</div><h1>Production claims, with inspectable proof.</h1><p class="sub">Availability, incidents, continuity, spend, degradation, reason-coded logs, and control receipts share this dashboard. The raw endpoints remain available for independent checks.</p><nav class="evidence-jump" aria-label="Evidence sections"><a href="#availability">Availability</a><a href="#incidents">Incidents</a><a href="#continuity">Continuity</a><a href="#spend">Spend</a><a href="#degradation">Degradation</a><a href="#logs">Logs</a><a href="#machine-data">JSON</a></nav></section>
   <section class="evidence-block" id="availability" tabindex="-1" aria-labelledby="availability-heading">
     <div class="eyebrow">Reliability · live</div><h2 id="availability-heading">Availability and workload state</h2>
     <p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a><a class="action-link" href="/incidents.json">Incident JSON →</a></p>
@@ -2567,8 +1618,7 @@ function evidenceDashboardHtml(
   ${spendHtml(billing, true)}
   <section class="card evidence-block degradation-card" id="degradation" tabindex="-1" aria-labelledby="degradation-heading"><div class="eyebrow">Controlled degradation · ${gateClosed ? "active" : "standing by"}</div><h2 id="degradation-heading">The service sheds variable-cost work before it sheds evidence.</h2><ol class="degradation-ladder"><li><strong>Normal</strong><span>Gameplay, public reads, and bounded public writes operate.</span></li><li><strong>Hard threshold reached</strong><span>The measured billing window reaches its configured spend stop.</span></li><li><strong>Variable-cost traffic gated</strong><span>Gameplay and metered public writes close; an append-only receipt records why.</span></li><li><strong>Evidence preserved</strong><span>Read-only status and evidence, security-report intake, and protected administration and recovery remain available.</span></li><li><strong>Controlled recovery</strong><span>An authenticated billing reset restores normal operation and records the change.</span></li></ol><p class="sub">Current state: <strong>${gateClosed ? "hard threshold exceeded; the cost gate is active" : "normal; the hard threshold has not been reached"}</strong>.</p></section>
   ${publicLogsHtml(logs.serviceEvents, logs.tanks, logs.caps, true)}
-  ${deliverySection(ROADMAP_MANIFEST, deployment, incidents, history, billing)}
-  <section class="card evidence-block" id="machine-data" tabindex="-1"><div class="eyebrow">Machine-readable evidence</div><h2>Raw endpoints</h2><p class="sub">The human dashboard and machine responses are two views over the same records.</p><div class="action-links"><a class="action-link" href="/status.json">Status JSON</a><a class="action-link" href="/incidents.json">Incidents JSON</a><a class="action-link" href="/spend.json">Spend JSON</a><a class="action-link" href="/logs.json">Logs JSON</a><a class="action-link" href="/roadmap.json">Changes JSON</a><a class="action-link" href="/audit/manifest.json">Control register JSON</a><a class="action-link" href="/policies.json">Policies JSON</a></div></section>
+  <section class="card evidence-block" id="machine-data" tabindex="-1"><div class="eyebrow">Machine-readable evidence</div><h2>Raw endpoints</h2><p class="sub">The human dashboard and machine responses are two views over the same records.</p><div class="action-links"><a class="action-link" href="/status.json">Status JSON</a><a class="action-link" href="/incidents.json">Incidents JSON</a><a class="action-link" href="/spend.json">Spend JSON</a><a class="action-link" href="/logs.json">Logs JSON</a><a class="action-link" href="/audit/manifest.json">Control register JSON</a><a class="action-link" href="/policies.json">Policies JSON</a></div></section>
   ${statusLiveScript()}`;
 }
 
@@ -2672,10 +1722,6 @@ catch(err){show('Unable to send test alert.',true);}finally{b.disabled=false;}})
 
 export {
   downtimeResponse,
-  ROADMAP_MANIFEST,
-  POST_DELIVERY_ENTRIES,
-  publicRoadmapEntry,
-  deploymentMetrics,
   formatCompactDuration,
   statusLiveScript,
   PAGE_CSS_PATH,
@@ -2694,7 +1740,6 @@ export {
   backupPanelHtml,
   incidentsSection,
   controlHistoryListHtml,
-  deliverySection,
   controlsHtml,
   normalizeServiceLogEvent,
   normalizeGameLogEvent,
@@ -2705,12 +1750,9 @@ export {
   evidenceDashboardHtml,
   gameLogText,
   adminViewerHtml,
-  trustHtml,
 };
 
 export type {
-  RoadmapAvailability,
-  DeploymentMetrics,
   IncidentRecord,
   ControlHistoryEntry,
   ControlHistoryIntegrity,

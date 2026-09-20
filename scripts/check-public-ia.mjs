@@ -13,7 +13,6 @@ const redirects = {
   "/logs": "/evidence/#logs", "/logs/": "/evidence/#logs",
   "/spend": "/evidence/#spend", "/spend/": "/evidence/#spend",
   "/inquiry": "/evidence/#spend", "/inquiry/": "/evidence/#spend",
-  "/roadmap": "/evidence/#changes", "/roadmap/": "/evidence/#changes",
   "/policies/context/": "/controls/#context",
   "/policies/ai-policy/": "/controls/#ai-policy",
 };
@@ -126,6 +125,14 @@ async function main() {
   if (!(unknownApi.headers.get("content-type") || "").startsWith("application/json")) fail("unknown API must remain JSON rather than human HTML");
   const unknownApiBody = await unknownApi.json().catch(() => null);
   if (unknownApiBody?.error !== "unknown endpoint") fail("unknown API response body changed");
+
+  for (const retiredPath of ["/roadmap", "/roadmap/", "/roadmap.json"]) {
+    const retired = await request(retiredPath);
+    if (retired.status !== 404) fail(`${retiredPath} expected retired implementation-history surface to return 404, got ${retired.status}`);
+    const retiredBody = await retired.text();
+    assertStrictPresentation(retiredPath, retired, retiredBody);
+    assertNotGameDocument(retiredPath, retiredBody);
+  }
 
   const unknownPage = await request("/not-a-real-route");
   if (unknownPage.status !== 404) fail(`unknown human route expected 404, got ${unknownPage.status}`);

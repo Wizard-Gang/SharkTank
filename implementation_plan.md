@@ -45,7 +45,6 @@ Those choices are now constraints, not items to revisit during the normalization
 
 - `docs/RECONSTRUCTION.md` and `docs/history/LEGACY-INVENTORY.md` retain reconstruction narrative that belongs in Git/GitHub once no validator requires it.
 - `docs/history/CHANGE-MAP.csv` still grows with forward changes. WG-ARCH-001 allows exact validator/provenance exception data, but not a parallel forward implementation-history ledger.
-- The runtime `ROADMAP_MANIFEST` presents checked-in ST/change history as product content. Current operational evidence may remain; implementation history should come from Git/GitHub.
 
 
 ## 4. Normalization rules
@@ -79,17 +78,6 @@ Unless a task explicitly authorizes a change, preserve:
 After a task is successfully merged and its plan entry is therefore purged, finish the working session with a ready-to-run prompt for the next remaining task. The handoff prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope and acceptance criteria, validation commands, and the merge/purge completion rule. Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
 
 ## 7. Sequenced controlled changes
-
-### ST-062 — REFACTOR — Remove implementation history from the runtime product surface
-
-**Depends on:** ST-050 and preferably ST-057.
-
-Required outcome:
-
-- retire the checked-in `ROADMAP_MANIFEST`/ST-by-ST delivery history as product content;
-- retain current operational state, incidents, control receipts, release identity, and other evidence only where they are true current/operating records;
-- source historical code changes from Git/GitHub instead of duplicating them in Worker source;
-- remove route/page copy whose only purpose is narrating old implementation changes.
 
 ### ST-063 — DOCS — Consolidate current-state documentation
 
