@@ -27,7 +27,7 @@ npm run check:evidence -- http://127.0.0.1:8787
 
 Keep a pull request focused on one auditable outcome. Explain risk, controls, evidence, rollback needs, and the commands actually run. New behavior needs tests. Changes to public assurance claims must update their evidence and must not turn a limitation into an unsupported assertion.
 
-Use the structured commit format in `AGENTS.md`. Maintainers may squash a pull request only if the resulting commit retains that structure and the provenance map remains accurate.
+Use the structured commit format in `AGENTS.md`. Human-controlled pull requests carry one controlled commit and land as one commit on `main`; squash merge is the accepted merge method when needed to preserve that shape. The landed commit must retain the complete structured record.
 
 ## Security reports
 

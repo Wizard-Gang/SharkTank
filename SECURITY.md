@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are made on the latest published release. Older reconstructed releases exist for provenance and are not maintained release lines.
+Security fixes are made on the latest published release. Older published releases are not maintained release lines.
 
 ## Reporting a vulnerability
 

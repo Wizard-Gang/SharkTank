@@ -26,6 +26,14 @@ function statusContexts(ruleset) {
   return valuesOf(rule?.parameters?.required_status_checks).map((check) => check.context);
 }
 
+function allowedMergeMethods(expected) {
+  const methods = [];
+  if (expected.mergeMethods?.mergeCommit) methods.push("merge");
+  if (expected.mergeMethods?.squash) methods.push("squash");
+  if (expected.mergeMethods?.rebase) methods.push("rebase");
+  return methods;
+}
+
 export function compareGithubSettings(expected, actual) {
   const failures = [];
   const repository = actual?.repository;
@@ -88,9 +96,13 @@ export function compareGithubSettings(expected, actual) {
 
     if (expectedRuleset.target === "branch") {
       const pullRequest = ruleMap.get("pull_request");
-      const allowed = pullRequest?.parameters?.allowed_merge_methods;
-      if (!Array.isArray(allowed) || allowed.length !== 1 || allowed[0] !== "merge") {
-        failures.push(expectedRuleset.name + ": pull request rule must allow merge commits only");
+      const allowed = valuesOf(pullRequest?.parameters?.allowed_merge_methods);
+      const expectedAllowed = allowedMergeMethods(expected);
+      if (allowed.length !== expectedAllowed.length || !hasAll(allowed, expectedAllowed)) {
+        failures.push(
+          expectedRuleset.name + ": expected pull request merge methods "
+          + expectedAllowed.join(", ") + ", got " + allowed.join(", "),
+        );
       }
 
       const contexts = statusContexts(actualRuleset);
@@ -112,7 +124,7 @@ export function rulesetPayload(expected, ruleset) {
       return {
         type,
         parameters: {
-          allowed_merge_methods: ["merge"],
+          allowed_merge_methods: allowedMergeMethods(expected),
           dismiss_stale_reviews_on_push: false,
           require_code_owner_review: false,
           require_last_push_approval: false,

@@ -37,6 +37,12 @@ Wrangler keeps `run_worker_first` enabled with `html_handling` and `not_found_ha
 
 Worker pages use the fingerprinted `PAGE_CSS_PATH` stylesheet. The game shell and mounted game use Vite-processed CSS. Dynamic visual state uses SVG attributes or finite data/class tokens rather than inline style strings. Production `style-src` is limited to `'self'`; narrowly scoped inline scripts require per-response nonces.
 
+## WG-ARCH-001 project-specific boundaries
+
+SharkTank adopts the WG-ARCH-001 repository toolchain, presentation, security, release, and evidence baseline with explicit product-specific boundaries rather than adding unused platform features. `/play/` is the documented client-application exception to the ordinary progressive-enhancement model. The product uses Durable Objects for coordinated game state and R2 for retained copies; it does not add D1, GraphQL, OAuth/SSO/SAML, or MCP because the current product has no requirement for them.
+
+Repository delivery is also intentionally squash-only so each controlled ST change lands as one non-merge commit on `main`. That single-commit policy is the current SharkTank delivery authority and is enforced by the committed GitHub-settings expectation; merge commits and rebase merges are not accepted for controlled ST work.
+
 ## Accessibility and deterministic runtime
 
 The governance pages and supported game controls use semantic structure, keyboard operation, visible focus, managed focus, alternative status output, configurable contrast/text scale, and reduced-motion support. The implemented interface target is WCAG 2.0 AA; no certification is claimed.

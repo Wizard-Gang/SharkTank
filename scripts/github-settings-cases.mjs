@@ -8,7 +8,7 @@ import {
 const expected = {
   repository: "Wizard-Gang/SharkTank",
   defaultBranch: "main",
-  mergeMethods: { mergeCommit: true, squash: false, rebase: false },
+  mergeMethods: { mergeCommit: false, squash: true, rebase: false },
   deleteBranchOnMerge: true,
   requiredStatusChecks: ["verify"],
   rulesets: [
@@ -33,8 +33,8 @@ function actual() {
   return {
     repository: {
       default_branch: "main",
-      allow_merge_commit: true,
-      allow_squash_merge: false,
+      allow_merge_commit: false,
+      allow_squash_merge: true,
       allow_rebase_merge: false,
       delete_branch_on_merge: true,
     },
@@ -47,7 +47,7 @@ function actual() {
         rules: [
           { type: "deletion" },
           { type: "non_fast_forward" },
-          { type: "pull_request", parameters: { allowed_merge_methods: ["merge"] } },
+          { type: "pull_request", parameters: { allowed_merge_methods: ["squash"] } },
           {
             type: "required_status_checks",
             parameters: {
@@ -78,8 +78,12 @@ test("matching configuration passes", () => {
   assert.deepEqual(compareGithubSettings(expected, actual()), []);
 });
 
-test("squash merge unexpectedly enabled fails", () => {
-  assert.match(failuresFor((state) => { state.repository.allow_squash_merge = true; }), /squash merges/);
+test("merge commits unexpectedly enabled fail", () => {
+  assert.match(failuresFor((state) => { state.repository.allow_merge_commit = true; }), /merge commits/);
+});
+
+test("squash merge unexpectedly disabled fails", () => {
+  assert.match(failuresFor((state) => { state.repository.allow_squash_merge = false; }), /squash merges/);
 });
 
 test("rebase merge unexpectedly enabled fails", () => {
@@ -157,11 +161,11 @@ test("inaccessible provider data is never treated as compliant", () => {
   );
 });
 
-test("main ruleset payload encodes merge-only PR and required CI policy", () => {
+test("main ruleset payload encodes squash-only PR and required CI policy", () => {
   const payload = rulesetPayload(expected, expected.rulesets[0]);
   const pull = payload.rules.find((rule) => rule.type === "pull_request");
   const checks = payload.rules.find((rule) => rule.type === "required_status_checks");
-  assert.deepEqual(pull.parameters.allowed_merge_methods, ["merge"]);
+  assert.deepEqual(pull.parameters.allowed_merge_methods, ["squash"]);
   assert.deepEqual(checks.parameters.required_status_checks, [{ context: "verify" }]);
   assert.ok(payload.rules.some((rule) => rule.type === "deletion"));
   assert.ok(payload.rules.some((rule) => rule.type === "non_fast_forward"));

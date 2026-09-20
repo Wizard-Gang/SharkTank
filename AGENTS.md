@@ -18,6 +18,7 @@ For organization-baseline questions, read WG-ARCH-001 §27 in `SouthernGentlemen
 ## Controlled-change discipline
 
 - Work from an up-to-date `main` on one focused branch.
+- Human-controlled ST work lands as one non-merge controlled commit on `main`. Keep the feature branch to one controlled commit; squash at merge when necessary. Do not use merge commits or rebase merges for controlled ST changes.
 - Use the next free sequential `ST` identifier. Branches use `st-NNN-imperative-summary`.
 - Commit and pull-request titles use `[ST-NNN] [TYPE] Imperative summary` with exactly one type from: `INIT`, `FEAT`, `FIX`, `SEC`, `API`, `A11Y`, `I18N`, `AI`, `DB`, `OPS`, `TEST`, `DOCS`, `REFACTOR`, `PERF`, `BUILD`, `REVERT`, `CHORE`.
 - Dependabot's GitHub-verified dependency-bump commits are the only automated title/body exception currently accepted by repository validation.
@@ -54,7 +55,7 @@ Provider-authenticated checks remain explicit and separate. GitHub repository se
 ## Implementation-plan maintenance and session handoff
 
 - Standing shorthand: when the user says `do needful`, treat that as authorization to read current `main`, `AGENTS.md`, and `implementation_plan.md`; select the first remaining task whose dependencies are satisfied; and execute its complete workflow without requiring the user to restate the task.
-- For `do needful`, perform branch -> implement -> validate -> commit -> pull request -> exact-head CI -> merge -> verify `main` -> purge the completed plan item. Do not stop at planning or "ready to merge" when the current change is green, current, and mergeable.
+- For `do needful`, perform branch -> implement -> validate -> one controlled commit -> pull request -> exact-head CI -> squash merge -> verify `main` -> purge the completed plan item. Do not stop at planning or "ready to merge" when the current change is green, current, and mergeable.
 - After that merge/purge, end the session with the ready-to-run prompt for the next remaining task. Do not automatically start that subsequent task in the same session unless the user explicitly says to continue or says `do needful` again.
 - If no task is open or the first open task has an unsatisfied dependency, report that state rather than inventing work.
 
@@ -69,9 +70,9 @@ Provider-authenticated checks remain explicit and separate. GitHub repository se
 The normal completion path is:
 
 ```text
-branch -> implement -> validate -> commit -> pull request -> exact-head CI -> merge
+branch -> implement -> validate -> one controlled commit -> pull request -> exact-head CI -> squash merge
 ```
 
-If the current PR is the authoritative/up-to-date change, its exact head is green, and GitHub reports it mergeable, merge it. Do not stop at “ready to merge” unless the user explicitly says not to merge. Re-fetch the PR head and CI state before merging so a stale green run is never used as evidence.
+If the current PR is the authoritative/up-to-date change, its exact head is green, live repository settings match the committed authority, and GitHub reports it mergeable, squash it so the accepted ST change lands as one controlled commit on `main`. Do not stop at “ready to merge” unless the user explicitly says not to merge. Re-fetch the PR head, CI state, and provider settings before merging so stale evidence is never used.
 
 Do not begin the next ST task until the current task's dependency state on `main` is authoritative.
