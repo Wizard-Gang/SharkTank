@@ -20,7 +20,7 @@ export function MainMenu({
   const backend = getBackend();
   return (
     <div className="center-screen">
-      <div className="stack shark-menu" style={{ width: "min(620px, 100%)", textAlign: "center" }}>
+      <div className="stack shark-menu shark-menu--centered">
         <div className="shark-menu__brand">
           <span className="wizardgang-menu-mark" aria-hidden="true" />
           <div>
@@ -32,19 +32,19 @@ export function MainMenu({
 
         <div className="panel stack shark-menu__panel">
           <button className="btn btn--primary btn--lg btn--block" onClick={onPlay} autoFocus>Play</button>
-          <div className="row" style={{ justifyContent: "center" }}>
+          <div className="row row--center">
             <button className="btn btn--block" onClick={onCustomize}>Customize</button>
             <button className="btn btn--block" onClick={onSettings}>Settings</button>
           </div>
-          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>
+          <p className="menu-player-summary">
             {playerName || "Player"}
             {best > 0 && <> · best {best}</>}
           </p>
         </div>
 
-        {supportsPhpBackend() && <div className="stack" style={{ gap: 6 }}>
-          <span id="backend-label" style={{ color: "var(--text-faint)", fontSize: "0.8rem" }}>Backend</span>
-          <div role="group" aria-labelledby="backend-label" style={segWrap}>
+        {supportsPhpBackend() && <div className="stack backend-switcher">
+          <span id="backend-label" className="backend-label">Backend</span>
+          <div role="group" aria-labelledby="backend-label" className="backend-segments">
             {(["ts", "php"] as const).map((id) => {
               const active = backend.id === id;
               return (
@@ -53,7 +53,7 @@ export function MainMenu({
                   type="button"
                   aria-pressed={active}
                   onClick={() => !active && switchBackend(id)}
-                  style={{ ...segBtn, ...(active ? segActive : null) }}
+                  className={active ? "backend-segment is-active" : "backend-segment"}
                 >
                   {id === "ts" ? "TypeScript" : "PHP"}
                 </button>
@@ -66,27 +66,3 @@ export function MainMenu({
     </div>
   );
 }
-
-const segWrap: React.CSSProperties = {
-  display: "inline-flex",
-  gap: 4,
-  padding: 4,
-  borderRadius: 999,
-  background: "var(--surface-2)",
-  border: "1px solid var(--border)",
-};
-const segBtn: React.CSSProperties = {
-  minHeight: 36,
-  padding: "0 16px",
-  borderRadius: 999,
-  border: "none",
-  background: "transparent",
-  color: "var(--text-muted)",
-  font: "inherit",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-const segActive: React.CSSProperties = {
-  background: "var(--accent)",
-  color: "var(--accent-contrast)",
-};

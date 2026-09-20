@@ -21,9 +21,9 @@ export function Settings({ onClose }: { onClose?: () => void }) {
   useFocusTrap(ref, overlay, onClose);
 
   const body = (
-    <div ref={ref} className={overlay ? "panel stack" : "stack"} role={overlay ? "dialog" : undefined} aria-modal={overlay || undefined} aria-labelledby="settings-title" style={{ width: "min(720px, 100%)", maxHeight: overlay ? "86vh" : undefined, overflow: "auto" }}>
+    <div ref={ref} className={`${overlay ? "panel stack" : "stack"} settings-panel${overlay ? " settings-panel--overlay" : ""}`} role={overlay ? "dialog" : undefined} aria-modal={overlay || undefined} aria-labelledby="settings-title">
       <div className="spread">
-        <h1 id="settings-title" style={{ margin: 0, fontSize: "1.6rem" }}>Settings</h1>
+        <h1 id="settings-title" className="screen-title">Settings</h1>
         {onClose && <button className="btn" onClick={onClose} aria-label="Close settings">Close</button>}
       </div>
       <SettingsTabs />
@@ -54,7 +54,7 @@ function SettingsTabs() {
 
   return (
     <div className="stack">
-      <div role="tablist" aria-label="Settings categories" style={{ display: "flex", gap: 6, flexWrap: "wrap", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
+      <div role="tablist" aria-label="Settings categories" className="settings-tabs">
         {TABS.map((t, i) => {
           const selected = t.id === tab;
           return (
@@ -88,12 +88,12 @@ function SettingsTabs() {
 // ── Reusable fields ─────────────────────────────────────────────────────────────
 function Toggle({ label, hint, checked, onChange }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="spread" style={{ cursor: "pointer", padding: "8px 0" }}>
+    <label className="spread settings-toggle">
       <span>
-        <span style={{ fontWeight: 600 }}>{label}</span>
-        {hint && <span style={{ display: "block", color: "var(--text-muted)", fontSize: "0.9rem" }}>{hint}</span>}
+        <span className="settings-field-label">{label}</span>
+        {hint && <span className="settings-hint">{hint}</span>}
       </span>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 24, height: 24 }} />
+      <input className="settings-checkbox" type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
     </label>
   );
 }
@@ -112,12 +112,12 @@ function Slider({ label, value, onChange, min = 0, max = 1, step = 0.05, formatV
 
 function Choice<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: Array<{ v: T; l: string }>; onChange: (v: T) => void }) {
   return (
-    <fieldset style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: 12 }}>
-      <legend style={{ padding: "0 6px", fontWeight: 600 }}>{label}</legend>
-      <div className="row" style={{ flexWrap: "wrap" }}>
+    <fieldset className="settings-choice">
+      <legend className="settings-choice-legend">{label}</legend>
+      <div className="row settings-choice-options">
         {options.map((o) => (
-          <label key={o.v} className="row" style={{ gap: 6, cursor: "pointer" }}>
-            <input type="radio" name={label} checked={value === o.v} onChange={() => onChange(o.v)} style={{ width: 20, height: 20 }} />
+          <label key={o.v} className="row settings-choice-option">
+            <input className="settings-radio" type="radio" name={label} checked={value === o.v} onChange={() => onChange(o.v)} />
             {o.l}
           </label>
         ))}
@@ -180,13 +180,13 @@ function ControlsPanel() {
 
   return (
     <div className="stack">
-      <p style={{ margin: 0, color: "var(--text-muted)" }}>
+      <p className="settings-note">
         Both pointer and keyboard fully control the game. Click a binding, then press a key. Press Esc to cancel.
       </p>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+      <ul className="settings-keybind-list">
         {REBINDABLE.map(({ key, label }) => (
           <li key={key} className="spread">
-            <span style={{ fontWeight: 600 }}>{label}</span>
+            <span className="settings-field-label">{label}</span>
             <button
               className={listening === key ? "btn btn--primary" : "btn"}
               aria-label={`${label}: currently ${keyLabel(settings.controls.keybinds[key])}. Activate to rebind.`}

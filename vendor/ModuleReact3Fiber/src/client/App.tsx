@@ -100,7 +100,7 @@ function Shell({ baseUrl }: { baseUrl: string }) {
 
       {/* Focusable region wrapper for screen transitions (except game, which is its own <main>). */}
       {screen !== "game" ? (
-        <div id="main" ref={regionRef} tabIndex={-1} style={{ minHeight: "100%", outline: "none" }}>
+        <div id="main" ref={regionRef} tabIndex={-1} className="screen-region">
           {screen === "menu" && (
             <MainMenu
               playerName={name}
@@ -144,7 +144,7 @@ function Shell({ baseUrl }: { baseUrl: string }) {
 /** Full-screen settings with a Back control (menu context). */
 function SettingsScreen({ onBack }: { onBack: () => void }) {
   return (
-    <div className="stack" style={{ padding: 24 }}>
+    <div className="stack settings-screen">
       <div className="row">
         <button className="btn" onClick={onBack}>← Back</button>
       </div>

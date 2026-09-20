@@ -115,9 +115,22 @@ export function TouchControls({ stickRef, side, enabled }: TouchControlsProps) {
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <div className={base ? "stick-base is-live" : "stick-base"} style={base ? { left: base.x, top: base.y } : undefined}>
-        <div className="stick-knob" style={{ transform: `translate3d(${knob.x}px, ${knob.y}px, 0)` }} />
-      </div>
+      {base ? (
+        <svg className="stick-visual" width="100%" height="100%" aria-hidden="true">
+          <defs>
+            <radialGradient id="stick-knob-gradient" cx="35%" cy="30%" r="70%">
+              <stop offset="0" stopColor="#8ff4ff" />
+              <stop offset="1" stopColor="#22a8d8" />
+            </radialGradient>
+          </defs>
+          <g transform={`translate(${base.x} ${base.y})`}>
+            <circle className="stick-live-base" cx="0" cy="0" r={BASE_RADIUS} />
+            <circle className="stick-live-knob" cx={knob.x} cy={knob.y} r="30" fill="url(#stick-knob-gradient)" />
+          </g>
+        </svg>
+      ) : (
+        <div className="stick-base"><div className="stick-knob" /></div>
+      )}
       {!base && <p className="stick-hint">Hold to swim</p>}
     </div>
   );

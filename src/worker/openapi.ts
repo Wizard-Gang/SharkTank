@@ -476,7 +476,7 @@ function renderSchemas(schemas: AnyRec): string {
         // announces a type with nothing to attach it to (SC 1.3.1).
         .map(([pname, psch]) => `<tr><th scope="row"><code>${esc(pname)}</code></th><td>${schemaSummary(psch as AnyRec)}</td></tr>`)
         .join("");
-      return `<div class="card" id="schema-${esc(name)}"><h3 style="margin:0 0 8px">${esc(name)}</h3><div class="table-scroll" role="region" aria-label="${esc(name)} schema" tabindex="0"><table class="schema-table"><caption class="sr-only">${esc(name)} schema fields and types</caption><thead><tr><th scope="col">Field</th><th scope="col">Type</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      return `<div class="card" id="schema-${esc(name)}"><h3 class="u-m-0-0-8">${esc(name)}</h3><div class="table-scroll" role="region" aria-label="${esc(name)} schema" tabindex="0"><table class="schema-table"><caption class="sr-only">${esc(name)} schema fields and types</caption><thead><tr><th scope="col">Field</th><th scope="col">Type</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     })
     .join("");
   return `<h2 id="schemas">Schemas</h2>${blocks}`;
@@ -509,10 +509,10 @@ export function openApiToHtml(spec: typeof OPENAPI): string {
       const context = `${method.toUpperCase()} ${path}`;
       return `<div class="card api-card ${cls}">
         <h2 class="api-route" id="${esc(operationId(method, path))}">
-          <span class="m method-pill ${cls}">${esc(method.toUpperCase())}</span> <code style="font-size:1rem">${esc(path)}</code>
+          <span class="m method-pill ${cls}">${esc(method.toUpperCase())}</span> <code class="u-font-1rem">${esc(path)}</code>
         </h2>
         <p class="api-summary">${esc(String(op.summary ?? ""))}</p>
-        ${op.description ? `<p style="margin:6px 0 0;color:#b9b4d6">${esc(String(op.description))}</p>` : ""}
+        ${op.description ? `<p class="u-api-description">${esc(String(op.description))}</p>` : ""}
         ${renderParams(op.parameters as AnyRec[], context)}
         ${renderBody(op.requestBody as AnyRec)}
         ${renderResponses(op.responses as AnyRec, context)}
@@ -528,7 +528,7 @@ export function openApiToHtml(spec: typeof OPENAPI): string {
 
   return `<section class="page-intro"><div class="eyebrow">Feed the integrations</div><h1>${esc(info.title)}</h1>
     <a class="action-link" href="/docs/openapi.json">OpenAPI 3.0 · raw JSON →</a></section>
-    <nav class="card api-index" aria-labelledby="api-index-heading"><h2 id="api-index-heading" style="margin:0 0 10px;font-size:1.05rem">${entries.length} operations</h2><ul>${index}<li><a href="#schemas"><span class="m method-pill v" aria-hidden="true">DATA</span><code>Schemas</code></a></li></ul></nav>
+    <nav class="card api-index" aria-labelledby="api-index-heading"><h2 id="api-index-heading" class="u-index-heading">${entries.length} operations</h2><ul>${index}<li><a href="#schemas"><span class="m method-pill v" aria-hidden="true">DATA</span><code>Schemas</code></a></li></ul></nav>
     ${operations}
     ${renderSchemas((spec.components as AnyRec).schemas as AnyRec)}`;
 }

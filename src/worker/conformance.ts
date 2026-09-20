@@ -859,8 +859,8 @@ export function conformanceHtml(metricCard: MetricCard, embedded = false): strin
   </div>
 
   <div class="card">
-    <h2 style="margin:0 0 10px;font-size:1.05rem">How to read a row</h2>
-    <div class="table-scroll" role="region" aria-label="Status meanings" tabindex="0" style="margin:0"><table class="iso-key-table"><caption class="sr-only">Status meanings</caption><thead><tr><th scope="col">Status</th><th scope="col">What it means here</th></tr></thead><tbody>
+    <h2 class="u-index-heading">How to read a row</h2>
+    <div class="table-scroll u-m-0" role="region" aria-label="Status meanings" tabindex="0"><table class="iso-key-table"><caption class="sr-only">Status meanings</caption><thead><tr><th scope="col">Status</th><th scope="col">What it means here</th></tr></thead><tbody>
       ${STATUSES.map((value) => `<tr><td>${statusPill(value)}</td><td>${esc(STATUS_MEANING[value])}</td></tr>`).join("")}
     </tbody></table></div>
   </div>
@@ -904,7 +904,7 @@ export function conformanceHtml(metricCard: MetricCard, embedded = false): strin
       <li><strong>Hold the infrastructure provider's certificate on file</strong> to support the ${overall.byStatus.supplier} supplier-inherited rows, and record its scope and expiry.</li>
       <li><strong>Stage 1</strong> — document review against the list above. <strong>Stage 2</strong> — evidence of the system actually operating. <strong>Surveillance</strong> — annually thereafter.</li>
     </ol>
-    <p class="sub" style="margin:14px 0 0">Operational controls for the running service remain protected behind operations credentials. Their public records are consolidated under <a href="/evidence/#incidents">Incidents</a>, <a href="/evidence/#logs">Logs</a>, and <a href="/evidence/#changes">Change management</a>.</p>
+    <p class="sub u-m-14-0-0">Operational controls for the running service remain protected behind operations credentials. Their public records are consolidated under <a href="/evidence/#incidents">Incidents</a>, <a href="/evidence/#logs">Logs</a>, and <a href="/evidence/#changes">Change management</a>.</p>
   </div>
   ${filterScript()}`;
 }

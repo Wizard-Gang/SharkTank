@@ -17,14 +17,13 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
     <div className="scrim">
       <div
         ref={ref}
-        className="panel stack"
+        className="panel stack help-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-title"
-        style={{ width: "min(560px, 100%)", maxHeight: "86vh", overflow: "auto" }}
       >
         <div className="spread">
-          <h2 id="help-title" style={{ margin: 0 }}>Controls</h2>
+          <h2 id="help-title" className="dialog-title">Controls</h2>
           <button className="btn" onClick={onClose} aria-label="Close help">Close</button>
         </div>
 
@@ -65,18 +64,5 @@ function ControlSvg({ name }: { name: ControlIcon }) {
 }
 
 function Key({ children }: { children: React.ReactNode }) {
-  return <kbd style={kbd}>{children}</kbd>;
+  return <kbd className="control-key">{children}</kbd>;
 }
-
-const kbd: React.CSSProperties = {
-  display: "inline-block",
-  minWidth: 22,
-  textAlign: "center",
-  padding: "2px 6px",
-  background: "var(--surface-3)",
-  border: "1px solid var(--border-strong)",
-  borderRadius: 6,
-  color: "var(--text)",
-  fontFamily: "ui-monospace, monospace",
-  fontSize: "0.85rem",
-};

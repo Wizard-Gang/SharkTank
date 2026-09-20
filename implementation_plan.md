@@ -83,20 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-059 — SEC — Remove inline styling and `unsafe-inline` CSP
-
-**Depends on:** ST-057 and ST-058.
-
-Required outcome:
-
-- no production CSP contains `'unsafe-inline'`;
-- no emitted HTML contains inline event handlers;
-- remove inline `style=` attributes and embedded `<style>` blocks from Worker pages and the game shell;
-- move static styles to Vite-processed CSS files;
-- express dynamic charts/meters with safe SVG attributes, classes, or first-party enhancement code that does not require widening CSP;
-- keep inline script/style only if explicitly hash- or nonce-authorized and justified; prefer external first-party modules;
-- add automated generated-HTML/CSP regression checks.
-
 ### ST-060 — REFACTOR — Normalize Static Assets and unknown-route behavior
 
 **Depends on:** ST-058 and ST-059.

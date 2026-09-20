@@ -5,13 +5,11 @@ import type { Env } from "./env.js";
  * CSP for the static asset path — the React game shell, which `html()` never touches.
  * That path had no CSP at all, so the SPA was the one surface with no injection control.
  *
- * The app ships as ES modules under /assets, so `script-src 'self'` is enough and no
- * nonce is needed; the bundle carries no inline script. `'unsafe-inline'` on style-src is
- * unavoidable — React writes `style={{…}}` as inline `style=` attributes, which
- * style-src-attr governs and a nonce cannot cover. `blob:`/`data:` on img-src are for
- * canvas readback and inlined sprites. `connect-src` covers the tank WebSocket, which is
- * same-origin; `wss:` is spelled out because `'self'` alone does not reliably match the
- * ws/wss scheme across browsers.
+ * The app ships ES modules and Vite-processed styles under /assets, so both script-src and
+ * style-src can stay on 'self'. Game components avoid DOM style attributes; dynamic canvas
+ * drawing is unaffected by CSP style policy. blob:/data: on img-src remain for canvas readback
+ * and inlined sprites. connect-src covers the same-origin tank WebSocket; wss: is explicit for
+ * browsers that do not treat a self HTTPS source as matching the WebSocket scheme.
  */
 /**
  * `script-src` carries BOTH `'self'` and a per-response nonce. `'self'` covers the app's own
@@ -24,7 +22,7 @@ import type { Env } from "./env.js";
  * without widening the policy for anyone else.
  */
 const assetCsp = (nonce: string) =>
-  `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss: https://cloudflareinsights.com; media-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`;
+  `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss: https://cloudflareinsights.com; media-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`;
 
 const SECURITY_HEADERS: Record<string, string> = {
   "strict-transport-security": "max-age=31536000; includeSubDomains",
@@ -64,15 +62,14 @@ function mintNonce(): string {
 /**
  * `script-src` carries a nonce and NO `'unsafe-inline'`: under CSP3 the nonce alone makes an
  * unmarked inline script inert, which is the point — injected markup cannot guess the nonce.
- * `style-src` carries `'self'` for the one external stylesheet these pages link, and keeps
- * `'unsafe-inline'` because they also carry inline `style=` attributes everywhere and a nonce
- * cannot cover an attribute. `'self'` is the only widening here: without it the linked
- * stylesheet is blocked outright and every page renders unstyled.
+ * `style-src` is limited to `'self'`: Worker documents link the fingerprinted first-party
+ * stylesheet and do not emit style attributes or embedded style blocks. The response nonce
+ * remains for explicitly authorised inline scripts and Cloudflare's downstream integration.
  */
 function html(body: string, status = 200): Response {
   const nonce = mintNonce();
   const body2 = body.split(`nonce="${NONCE_SLOT}"`).join(`nonce="${nonce}"`);
-  const csp = `default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'nonce-${nonce}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
+  const csp = `default-src 'self'; style-src 'self'; script-src 'self' 'nonce-${nonce}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`;
   return new Response(body2, {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": csp, ...SECURITY_HEADERS, "referrer-policy": "no-referrer" },

@@ -186,7 +186,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     else html.setAttribute("data-theme", theme);
     html.setAttribute("data-contrast", contrast === "high" ? "high" : "normal");
     html.setAttribute("data-motion", motion === "reduced" ? "reduced" : "full");
-    html.style.setProperty("--font-scale", String(fontScale));
+    html.setAttribute("data-font-scale", String(Math.max(9, Math.min(16, Math.round(fontScale * 10)))));
   }, [settings]);
 
   const update = useCallback(<K extends keyof Settings>(section: K, patch: Partial<Settings[K]>) => {

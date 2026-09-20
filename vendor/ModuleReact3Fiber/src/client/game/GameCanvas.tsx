@@ -113,7 +113,7 @@ export function GameCanvas({ socket, settings, inputEnabled, labelsRef, stickRef
   const label = touchControls
     ? "Shark Tank. Hold the on-screen stick to swim. The dash and rocket pads sit under your other thumb."
     : "Shark Tank. Steer with the pointer or arrow keys. Space or click dashes. Shift fires a rocket.";
-  return <div ref={surfaceRef} tabIndex={-1} role="img" aria-label={label} style={{ position: "absolute", inset: 0, outline: "none" }}><canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block", touchAction: "none" }} /></div>;
+  return <div ref={surfaceRef} tabIndex={-1} role="img" aria-label={label} className="game-canvas-surface"><canvas ref={canvasRef} className="game-canvas" /></div>;
 }
 
 function drawShark(ctx: CanvasRenderingContext2D, shark: NetSnake, x: number, y: number, size: number, heading: number) {

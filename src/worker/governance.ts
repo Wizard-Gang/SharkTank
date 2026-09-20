@@ -1421,7 +1421,7 @@ function sectionId(doc: GovernanceDoc, heading: string): string {
 /** The document, as its own page. */
 export function governanceDocPageHtml(doc: GovernanceDoc): string {
   const contents = doc.sections.length > 1
-    ? `<nav class="card gov-index" aria-label="Sections of this document"><h2 style="margin:0 0 10px;font-size:1.05rem">In this document</h2><ul>${
+    ? `<nav class="card gov-index" aria-label="Sections of this document"><h2 class="u-index-heading">In this document</h2><ul>${
       doc.sections.map((section) => `<li><a href="#${esc(sectionId(doc, section.heading))}">${esc(section.heading)}</a></li>`).join("")
     }</ul></nav>`
     : "";
@@ -1460,7 +1460,7 @@ export function findGovernanceDoc(id: string): GovernanceDoc | undefined {
 export function governanceMissingHtml(id: string): string {
   return `<section class="page-intro"><div class="eyebrow">Policies</div><h1>No such document</h1>
     <p class="sub">There is no governance document at <code>/policies/${esc(id)}/</code>. The full set is listed on the <a href="/policies/">policy index</a>.</p></section>
-  <nav class="card gov-index" aria-label="Documents"><h2 style="margin:0 0 10px;font-size:1.05rem">Documents</h2><ul>${
+  <nav class="card gov-index" aria-label="Documents"><h2 class="u-index-heading">Documents</h2><ul>${
     DOCS_IN_ORDER.map((d) => `<li><a href="/policies/${esc(d.id)}/"><code>${esc(d.ref)}</code> ${esc(d.title)}</a></li>`).join("")
   }</ul></nav>`;
 }

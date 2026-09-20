@@ -10,6 +10,23 @@ const mainSource = read("../src/client/main.tsx");
 const humanDocsSource = read("../src/client/human-docs.ts");
 const workerPresentationSource = read("../src/worker/presentation-react.tsx");
 const appSource = read("../vendor/ModuleReact3Fiber/src/client/App.tsx");
+const mountedPresentationSource = [
+  "../vendor/ModuleReact3Fiber/src/client/App.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/game/GameCanvas.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/settings/SettingsContext.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Captions.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Customize.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/GameScreen.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/HelpOverlay.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Leaderboard.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Lobby.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/MainMenu.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Minimap.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/PauseMenu.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/Settings.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/SnakeLabels.tsx",
+  "../vendor/ModuleReact3Fiber/src/client/ui/TouchControls.tsx",
+].map(read).join("\n");
 
 describe("React game document", () => {
   it("renders the complete /play/ shell and metadata from TSX", () => {
@@ -29,6 +46,15 @@ describe("React game document", () => {
     expect(html).toContain('href="/evidence/"');
     expect(html).toContain('<script type="module" src="/src/client/main.tsx"></script>');
     expect(source).toContain("renderToStaticMarkup(<GameDocument />)");
+    expect(html).not.toMatch(/<style\b/i);
+    expect(html).not.toMatch(/\sstyle=/i);
+    expect(html).not.toMatch(/\son[a-z][a-z0-9_-]*\s*=/i);
+  });
+
+  it("keeps the mounted game UI free of DOM inline-style surfaces", () => {
+    expect(mountedPresentationSource).not.toMatch(/\bstyle\s*=/);
+    expect(mountedPresentationSource).not.toContain(".style.setProperty(");
+    expect(mountedPresentationSource).not.toMatch(/setAttribute\(\s*["']style["']/);
   });
 
   it("keeps index.html as only the Vite entry sentinel", () => {

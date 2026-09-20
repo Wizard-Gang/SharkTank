@@ -62,8 +62,8 @@ export function Minimap({ socket }: { socket: RoomSocket }) {
   }, [socket]);
 
   return (
-    <div className="game-minimap" style={wrap}>
-      <canvas ref={canvasRef} width={SIZE} height={SIZE} aria-hidden="true" style={{ display: "block" }} />
+    <div className="game-minimap">
+      <canvas ref={canvasRef} width={SIZE} height={SIZE} aria-hidden="true" className="game-minimap__canvas" />
     </div>
   );
 }
@@ -88,15 +88,3 @@ export function MinimapSummary({ socket }: { socket: RoomSocket }) {
 
   return <p className="sr-only" role="status">{summary}</p>;
 }
-
-const wrap: React.CSSProperties = {
-  position: "absolute",
-  bottom: 12,
-  right: 12,
-  width: SIZE,
-  height: SIZE,
-  borderRadius: "var(--radius)",
-  overflow: "hidden",
-  border: "1px solid var(--border)",
-  zIndex: 10,
-};

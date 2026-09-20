@@ -3,46 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 const GAME_FAVICON =
   "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20fill%3D%22%2308080b%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%2215%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23d9ff43%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%225%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22%23a489ff%22%2F%3E%3C%2Fsvg%3E";
 
-const GAME_BOOT_CSS = `
-#boot {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 14vh 24px 24px;
-  color: #f3f1ff;
-  font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  text-align: center;
-}
-#boot h1 {
-  margin: 0 0 12px;
-  font-size: clamp(2rem, 7vw, 3.2rem);
-  line-height: 1.04;
-  letter-spacing: -0.045em;
-}
-#boot p {
-  margin: 0 0 22px;
-  color: #b9b4d6;
-}
-#boot a {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 8px 18px;
-  border: 1px solid #4a4370;
-  border-radius: 999px;
-  color: #b6a9ff;
-  font-weight: 800;
-  text-decoration: none;
-}
-#boot a:focus-visible {
-  outline: 3px solid #22e6ff;
-  outline-offset: 3px;
-}
-body {
-  margin: 0;
-  background: #0b0a14;
-}
-`;
-
 function GameDocument() {
   return (
     <html lang="en">
@@ -73,7 +33,6 @@ function GameDocument() {
         />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="icon" href={GAME_FAVICON} />
-        <style>{GAME_BOOT_CSS}</style>
       </head>
       <body>
         <div id="root">

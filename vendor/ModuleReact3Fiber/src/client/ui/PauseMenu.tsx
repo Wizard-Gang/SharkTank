@@ -21,19 +21,18 @@ export function PauseMenu({
     <div className="scrim">
       <div
         ref={ref}
-        className="panel stack"
+        className="panel stack pause-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pause-title"
-        style={{ maxWidth: 380, width: "100%" }}
       >
-        <h2 id="pause-title" style={{ margin: 0 }}>Paused</h2>
+        <h2 id="pause-title" className="dialog-title">Paused</h2>
         <div className="stack">
           <button className="btn btn--primary btn--lg btn--block" onClick={onResume}>Resume</button>
           <button className="btn btn--block" onClick={onSettings}>Settings</button>
           <button className="btn btn--block" onClick={onQuit}>Quit to tank</button>
         </div>
-        <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>
+        <p className="dialog-note">
           Press <kbd>Esc</kbd> to resume.
         </p>
       </div>

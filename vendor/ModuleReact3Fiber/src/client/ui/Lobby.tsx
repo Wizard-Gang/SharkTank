@@ -75,13 +75,13 @@ export function Lobby({
 
   return (
     <div className="center-screen">
-      <div className="panel stack" style={{ width: "min(720px, 100%)" }}>
+      <div className="panel stack lobby-panel">
         <div className="spread">
-          <h1 style={{ margin: 0, fontSize: "1.6rem" }}>Shark Tanks</h1>
+          <h1 className="screen-title">Shark Tanks</h1>
           <button className="btn" onClick={onBack}>Back</button>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div className="lobby-table-scroll">
           <table className="table">
             <caption className="sr-only">Available ocean tanks: 32 sharks each, with live player counts and top scores. Updated every three seconds.</caption>
             <thead>
@@ -95,18 +95,18 @@ export function Lobby({
             </thead>
             <tbody aria-busy={loading}>
               {loading && (
-                <tr><td colSpan={5} style={{ color: "var(--text-muted)" }}>Loading tanks…</td></tr>
+                <tr><td colSpan={5} className="text-muted">Loading tanks…</td></tr>
               )}
               {!loading && rooms.map((r) => (
                 <tr key={r.id}>
-                  <th scope="row" style={{ fontWeight: 700 }}>{r.name}</th>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <th scope="row" className="font-strong">{r.name}</th>
+                  <td className="tabular-nums">
                     {r.players + r.bots}/32
-                    <span style={{ display: "block", color: "var(--text-muted)", fontSize: ".76rem", whiteSpace: "nowrap" }}>{r.players}/{r.capacity} live</span>
+                    <span className="lobby-live-count">{r.players}/{r.capacity} live</span>
                   </td>
-                  <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.topScore}</td>
+                  <td className="tabular-nums">{r.topScore}</td>
                   <td>{r.topName}</td>
-                  <td style={{ textAlign: "right" }}>
+                  <td className="text-right">
                     <button
                       className="btn btn--primary"
                       onClick={() => onJoin({ id: r.id, name: r.name })}
