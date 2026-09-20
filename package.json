@@ -33,7 +33,8 @@
     "check:evidence": "node scripts/check-evidence.mjs",
     "check:public-ia": "node scripts/check-public-ia.mjs",
     "dev": "wrangler dev --port 8787",
-    "start": "wrangler dev --port 8787"
+    "start": "wrangler dev --port 8787",
+    "check:change-contract": "node --test scripts/change-contract-cases.mjs && node scripts/check-change-contract.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^8.17.10",
