@@ -1,6 +1,7 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
+import { renderGameDocument } from "./src/client/game-document";
 
 // Resolve module-react3fiber from its first-party tracked source so the React plugin
 // compiles its .tsx (aliases win over the node_modules `file:` link, which is kept
@@ -9,8 +10,16 @@ const sub = (rel: string) => fileURLToPath(new URL(`./vendor/ModuleReact3Fiber/s
 const gameDocumentEntry = fileURLToPath(new URL("./index.html", import.meta.url));
 const humanDocsEntry = fileURLToPath(new URL("./src/client/human-docs.ts", import.meta.url));
 
+const gameDocumentPlugin = (): Plugin => ({
+  name: "sharktank-react-game-document",
+  transformIndexHtml: {
+    order: "pre",
+    handler: () => renderGameDocument(),
+  },
+});
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [gameDocumentPlugin(), react()],
   resolve: {
     alias: {
       "module-react3fiber/app": sub("client/App.tsx"),

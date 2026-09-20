@@ -8,7 +8,7 @@ const presentation = read("../src/worker/presentation.ts");
 const reactPresentation = read("../src/worker/presentation-react.tsx");
 const conformance = read("../src/worker/conformance.ts");
 const deploy = read("../scripts/deploy-prod.mjs");
-const gameShell = read("../index.html");
+const gameShell = read("../src/client/game-document.tsx");
 const gameMenu = read("../vendor/ModuleReact3Fiber/src/client/ui/MainMenu.tsx");
 
 describe("concise public copy", () => {
