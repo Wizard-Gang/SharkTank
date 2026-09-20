@@ -1,9 +1,11 @@
 # Release management
 
-A release is an annotated semantic tag `vX.Y.Z` on a verified structured commit. The release change sets `package.json` to the tagged version before the tag is created. Historical reconstruction tags mark coherent product phases; only the latest supported release receives fixes.
+A release is an annotated semantic tag `vX.Y.Z` on a verified structured commit. The release change sets `package.json` to the tagged version before the tag is created. Only the latest supported release receives fixes.
 
-The release workflow installs the lockfile, runs `npm run check`, validates structured history, and publishes an immutable GitHub release. Production deployment is an additional job with three gates: repository variable `PRODUCTION_DEPLOY_ENABLED=true`, the protected `production` environment, and required Cloudflare secrets. The deployment script independently refuses unless `SHARKTANK_RELEASE` is a semantic tag pointing at `HEAD`.
+Release history is authoritative in annotated `v*` tags and GitHub Releases. Repository Markdown does not mirror per-version release history. GitHub Actions is the authority for CI and release-workflow run history.
 
-After deployment, the workflow walks all public evidence routes and requires `/version.json` to match the tag. A release can therefore exist without being deployed, and production deployment remains disabled during repository reconstruction and migration review.
+The release workflow installs the lockfile, runs `npm run check`, and publishes an immutable GitHub Release. Production deployment is an additional job with three gates: repository variable `PRODUCTION_DEPLOY_ENABLED=true`, the protected `production` environment, and required Cloudflare secrets. The deployment script independently refuses unless `SHARKTANK_RELEASE` is a semantic tag pointing at `HEAD`.
 
-Published `v*` release tags are protected by the repository's active tag ruleset against update and deletion. Never move or recreate a published release tag. Correct defects forward with a new patch release. Record deployment outcome separately from the release itself.
+After deployment, the production job confirms the uploaded version through authenticated Cloudflare deployment evidence and requires it to serve 100% of traffic. Public `/version.json` and evidence checks run when the edge permits them; a Cloudflare managed challenge is reported only after provider-side deployment proof succeeds.
+
+Published `v*` release tags are protected by the repository's active tag ruleset against update and deletion. Never move or recreate a published release tag. Correct defects forward with a new patch release. Cloudflare/provider evidence is authoritative for deployment/runtime provider state; do not maintain a checked-in deployment ledger.

@@ -40,3 +40,5 @@ This runs TypeScript checks, unit tests, the PHP replay check, the production bu
 ## Deployment
 
 Production releases are deployed from exact semantic-version tags. The deploy script verifies the tag, runs the build, and records the release and current Git commit metrics.
+
+Release history is authoritative in annotated `v*` tags and GitHub Releases. GitHub Actions records CI and release-run history, and Cloudflare/provider evidence records deployment state.
