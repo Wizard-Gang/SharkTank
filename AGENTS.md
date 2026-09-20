@@ -48,7 +48,7 @@ npm run check
 
 `npm run check` owns type checking, tests, PHP parity, production build validation, controlled-change policy/context validation when applicable, structured history, reconstruction provenance, local public-IA/evidence HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own local-only Wrangler process; do not run a second Worker manually for repository acceptance.
 
-Provider-authenticated checks remain explicit and separate. Do not invoke production deploy paths merely to validate a pull request.
+Provider-authenticated checks remain explicit and separate. GitHub repository settings are governed by `config/github-repository-settings.json`; their pure comparison tests run inside `npm run check`, while live provider verification runs with `npm run check:github-settings` using an admin-capable token. `npm run apply:github-settings` is the explicit mutating path and must be followed by a fresh live verification. Do not invoke production deploy paths merely to validate a pull request.
 
 
 ## Implementation-plan maintenance and session handoff

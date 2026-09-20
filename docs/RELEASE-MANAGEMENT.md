@@ -6,4 +6,4 @@ The release workflow installs the lockfile, runs `npm run check`, validates stru
 
 After deployment, the workflow walks all public evidence routes and requires `/version.json` to match the tag. A release can therefore exist without being deployed, and production deployment remains disabled during repository reconstruction and migration review.
 
-Never move or recreate a published release tag. Correct defects forward with a new patch release. Record deployment outcome separately from the release itself.
+Published `v*` release tags are protected by the repository's active tag ruleset against update and deletion. Never move or recreate a published release tag. Correct defects forward with a new patch release. Record deployment outcome separately from the release itself.

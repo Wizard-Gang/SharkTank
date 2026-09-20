@@ -50,13 +50,6 @@ Those choices are now constraints, not items to revisit during the normalization
 - `docs/history/CHANGE-MAP.csv` still grows with forward changes. WG-ARCH-001 allows exact validator/provenance exception data, but not a parallel forward implementation-history ledger.
 - The runtime `ROADMAP_MANIFEST` presents checked-in ST/change history as product content. Current operational evidence may remain; implementation history should come from Git/GitHub.
 
-### GitHub repository settings
-
-- `main` is the default branch and merge commits are enabled.
-- Repository metadata still allows squash merges and rebase merges.
-- The repository currently exposes no repository rulesets through the GitHub API.
-- There is no committed `config/github-repository-settings.json` (or equivalent) and no documented repository-settings verification command.
-- The connected GitHub App cannot read the classic branch-protection endpoint, so the settings task must verify protection through an admin-capable path while treating the visible absence of rulesets and enabled squash/rebase methods as confirmed gaps.
 
 ## 4. Normalization rules
 
@@ -89,20 +82,6 @@ Unless a task explicitly authorizes a change, preserve:
 After a task is successfully merged and its plan entry is therefore purged, finish the working session with a ready-to-run prompt for the next remaining task. The handoff prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope and acceptance criteria, validation commands, and the merge/purge completion rule. Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
 
 ## 7. Sequenced controlled changes
-
-### ST-053 — BUILD — Codify WizardGang GitHub repository settings
-
-**Depends on:** ST-051.
-
-Required outcome:
-
-- add committed expected repository settings under `config/`;
-- only merge commits enabled; squash and rebase merges disabled;
-- head branches deleted after merge;
-- `main` ruleset requires PR + required CI and blocks force-push/delete;
-- `v*` tag ruleset blocks update/delete;
-- add a documented verification command/script;
-- apply and verify the settings through an admin-capable GitHub path without weakening protections just to make automation convenient.
 
 ### ST-054 — BUILD — Upgrade TypeScript 7 and Vitest 5
 
