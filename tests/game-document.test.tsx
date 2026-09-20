@@ -1,0 +1,58 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { renderGameDocument } from "../src/client/game-document.js";
+
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+const source = read("../src/client/game-document.tsx");
+const indexSource = read("../index.html");
+const viteSource = read("../vite.config.ts");
+const mainSource = read("../src/client/main.tsx");
+const humanDocsSource = read("../src/client/human-docs.ts");
+const workerPresentationSource = read("../src/worker/presentation-react.tsx");
+const appSource = read("../vendor/ModuleReact3Fiber/src/client/App.tsx");
+
+describe("React game document", () => {
+  it("renders the complete /play/ shell and metadata from TSX", () => {
+    const html = renderGameDocument();
+
+    expect(html).toMatch(/^<!doctype html><html lang="en">/);
+    expect(html).toContain("<title>Shark Tank — WizardGang systems demo</title>");
+    expect(html).toContain(
+      'rel="canonical" href="https://sharktank.wizardgang.ai/play/"',
+    );
+    expect(html).toContain('property="og:url" content="https://sharktank.wizardgang.ai/play/"');
+    expect(html).toContain('rel="icon"');
+    expect(html).toContain('id="root"');
+    expect(html).toContain('id="boot"');
+    expect(html).toContain("<h1>Wizard Gang Shark Tank</h1>");
+    expect(html).toContain("The game is loading.");
+    expect(html).toContain('href="/evidence/"');
+    expect(html).toContain('<script type="module" src="/src/client/main.tsx"></script>');
+    expect(source).toContain("renderToStaticMarkup(<GameDocument />)");
+  });
+
+  it("keeps index.html as only the Vite entry sentinel", () => {
+    expect(indexSource).toContain("wg-game-document-source");
+    expect(indexSource).not.toContain('id="root"');
+    expect(indexSource).not.toContain("Wizard Gang Shark Tank");
+    expect(indexSource).not.toContain("/src/client/main.tsx");
+    expect(viteSource).toContain('name: "sharktank-react-game-document"');
+    expect(viteSource).toContain('order: "pre"');
+    expect(viteSource).toContain("handler: () => renderGameDocument()");
+  });
+
+  it("keeps Vite in charge of the browser entry and lazy content-hashed chunks", () => {
+    expect(viteSource).toMatch(/assets\/\[name\]-\[hash\]\.js/);
+    expect(mainSource).toContain("createRoot(el).render(");
+    expect(mainSource).toContain('import "./styles.css"');
+    expect(appSource).toContain('lazy(() => import("./ui/GameScreen.js")');
+  });
+
+  it("keeps the game client separate from non-game static documents", () => {
+    expect(mainSource).not.toMatch(/BrowserRouter|createBrowserRouter/);
+    expect(source).not.toMatch(/BrowserRouter|createBrowserRouter|hydrateRoot/);
+    expect(workerPresentationSource + humanDocsSource).not.toMatch(
+      /hydrateRoot|createRoot|BrowserRouter|createBrowserRouter/,
+    );
+  });
+});

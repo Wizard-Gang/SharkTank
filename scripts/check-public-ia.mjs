@@ -43,17 +43,51 @@ async function main() {
     if (!csp.includes("default-src 'self'")) fail(`${path} is missing the expected CSP default-src`);
     const html = await response.text();
     pages.set(path, html);
-    if (path !== "/play/") {
-      if (response.headers.get("cache-control") !== "no-store") fail(`${path} expected cache-control no-store`);
-      const canonicalHref = `https://sharktank.wizardgang.ai${path}`;
-      if (!html.includes(`<link rel="canonical" href="${canonicalHref}"`)) fail(`${path} is missing canonical link ${canonicalHref}`);
-    }
+    const canonicalHref = `https://sharktank.wizardgang.ai${path}`;
+    if (!html.includes(`<link rel="canonical" href="${canonicalHref}"`)) fail(`${path} is missing canonical link ${canonicalHref}`);
+    if (path !== "/play/" && response.headers.get("cache-control") !== "no-store") fail(`${path} expected cache-control no-store`);
     if (path !== "/play/" && !html.includes('<nav aria-label="Primary">')) fail(`${path} is missing the primary navigation`);
     if (path !== "/play/" && (html.match(/<h1(?:\s|>)/g) || []).length !== 1) fail(`${path} must contain exactly one h1`);
     if (path !== "/play/") {
       const pageIds = ids(html);
       const duplicates = [...new Set(pageIds.filter((id, index) => pageIds.indexOf(id) !== index))];
       if (duplicates.length) fail(`${path} repeats id(s): ${duplicates.join(", ")}`);
+    }
+
+    if (path === "/play/") {
+      if (!html.includes('<div id="root">')) fail("/play/ lost the React game mount point");
+      if (!html.includes('<main id="boot">')) fail("/play/ lost the pre-mount loading document");
+      if (!html.includes("<h1>Wizard Gang Shark Tank</h1>")) fail("/play/ lost the game identity before mount");
+      if (!html.includes("The game is loading.")) fail("/play/ lost its loading context");
+      if (!html.includes('href="/evidence/"')) fail("/play/ lost its route to governance evidence");
+
+      const scriptPaths = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+\.js)"[^>]*>/g)].map((match) => match[1]);
+      const gameEntry = scriptPaths.find((assetPath) => /^\/assets\/index-[A-Za-z0-9_-]+\.js$/.test(assetPath));
+      if (!gameEntry) fail(`/play/ does not reference a content-hashed Vite game entry: ${JSON.stringify(scriptPaths)}`);
+
+      const stylePaths = [...html.matchAll(/<link\b[^>]*\bhref="([^"]+\.css)"[^>]*>/g)].map((match) => match[1]);
+      if (!stylePaths.some((assetPath) => /^\/assets\/index-[A-Za-z0-9_-]+\.css$/.test(assetPath))) {
+        fail(`/play/ does not reference content-hashed Vite CSS: ${JSON.stringify(stylePaths)}`);
+      }
+
+      if (gameEntry) {
+        const entryResponse = await request(gameEntry);
+        if (entryResponse.status !== 200) {
+          fail(`game entry ${gameEntry} expected 200, got ${entryResponse.status}`);
+        } else {
+          const entrySource = await entryResponse.text();
+          const lazyChunks = [...new Set(
+            [...entrySource.matchAll(/\.\/([A-Za-z0-9_-]+-[A-Za-z0-9_-]+\.js)/g)]
+              .map((match) => `/assets/${match[1]}`)
+              .filter((assetPath) => assetPath !== gameEntry),
+          )];
+          if (!lazyChunks.length) fail(`game entry ${gameEntry} no longer references a content-hashed lazy chunk`);
+          for (const lazyChunk of lazyChunks) {
+            const lazyResponse = await request(lazyChunk);
+            if (lazyResponse.status !== 200) fail(`lazy game chunk ${lazyChunk} expected 200, got ${lazyResponse.status}`);
+          }
+        }
+      }
     }
   }
 
@@ -144,7 +178,7 @@ async function main() {
     console.error(`\n${failures.length} public IA check(s) failed.`);
     process.exit(1);
   }
-  console.log(`Verified ${canonical.length} canonical pages, response security/content contracts, authenticated admin HTML, API/404 separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
+  console.log(`Verified ${canonical.length} canonical pages, the React-generated game shell and hashed/lazy Vite assets, response security/content contracts, authenticated admin HTML, API/404 separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

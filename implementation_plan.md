@@ -83,18 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-058 — REFACTOR — Generate the game document shell from React
-
-**Depends on:** ST-055. May run after ST-057 to reuse presentation primitives.
-
-Required outcome:
-
-- replace the hand-authored `index.html` document body/shell with a React 19 build-time document source;
-- keep `/play/` documented as the explicit client-application boundary;
-- preserve a useful no-JavaScript/loading document before the game mounts;
-- keep Vite responsible for content-hashed browser modules/styles;
-- do not introduce a client-side router or hydrate the non-game site.
-
 ### ST-059 — SEC — Remove inline styling and `unsafe-inline` CSP
 
 **Depends on:** ST-057 and ST-058.
