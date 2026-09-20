@@ -42,17 +42,17 @@
     "apply:github-settings": "node scripts/apply-github-settings.mjs"
   },
   "dependencies": {
-    "@react-three/fiber": "^8.17.10",
+    "@react-three/fiber": "^9.7.0",
     "module-react3fiber": "file:vendor/ModuleReact3Fiber",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "three": "^0.169.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260811.1",
     "@types/node": "^26.4.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^7.0.2",

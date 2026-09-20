@@ -60,7 +60,7 @@ function SettingsTabs() {
           return (
             <button
               key={t.id}
-              ref={(el) => (tabRefs.current[t.id] = el)}
+              ref={(el) => { tabRefs.current[t.id] = el; }}
               role="tab"
               id={`${baseId}-tab-${t.id}`}
               aria-selected={selected}

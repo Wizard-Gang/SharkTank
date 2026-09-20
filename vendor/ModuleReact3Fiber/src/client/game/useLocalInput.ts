@@ -46,7 +46,7 @@ export function useLocalInput(
   settings: Settings,
   enabled: boolean,
   inputRef?: React.MutableRefObject<LocalInput>,
-  surfaceRef?: React.RefObject<HTMLElement>,
+  surfaceRef?: React.RefObject<HTMLElement | null>,
   stickRef?: React.MutableRefObject<StickState>,
   /** True when the on-screen thumbstick owns steering; pointer-to-steer is then
    *  restricted to a real mouse so hybrid laptops keep both schemes. */

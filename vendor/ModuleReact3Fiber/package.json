@@ -15,8 +15,8 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": ">=18",
-    "@react-three/fiber": ">=8",
+    "react": ">=19 <19.3",
+    "@react-three/fiber": ">=9 <10",
     "three": ">=0.160"
   },
   "peerDependenciesMeta": {

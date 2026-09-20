@@ -8,7 +8,7 @@ import { useEffect, useRef, type RefObject } from "react";
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function useFocusTrap(ref: RefObject<HTMLElement>, active: boolean, onEscape?: () => void): void {
+export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean, onEscape?: () => void): void {
   // `onEscape` is almost always an inline closure at the call site, so it is a new function
   // on every render of the owning component. Keeping it in the dep array made this effect
   // tear down and re-arm on every re-render — and cleanup restores focus to the previously
