@@ -1,0 +1,27 @@
+{
+  "repository": "Wizard-Gang/SharkTank",
+  "defaultBranch": "main",
+  "mergeMethods": {
+    "mergeCommit": true,
+    "squash": false,
+    "rebase": false
+  },
+  "deleteBranchOnMerge": true,
+  "requiredStatusChecks": ["verify"],
+  "rulesets": [
+    {
+      "name": "main-protection",
+      "target": "branch",
+      "enforcement": "active",
+      "include": ["refs/heads/main"],
+      "rules": ["deletion", "non_fast_forward", "pull_request", "required_status_checks"]
+    },
+    {
+      "name": "release-tag-immutability",
+      "target": "tag",
+      "enforcement": "active",
+      "include": ["refs/tags/v*"],
+      "rules": ["deletion", "update"]
+    }
+  ]
+}

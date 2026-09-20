@@ -8,6 +8,6 @@ The provenance files under `docs/history/` exist only to prove imported source l
 
 `npm run check` is the complete credential-free acceptance gate. It validates TypeScript, tests, PHP parity, the production build, the controlled-change contract, sequential history, reconstruction provenance, local public information architecture and evidence routes, dependency audit, and patch whitespace. Its local HTTP acceptance owns a local-only Wrangler lifecycle and strips Cloudflare provider credentials before starting the Worker.
 
-Pull-request CI supplies event metadata to that same repository-owned gate and otherwise runs only the locked install plus `npm run check`. Provider-authenticated repository administration and production deployment remain separate explicit operations.
+Pull-request CI supplies event metadata to that same repository-owned gate and otherwise runs only the locked install plus `npm run check`. Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. `npm run check:github-settings` is the read-only provider-authenticated verifier; `npm run apply:github-settings` is the explicit admin mutation path. Provider-authenticated repository administration and production deployment remain separate from the credential-free gate.
 
 Published commits and tags are immutable. Corrections move forward as new controlled changes.

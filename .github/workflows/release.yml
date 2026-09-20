@@ -22,8 +22,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - run: npm run check:history
-      - run: npm run check:provenance
 
   publish-release:
     needs: verify
