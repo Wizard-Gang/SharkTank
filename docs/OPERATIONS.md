@@ -2,7 +2,7 @@
 
 ## Routine signals
 
-The public `/` governance overview links every operational figure to its source. `/evidence/` owns availability, incidents, continuity, control receipts, spend, controlled degradation, logs, and change records. `/controls/` owns both standards' complete registers and every maintained governance document. Legacy human routes such as `/trust/`, `/status/`, `/spend/`, `/logs/`, `/audit/`, and `/policies/` redirect directly to the relevant canonical section; their machine-readable JSON and text evidence routes remain stable. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
+The public `/` governance overview links every operational figure to its source. `/evidence/` owns availability, incidents, continuity, control receipts, spend, controlled degradation, and logs. `/controls/` owns both standards' complete registers and every maintained governance document. Legacy human routes such as `/trust/`, `/status/`, `/spend/`, `/logs/`, `/audit/`, and `/policies/` redirect directly to the relevant canonical section; their machine-readable JSON and text evidence routes remain stable. `/version.json` identifies the deployed release without exposing a platform deployment identifier.
 
 ## Operator boundary
 

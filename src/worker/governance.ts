@@ -75,7 +75,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "The service runs under a hard spend limit of five US dollars. When measured consumption reaches it, the service stops rather than bills. That is the dominant constraint on the design, and it is why capacity is published at the cost and capacity meters rather than treated as confidential.",
           "There is one operator. Availability, response to reports, and every review named here are bounded by one person's time. Where a clause assumes an organisation with separable roles, that is recorded as a limitation rather than papered over.",
-          "The service is deliberately transparent: the change record, incident record, logs, availability measurements and this policy set are public. The design assumption is that publishing the evidence is cheaper and more credible than asserting it.",
+          "The service is deliberately transparent: Git/GitHub history, incident record, logs, availability measurements and this policy set are public. The design assumption is that publishing the evidence is cheaper and more credible than asserting it.",
         ],
       },
       {
@@ -89,7 +89,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       },
     ],
     review:
-      "Reviewed when a change record entry alters the technical scope — a new binding, a new durable class, a new route class — and otherwise at least once every 90 days, the same window as the service action log.",
+      "Reviewed when a Git/GitHub history entry alters the technical scope — a new binding, a new durable class, a new route class — and otherwise at least once every 90 days, the same window as the service action log.",
   },
   {
     ref: "DOC-02",
@@ -103,7 +103,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Commitment",
         body: [
           "This service protects three things, in order: the integrity of the public evidence it publishes, the availability of the game to the people playing it, and the small amount of data held about players.",
-          "Confidentiality ranks last deliberately, because almost nothing here is confidential. The change record, incidents, logs, availability, spend and this policy set are all public by design. What is protected is that they are true and that they cannot be quietly altered.",
+          "Confidentiality ranks last deliberately, because almost nothing here is confidential. Git/GitHub history, incidents, logs, availability, spend and this policy set are all public by design. What is protected is that they are true and that they cannot be quietly altered.",
         ],
       },
       {
@@ -166,20 +166,20 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Authority to act",
         body: [
           "Taking the game down is an authenticated control action available to the Operator, and every use of it writes a receipt into the control history chain. The public security report intake can also take the game down, which is deliberate: a reporter can demonstrate impact without needing credentials.",
-          "Changing what the service does requires a deployment, and every deployment is recorded in the change record with an identifier and a classification. There is no path to production that bypasses that record.",
+          "Changing what the service does requires a deployment, and every deployment is recorded in Git/GitHub history with an identifier and a classification. There is no path to production that bypasses that record.",
         ],
       },
       {
         heading: "Segregation of duties, and its limits",
         body: [
-          "Segregation of duties cannot be achieved with one person, and this document does not claim it. The mitigation is that actions are made evident rather than prevented: control actions write receipts into a hash chain anchored outside the table it summarises, deployments appear in the public change record, and the tank logs are deterministic and replayable.",
+          "Segregation of duties cannot be achieved with one person, and this document does not claim it. The mitigation is that actions are made evident rather than prevented: control actions write receipts into a hash chain anchored outside the table it summarises, deployments appear in the Git/GitHub history, and the tank logs are deterministic and replayable.",
           "That is detection, not separation. It is recorded as a limitation of scope, and it is why the independent review and internal audit clauses remain open on the register rather than being asserted here.",
         ],
       },
       {
         heading: "Competence",
         body: [
-          "Competence is not evidenced by certificates held. It is claimed on the basis of the work product itself: the change record, the incident record with causes and durations, and the register's own honesty about what is missing.",
+          "Competence is not evidenced by certificates held. It is claimed on the basis of the work product itself: Git/GitHub history, the incident record with causes and durations, and the register's own honesty about what is missing.",
           "This is a weaker form of evidence than the clause envisages, and the register records the competence and awareness clauses as open rather than met.",
         ],
       },
@@ -208,7 +208,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "How a risk is identified",
         body: [
           "Four standing sources, each of which is a route on this site rather than a meeting nobody minuted. First, the open rows of the conformance register: every row not marked met is a statement that something is missing, and each one is read as a candidate risk. Second, the public security report intake, which is unauthenticated and accepts a report from anyone. Third, the incident record, because something that has already happened once is the cheapest risk to identify. Fourth, the cost and capacity meters, which show consumption approaching a limit before the limit is reached.",
-          "Identification also runs on demand. Any change record entry that adds a binding, adds a class of route, changes a retention window, or touches authentication triggers an identification pass for that change before it ships. The trigger is the change itself, not a calendar.",
+          "Identification also runs on demand. Any Git/GitHub history entry that adds a binding, adds a class of route, changes a retention window, or touches authentication triggers an identification pass for that change before it ships. The trigger is the change itself, not a calendar.",
         ],
       },
       {
@@ -289,7 +289,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Approval and residual risk",
         body: [
           "The treatment decisions become the risk treatment plan. The Owner approves the plan and, in the same act, accepts the residual risk it names.",
-          "Approval is evidenced by the deployment that publishes it. Each publication is a change entry with its own identifier in the change record, and a control action leaves a receipt in the append-only chain whose head is anchored outside the table it summarises. There is no approval step that leaves no trace, because there is no path to production that leaves no trace.",
+          "Approval is evidenced by the deployment that publishes it. Each publication is a controlled Git change with its own identifier in Git/GitHub history, and a control action leaves a receipt in the append-only chain whose head is anchored outside the table it summarises. There is no approval step that leaves no trace, because there is no path to production that leaves no trace.",
         ],
       },
       {
@@ -347,7 +347,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Approval, version and supersession",
         body: [
-          "Approved by the Owner and published by the deployment named in the change record entry that shipped this document. The version of this Statement is that deployment: the register renders from the same source the deployment ships, so the document and the running service are the same artefact seen twice and cannot drift apart between releases.",
+          "Approved by the Owner and published through the controlled release path. The register renders from the same tracked source the deployment ships, while Git/GitHub and annotated release tags retain the source and release history.",
           "This Statement is superseded by the next deployment that changes any status. There is therefore no separate revision history to maintain, and no window in which the published Statement describes a service that has already moved.",
           "The position at this version, so that a later reader can tell whether the register has moved since: 184 rows across the four sections — 102 evidenced, 42 partial, 15 gaps, 14 inherited from the supplier and 11 excluded, against 159 rows this service has to close itself. The two Annex A sections stand at 93 controls with 4 gaps and 38 controls with none. The live count is rendered at the head of the register and in its JSON, and if the two disagree the register is right and this paragraph is stale.",
         ],
@@ -384,7 +384,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
           "R-05 — The operator credential is compromised. Likelihood 2, consequence 4, score 8, treated, residual accepted. The operations credential authorises taking the game down, changing billing thresholds, and reading the unredacted operational record. In place: authentication fails closed in every direction — no minted token denies, a non-loopback request that is not over TLS denies, anything that is not a bearer or basic credential denies — and both halves of the basic credential are compared in constant time. The credential lives as a platform secret, never in the tracked configuration, and the production deploy script refuses to run if either secret is absent. Every authenticated control action writes a receipt into the anchored chain, so misuse is evident even though it is not prevented. Residual accepted: it is one long-lived shared credential with rotation on demand and no scheduled rotation, and there is no second factor.",
           "R-06 — A dependency is compromised and reaches the Worker bundle. Likelihood 3, consequence 4, score 12, partially treated, and open. Arbitrary code inside the bundle could falsify every claim this site makes about itself, including this document. In place: the dependency surface is small and pinned by a lockfile, the build is reproducible from a clean checkout, and the Worker imports only the engine, store and protocol entry points of the game module — never its client code, so browser libraries cannot enter the server bundle at all. Left over: nothing scans dependencies for known vulnerabilities, and there is no automated build in which such a scan could run. This is recorded as the weakness it is rather than dressed as a small residual.",
           "R-07 — The register overstates what the service does. Likelihood 3, consequence 5, score 15, treated, and treated regardless under the consequence rule. The register is the service's central claim; a row that cannot be evidenced makes every other row a candidate for the same fault. In place: the honesty rule is written into the source of the register itself, met requires a live route named on the row, implemented-but-unrecorded is recorded as partial, and every evidence link is walked and fetched before a deployment that touches the register — public routes must answer 200, operator routes 401. Residual accepted: that walk is a manual step with no automated gate behind it, so it depends on being performed rather than on being enforced.",
-          "R-08 — One person holds every role. Likelihood 5, consequence 3, score 15, treated as far as it can be, residual accepted. There is no separation of duties available and no independent challenge inside the loop. In place: the design substitutes evidence for separation. Control actions write receipts into a hash chain anchored outside its own table, every production change appears in the public change record with an identifier and a classification, and any tank can be reconstructed exactly at any tick from its seed and ordered action stream. Residual accepted, and named for what it is: that is detection, not separation. It is precisely why the internal audit, independent review, competence and awareness rows stay open on the register instead of being written into a document.",
+          "R-08 — One person holds every role. Likelihood 5, consequence 3, score 15, treated as far as it can be, residual accepted. There is no separation of duties available and no independent challenge inside the loop. In place: the design substitutes evidence for separation. Control actions write receipts into a hash chain anchored outside its own table, every production change appears in the Git/GitHub history with an identifier and a classification, and any tank can be reconstructed exactly at any tick from its seed and ordered action stream. Residual accepted, and named for what it is: that is detection, not separation. It is precisely why the internal audit, independent review, competence and awareness rows stay open on the register instead of being written into a document.",
           "R-09 — Public writes flood the action log and evict recorded evidence. Likelihood 3, consequence 3, score 9, treated. The action log is written through an unauthenticated route, and the log is the evidence behind several rows of this register. In place: the public route accepts only two event types; writes are limited per connection and, separately, under a global ceiling across every public caller at once, which is a real global limit because the object holding the counter is a singleton; and publicly written rows are trimmed to their own floor of fifteen hundred rows before the whole-log trim runs, so a flood can only evict other public rows and leaves the rest of the five thousand row capacity for server-recorded evidence. The security report intake accepts one report a minute. Residual accepted: a determined flood still costs metered consumption, which is R-02.",
           "R-10 — Loss of the source. Likelihood 2, consequence 3, score 6, accepted. The source exists as a working copy on the operator's machine and one hosted remote, with the game engine as a pinned submodule. Losing both would not stop the running service, which is deployed and independent of the repository, but it would end the ability to change or rebuild it. Accepted at this score, and noted as the reason the source access row on the register is partial rather than met: access is controlled by the hosting account, not by anything this service can show you.",
           "R-12 — A player cannot have their profile erased. Likelihood 3, consequence 3, score 9, partially treated, and open. There is no route by which a player can ask for their profile to be deleted, and clearing the cookie orphans the profile rather than removing it. The retention rule is also not the clean ninety days the security policy implies: a profile that never scored is deleted after ninety days unseen, but a profile holding a best score is kept indefinitely, because deleting it would silently remove entries from a leaderboard this service publishes as a record. In place: the data held is minimal and pseudonymous, no player identifier appears in any public output, display names are sanitised, and a player can change the only field they can see about themselves at any time. Left over: the erasure route itself, and a decision about what deleting a scoring profile should do to the leaderboard. Recorded in the legal register as a shortfall against an erasure right rather than argued away.",
@@ -434,7 +434,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
           "OBJ-2, the record outlives the game. Target: every public evidence route stays available while game traffic is disabled. Taking the game down must never take down the record of why. Measured at the availability page, which separates scheduled from unscheduled downtime and is itself one of the routes that has to stay up. Evaluated at every downtime event, of which the spend-limit stop is the one the service can cause by itself.",
           "OBJ-3, spend stays under the ceiling. Target: measured consumption stays below the five dollar hard limit, and the limit is enforced by code that closes the game rather than by an intention to watch the meter. Measured at the cost and capacity meters and their JSON, which publish consumption per bound service against the limit. Evaluated continuously by the meter itself and reviewed at each interval.",
           "OBJ-4, the register does not overstate. Target: every evidence link on the register resolves — public routes answering 200, operator routes 401 — and no row is marked met without a live route named on that row. Measured by walking the register's own manifest and fetching each link. Evaluated before every deployment that touches the register.",
-          "OBJ-5, findings are closed and the closure is published. Target: an accepted security finding is closed before the next feature deployment, and its closure time is published rather than described. Measured at the change record, where each entry states the time it took and the evidence it produced. Evaluated at each ninety-day review by reading the record back.",
+          "OBJ-5, findings are closed and the closure is published. Target: an accepted security finding is closed before the next production change. Measured from the incident/report timestamps and the linked controlled Git change, with operational actions retained in receipts. Evaluated at each ninety-day review.",
         ],
       },
       {
@@ -504,7 +504,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Monitoring and review of the supplier",
         body: [
           "What is monitored continuously, and published: consumption per bound service against the free allowance and the hard limit, availability measured from project start, and the incident record where a provider-side outage would appear as unscheduled downtime. Provider-side failure is visible in this service's own evidence rather than taken from a status page.",
-          "What is reviewed on a cycle: the runtime pin, at each ninety-day review, together with the provider's published changes since the last one. Moving the pin is a change entry like any other, classified before it is built.",
+          "What is reviewed on a cycle: the runtime pin, at each ninety-day review, together with the provider's published changes since the last one. Moving the pin is a controlled Git change like any other, classified before it is built.",
           "What has not happened yet, stated rather than implied: no such review cycle has yet completed, because this is the deployment that defines it. The supplier review row on the register is partial for that reason, and it becomes met on the first review that produces a record.",
         ],
       },
@@ -522,7 +522,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
           "All work is remote and there are no premises. One machine is used to develop and deploy, and it is the only endpoint in existence. The scope statement places it outside the boundary of this management system, but it holds the ability to change the service, so rules are stated rather than the matter being left at an exclusion.",
           "The rules. The machine is not shared, and no other person uses the account that holds the deployment tools. The screen is locked when it is left. Credentials are never written into tracked files: the account identifier lives in an untracked environment file, the operations secrets are platform secrets and exist on the machine only for local development in a separate untracked file, and both filenames are excluded from version control so that committing them is an error rather than an oversight. Work is not done on a machine other than this one, and deployment is not performed over a network the operator does not control.",
           "What can be evidenced, and what cannot. This document can be checked against the repository for the parts that live there — the ignore rules, the absence of the account identifier from the tracked configuration, the deploy script's refusal to run without credentials supplied from outside it. The rest is the operator's attestation about a machine, and no route this service serves could demonstrate it. The endpoint rows on the conformance register are therefore recorded as partial: the rules exist, and their observance is attested rather than proved.",
-          "The compensating position is that endpoint compromise is detectable rather than preventable. Every production change appears in the public change record with an identifier, every control action writes a receipt into the anchored chain, and the operations credential is a platform secret rather than a file the machine holds in a usable form for production. An attacker with the machine could do damage; they could not do it quietly.",
+          "The compensating position is that endpoint compromise is detectable rather than preventable. Every production change appears in the Git/GitHub history with an identifier, every control action writes a receipt into the anchored chain, and the operations credential is a platform secret rather than a file the machine holds in a usable form for production. An attacker with the machine could do damage; they could not do it quietly.",
         ],
       },
       {
@@ -574,7 +574,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Intellectual property",
         body: [
-          "This service is published under the MIT licence, and the game engine submodule under the same. The licence is declared in the change record data and in the repository.",
+          "This service is published under the MIT licence, and the game engine submodule under the same. The licence is declared in the repository.",
           "Third-party obligations, inventoried rather than assumed. Everything shipped to a browser or into the Worker bundle is MIT-licensed: the rendering library, its React renderer, React and its DOM package. The build-time tooling adds an Apache 2.0 licence and a dual MIT or Apache 2.0 licence, neither of which ships in the artefact. No copyleft licence is present anywhere in the dependency set, so there is no source-disclosure obligation beyond the one this project has already taken on voluntarily by being MIT itself.",
           "The obligation each of these carries is attribution: the licence text and copyright notice must travel with the software. That obligation is met by the licence files present in the distributed source, and it is recorded here so that adding a dependency under a different licence is recognised as a change to this register rather than as an ordinary dependency bump.",
           "Nothing in this service uses third-party assets — no purchased model, texture, font or sound — and no content is reproduced from another work.",
@@ -628,7 +628,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Scope",
         body: [
           "This procedure covers everything from a change being proposed to it running in production: how code is written, what must pass before a release, how cryptography is used, how the deployment refuses to proceed, and what is monitored afterwards. It applies to the Worker, both durable classes and the game engine submodule alike, because they ship as one artefact.",
-          "The change processes themselves — classification, the change record, authorisation, rollback — are set out on the conformance register and are not repeated here. This document is the security half of the same life cycle.",
+          "The change processes themselves — classification, Git/GitHub history, authorisation, rollback — are set out on the conformance register and are not repeated here. This document is the security half of the same life cycle.",
         ],
       },
       {
@@ -689,14 +689,14 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "Production deploys through one script and there is no second path. It refuses to run at all if the account identifier is absent, and it says where the value belongs — an untracked environment file, never the tracked configuration, because an account identifier does not belong in a file under version control. It then builds, and refuses again if either operations secret is missing from the deployed environment, so a release cannot produce a running service whose control panel has no valid credential.",
           "The deployment is the whole bundle at a version. There is no in-place editing of a running service, no partial upload and no package installation at runtime. Rollback is a redeploy of an earlier version through the same script.",
-          "After release the running version identifier is readable from the operator status route, which is what ties a running service back to the change entry that produced it.",
+          "After release the running version identifier is readable from the operator status route, which is what ties a running service back to the controlled Git change that produced it.",
         ],
       },
       {
         heading: "Technical vulnerabilities, stated as they are",
         body: [
           "How vulnerability information arrives: through the public report intake, which is unauthenticated and open to anyone, and through the operator noticing. That is the complete list, and it is a passive one.",
-          "How exposure is evaluated and acted on: a report is recorded as a retained event and a receipt on arrival; the affected code path is read; where the report is about behaviour, the tick or the route is exercised rather than reasoned about; and the fix ships as a change entry naming the finding it closes with its closure time published. Every finding accepted to date has been closed this way, and the closure times are on the public record rather than described here.",
+          "How exposure is evaluated and acted on: a report is recorded as a retained event and a receipt on arrival; the affected code path is read; where the report is about behaviour, the tick or the route is exercised rather than reasoned about; and the fix ships as a controlled Git change naming the finding it closes with its closure time published. Every finding accepted to date has been closed this way, and the closure times are on the public record rather than described here.",
           "What is missing, recorded rather than dressed: nothing scans the dependencies of this service for known vulnerabilities. There is no advisory feed subscribed to, no scheduled scan, and no automated build in which such a scan could run. The mitigations are real but partial — the dependency surface is small and pinned by a lockfile, the build is reproducible from a clean checkout, and the Worker imports only the engine, store and protocol entry points of the game module so browser libraries cannot enter the server bundle at all — and none of them tells anyone that a pinned dependency has had an advisory published against it. This is carried on the risk treatment plan as an open risk, and the conformance row for technical vulnerabilities stays partial because of it.",
         ],
       },
@@ -830,7 +830,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "Determinism is the design decision everything else rests on. The tank's random number generator is a mulberry32 step seeded by an FNV-1a hash of the seed string, and its state is carried inside the serialisable snapshot rather than held beside it. There is no wall-clock read and no unseeded randomness anywhere in the simulation. Two runs of the same seed with the same actions applied at the same ticks produce the same tank.",
           "That choice has a consequence worth stating explicitly, because it is what makes the rest of this document verifiable: no shark decision is ever recorded. The tank log holds only the actions players sent. A reconstruction re-derives every agent from the seed. If anything outside the tank's own state had reached an agent's decision, replaying the seed and the player actions would not reproduce the tank.",
-          "Agent code follows the same recorded change process as every other component of the service: classified before it is built, carried by a change entry with an identifier, and released through the same gate. The change record is the development history, and every entry that altered agent behaviour states what it changed and why.",
+          "Agent code follows the same recorded change process as every other component of the service: classified before it is built, carried by a controlled Git change with an identifier, and released through the same gate. Git/GitHub history is the development history, and every entry that altered agent behaviour states what it changed and why.",
         ],
       },
       {
@@ -857,7 +857,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "There is one deployment plan and the agents have no separate release. They are compiled into the same Worker as the rest of the service and ship as one atomic version: the engine, the routes, the pages and this document all move together or none of them do.",
           "Before release the build must compile, the type check must pass clean, and the working tree must be free of whitespace damage. The production deploy refuses to run at all unless the account identifier is supplied from the untracked environment file, and refuses again unless both operations secrets are already configured — so a deployment cannot silently produce a service whose control panel has no credential.",
-          "After release the running version identifier is readable from the operator status route, which is how a deployed version is tied back to the change entry that produced it. Tank logs carry a generation marker; changing it resets the captures, so a behavioural change that would make older captures unreplayable does not leave a log that appears complete and is not.",
+          "After release the running version identifier is readable from the operator status route, which is how a deployed version is tied back to the controlled Git change that produced it. Tank logs carry a generation marker; changing it resets the captures, so a behavioural change that would make older captures unreplayable does not leave a log that appears complete and is not.",
         ],
       },
       {
@@ -917,7 +917,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "What counts as documented information here",
         body: [
-          "Two kinds. Documents — this policy set, the conformance register, the API reference and the change record — state what the service does and is meant to do. Records are the evidence that it did: the control receipt chain, the ninety-day service action log, the incident record, the deterministic tank logs, the metered spend history and the operating records in DOC-27.",
+          "Two kinds. Runtime documents — this policy set, the conformance register and the API reference — state what the service does and is meant to do; Git/GitHub separately retains implementation history. Runtime records are the evidence that it operated: the control receipt chain, the ninety-day service action log, the incident record, deterministic tank logs, metered spend history and the operating records in DOC-27.",
           "The distinction matters because the two are controlled differently. A document is superseded when it changes. A record is never edited at all; where a record turns out to be wrong, a further record is written saying so, which is why the receipt chain carries a failed restore drill immediately before the passing one rather than only the pass.",
         ],
       },
@@ -933,7 +933,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "The version of a document is the deployment that published it. That is not a naming convention; it is the mechanism. These pages are rendered by the Worker from source that ships in the same artefact as the running service, so there is no build in which the published document and the service it describes can disagree. A document is superseded by the next deployment that changes it, and there is no window in which a stale version is being served.",
           "Each document is published at its own route, /policies/<identifier>/, and each section within it carries an anchor derived from its heading, so a clause can be cited down to the paragraph that answers it. The whole set previously rendered as one page with no identifier on any of its headings, which meant nothing in it could be linked to and the register had to point at the whole document.",
-          "The consequence, stated plainly because it is unusual: there is no revision history for these documents beyond the change record and the repository. Asking which version of DOC-18 was in force on a given date is answered by asking which deployment was live on that date, and the change record at /status/#delivery answers that with an identifier for every production deployment.",
+          "The consequence is that document revision history is not duplicated in the running product. Git/GitHub preserves source revisions, annotated release tags identify published versions, and provider evidence identifies deployment state.",
           "Approval is by the Owner, who is the only role that exists. DOC-03 states the limits of that arrangement and does not pretend it is a separation of duties.",
         ],
       },
@@ -941,7 +941,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Distribution, access and protection",
         body: [
           "Every document in this set is public and unauthenticated. There is no confidential tier of documentation, no distribution list, and nothing to control access to. Documents of external origin — the two standards themselves, and the provider's published terms and change notices — are not reproduced here; they are cited, because copying them would both breach their licences and create a copy that can go stale.",
-          "Protection against unintended alteration is the deployment path, not file permissions. A change to a published document is a change to tracked source, and reaches the public route only by a production deployment that appears in the change record. Records are protected differently and more strongly: the receipt chain is hash-linked with its head anchored outside the table it summarises, and state is copied daily to object storage under a digest, so an altered record is detectable and a lost one is recoverable.",
+          "Protection against unintended alteration is the deployment path, not file permissions. A change to a published document is a change to tracked source, and reaches the public route only by a production deployment that appears in Git/GitHub history. Records are protected differently and more strongly: the receipt chain is hash-linked with its head anchored outside the table it summarises, and state is copied daily to object storage under a digest, so an altered record is detectable and a lost one is recoverable.",
         ],
       },
       {
@@ -974,7 +974,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "What this service already did, and what was missing",
         body: [
-          "Failures here have always been found, corrected, and receipted. Every hotfix in the change record is one: a fault named plainly, a fix, and a dated deployment. Every incident carries a cause and a receipt. That is most of what the clause asks for.",
+          "Failures here have always been found, corrected, and receipted. Corrective implementation changes are retained in Git/GitHub with their structured rationale and verification; incidents remain separate operating records with causes and receipts. That is most of what the clause asks for.",
           "What was missing was the middle step. None of it was classified as a nonconformity, and none of it retained a cause analysis distinct from the description of the fix. A list of corrections is not a corrective-action process, because nothing in it distinguishes a one-off slip from a pattern that will happen again.",
         ],
       },
@@ -991,7 +991,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
           "React first. Contain the effect and correct the thing itself. Where the service is affected, an incident is opened and appears at /status/#incidents with its cause; where a control action is involved, a receipt enters the chain at the moment it happens.",
           "Then classify. Each nonconformity is recorded as one of: a documentation fault, where the service was correct and the description of it was not; a control fault, where the control did not operate; or a design fault, where the control operated as designed and the design was inadequate. The distinction decides what corrective action is worth taking, and it is the step that was previously skipped.",
           "Then determine the cause and whether it can recur elsewhere. This asks one specific question rather than inviting an essay: what else in this service has the same shape as the thing that failed? That question is what turned a single incorrect statement about the capture log into a check of every document making a similar claim.",
-          "Then act, verify, and record the outcome. Corrective action ships as a deployment in the change record. Where the action changes a control's status, the register moves in the same deployment.",
+          "Then act, verify, and record the outcome. Corrective action ships as a deployment in Git/GitHub history. Where the action changes a control's status, the register moves in the same deployment.",
         ],
       },
       {
@@ -1007,7 +1007,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Where the records are",
         body: [
-          "The classification and cause analysis for each item is the section above, which is a published record superseded only by a deployment. The correction is the change record entry that shipped it, at /status/#delivery. The dated, tamper-evident trace of any control action taken along the way is the receipt chain at /status/#control-history.",
+          "The classification and cause analysis for each item is the section above, which is a published record superseded only by a deployment. The correction is retained in Git/GitHub history. The dated, tamper-evident trace of operational control actions remains at /evidence/#receipts.",
           "Nothing here is retained privately. If a nonconformity were ever found that could not be published — because publishing it would describe a live weakness — it would be recorded as an incident with its cause stated at the level that can be published, and the register would say so rather than the item quietly not existing.",
         ],
       },
@@ -1190,11 +1190,11 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Change management records",
         body: [
-          "The change processes on the register have always operated; what was missing was a named record an assessor could sample. Each is named here against the sampling route.",
-          "Classification. Every entry in the change record carries a class — feature, hotfix or bonus — assigned before it ships and visible at /status/#delivery and in its JSON. A hotfix is a correction to something already released; a feature adds capability; the classification decides how much of the register a change is expected to move.",
-          "Authorisation. Authorisation is the deployment itself, which is a deliberate act by the only role that can authorise one, and the production deploy script refuses to run when a required secret is absent. Every entry carries the deployment batch identifier that shipped it, so authorisation and change are the same record seen twice.",
-          "Post-implementation review. Each change record entry carries concrete evidence bullets written after the change shipped, stating what was verified rather than what was intended. Where the review found the change insufficient, the following entry says so — the run of accessibility hotfixes is the clearest sample of that.",
-          "Review of unintended change. The receipt chain, the incident record and the metered spend series are the three places an unintended change would show. The chain is re-derived on every read and its verdict published; the spend series is compared against a hard limit that closes the game by itself; the incident record carries a cause for every entry. This version adds a fourth: a daily state copy under a digest, which makes an unintended change to durable state detectable by comparison rather than only by inspection.",
+          "Implementation-change history lives in Git/GitHub; this running product keeps only the current procedure and genuine operating records.",
+          "Classification. Every controlled change carries the current repository-enforced ST identifier and WG-ARCH-001 structured type before it ships; Git/GitHub preserves that metadata with the reviewed change.",
+          "Authorisation. Merge, release and deployment are deliberate controlled actions; annotated release tags, GitHub Releases, workflow runs and provider evidence retain the resulting release/deployment history.",
+          "Post-implementation review. Each controlled Git change records concrete validation and evidence, while pull-request and CI history preserve the verification that gated merge.",
+          "Review of unintended change. The receipt chain, incident record, metered spend series and daily state-copy digest are runtime signals for unintended change; each remains on the operating surface that owns it.",
         ],
       },
       {
@@ -1221,17 +1221,17 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "The management system, and where it actually is",
         body: [
-          "The management system is not a folder. It is this policy set, the conformance register, the change record, the incident record, the receipt chain and the logs — all of them routes on the running service, rendered from source that ships in the same artefact as the service itself.",
+          "The management system combines current runtime documents and operating records with repository-controlled implementation history. The policy set, conformance register, incident record, receipt chain and logs are runtime surfaces; Git/GitHub separately preserves source-change history.",
           "That is the single design decision everything else follows from. A management system maintained separately from the thing it governs drifts from it, and the drift is invisible until an audit finds it. Here the two cannot drift between releases, because they are the same release.",
-          "Its processes and their interactions: risk assessment produces the treatment plan; the treatment plan produces changes; changes ship through the change process and land in the change record; operating them produces records; the records are what the register cites; and the register is re-checked whenever any of it moves. The loop closes at the management review.",
+          "Its processes and their interactions: risk assessment produces the treatment plan; the treatment plan produces changes; changes ship through the change process and land in Git/GitHub history; operating them produces records; the records are what the register cites; and the register is re-checked whenever any of it moves. The loop closes at the management review.",
         ],
       },
       {
         heading: "Planning of changes",
         body: [
-          "Changes to the management system are made in the same way as changes to the service, because they are the same kind of act: a change to tracked source, shipped by a deployment, recorded in the change record with a class and an identifier.",
-          "A change is planned by deciding three things before it ships: its purpose, which rows of the register it is expected to move, and how it will be verified afterwards. The verification is written into the change record entry as concrete evidence rather than as a claim of completion. Where a change would alter a control's status, the register moves in the same deployment, so there is no interval in which the published register describes a system that has already changed.",
-          "This version is a worked example: its purpose was to close partials, the rows it moved are listed in its change record entry, and its verification was the evidence-link walk and the restore drill, both of which are recorded and both of which found something.",
+          "Changes to the management system are made in the same way as changes to the service, because they are the same kind of act: a change to tracked source, shipped by a deployment, recorded in Git/GitHub history with a class and an identifier.",
+          "A change is planned by deciding its purpose, the affected control rows, and how it will be verified. The structured Git change carries that rationale, validation and evidence; where a change alters a control's current status, the register moves in the same release.",
+          "The repository change contract requires purpose, impact, controls, validation, and evidence to travel with each controlled change; runtime evidence remains on the routes that own it.",
         ],
       },
       {
@@ -1245,7 +1245,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
       {
         heading: "Communication",
         body: [
-          "What is communicated: everything, by default, on a public route. The register, the policy set, the change record, the incident record, availability, spend, the logs and the API reference are all public and unauthenticated, and all are available as data as well as pages.",
+          "What is communicated: current runtime evidence is public by default — the register, policy set, incident record, availability, spend, logs and API reference. Implementation history is public separately through Git/GitHub rather than mirrored into the product.",
           "When: continuously rather than periodically, because the routes render live state. Incidents appear when they open, not when a report is compiled. The status page carries availability, the current spend position and, since this version, the state of the most recent copy and restore drill.",
           "With whom, and how: players, through the game and the status page; anyone assessing this service, through the register and this policy set; security researchers, through the public intake at /docs/, which records a receipt and never changes service state; the platform provider, through its own support channels. There is no internal communication to define, and no confidential channel exists.",
           "Who communicates: the Owner is the only role, and the only channel that accepts input from outside is the security report intake, which is rate-limited and cannot alter the service.",
@@ -1256,7 +1256,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         body: [
           "The processes needed to meet the requirements are the change process, the incident process, the risk process and the operating records in DOC-27, each with a defined trigger. They are controlled by being executed as code paths rather than as intentions: a control action cannot happen without writing a receipt, a route cannot be added under the operator prefix without being gated, and a deployment cannot ship without the gate that precedes it.",
           "Outsourced processes: compute, durable storage, object storage and DNS, all from the platform provider, controlled as described in DOC-19 and marked supplier on the register.",
-          "Documented information confirming the processes were carried out as planned: the change record for changes, the receipt chain for control actions, the incident record for disruptions, DOC-27 for the recurring activities, and the state copies for the backup schedule.",
+          "Documented information confirming the processes were carried out as planned: Git/GitHub history for changes, the receipt chain for control actions, the incident record for disruptions, DOC-27 for the recurring activities, and the state copies for the backup schedule.",
         ],
       },
       {
@@ -1272,7 +1272,7 @@ export const GOVERNANCE_DOCS: readonly GovernanceDoc[] = [
         heading: "Continual improvement",
         body: [
           "Improvement here is neither a slogan nor a schedule. The mechanism is that the register carries its own shortfalls, in public, with a readiness figure that moves — and that a gap named on a public page is considerably harder to leave alone than one in a private plan.",
-          "The record of it is the change record, which is a continuous sequence of dated corrections and additions with the evidence for each. The direction is set by the register's open rows and the accepted residuals in the risk assessment, taken in order of what can honestly be closed rather than what would move the number most.",
+          "The record of it is Git/GitHub history, which is a continuous sequence of dated corrections and additions with the evidence for each. The direction is set by the register's open rows and the accepted residuals in the risk assessment, taken in order of what can honestly be closed rather than what would move the number most.",
           "The evidence that this is real rather than asserted: the rows this version closed were closed by performing activities and building a backup, and the rows it did not close — dependency scanning, the erasure route, internal audit independence, the supplier certificates — are still named as open at the end of a pass whose stated purpose was to close things.",
         ],
       },

@@ -41,20 +41,23 @@ describe("concise public copy", () => {
     ]) expect(worker + presentation + conformance).not.toContain(text);
   });
 
-  it("provides one short public summary for every change listing", () => {
-    const block = presentation.match(/const PUBLIC_ROADMAP_SUMMARIES:[\s\S]*?\n};/)?.[0] ?? "";
-    const summaries = [...block.matchAll(/"ST-\d{3}": "([^"]+)"/g)].map((match) => match[1]);
-    expect(summaries).toHaveLength(52);
-    for (const summary of summaries) {
-      expect(summary.length).toBeLessThanOrEqual(140);
-      expect(summary.match(/[.!?](?:\s|$)/g)?.length ?? 0).toBeLessThanOrEqual(2);
-    }
-    expect(worker).toContain("POST_DELIVERY_ENTRIES.map(publicRoadmapEntry)");
+  it("keeps implementation history out of the runtime product surface", () => {
+    const runtime = worker + presentation + reactPresentation;
+    for (const text of [
+      "ROADMAP_" + "MANIFEST",
+      "Roadmap" + "Entry",
+      "POST_DELIVERY_" + "ENTRIES",
+      "PUBLIC_ROADMAP_" + "SUMMARIES",
+      "/roadmap" + ".json",
+      "Feature-to-" + "deployment map",
+    ]) expect(runtime).not.toContain(text);
+    expect(reactPresentation).toContain('label="Current release"');
+    expect(worker).toContain('env.SHARKTANK_RELEASE ?? "development"');
   });
 });
 
-describe("deployment metrics", () => {
-  it("recalculates commit velocity for every production deploy", () => {
+describe("deployment metadata", () => {
+  it("keeps deploy-time repository metrics in the deployment path without publishing an implementation ledger", () => {
     expect(deploy).toContain('run("git", ["rev-list", "--count", "HEAD"]');
     expect(deploy).toContain('run("git", ["log", "--reverse", "--format=%ct", "HEAD"]');
     for (const name of [
@@ -64,7 +67,7 @@ describe("deployment metrics", () => {
       "SHARKTANK_DEPLOYED_AT",
     ]) {
       expect(deploy).toContain(name);
-      expect(env + presentation).toContain(name);
+      expect(env).toContain(name);
     }
   });
 });

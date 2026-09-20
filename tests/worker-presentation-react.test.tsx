@@ -20,7 +20,8 @@ describe("React Worker presentation", () => {
       spendUsd: 0.0123,
       hardLimitUsd: 5,
       readiness: { percent: 100, met: 1, partial: 0, total: 1 },
-      lastDeployment: { id: "D01", title: "Initial deployment" },
+      release: "v1.3.7",
+      environment: "production",
     });
 
     expect(html).toMatch(/^<!doctype html><html lang="en">/);
@@ -28,6 +29,8 @@ describe("React Worker presentation", () => {
     expect(html).toContain('<main id="main" tabindex="-1">');
     expect(html).toContain("<h1>Governance you can inspect.</h1>");
     expect(html).toContain('<nav aria-label="Primary">');
+    expect(html).toContain("Current release");
+    expect(html).toContain("v1.3.7");
     expect(html).toContain('href="/controls/"');
     expect(html).toContain('href="/evidence/"');
     expect(html).toContain('href="/play/"');

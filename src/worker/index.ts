@@ -25,12 +25,8 @@ import {
   LOG_FETCH_CAPTURES,
   LOG_FETCH_SERVICE,
   PAGE_CSS_PATH,
-  POST_DELIVERY_ENTRIES,
-  ROADMAP_MANIFEST,
   backupPanelHtml,
   controlHistoryListHtml,
-  deliverySection,
-  deploymentMetrics,
   esc,
   formatCompactDuration,
   gameLogText,
@@ -42,7 +38,6 @@ import {
   normalizeServiceLogEvent,
   pageCssResponse,
   publicLogsHtml,
-  publicRoadmapEntry,
   shell,
   spendHtml,
   statusLiveScript,
@@ -54,7 +49,6 @@ import {
   type IncidentRecord,
   type PublicEvidenceStatus,
   type PublicLogEvent,
-  type RoadmapAvailability,
 } from "./presentation.js";
 import {
   renderAdminDocument,
@@ -254,7 +248,6 @@ function maintenanceBypass(path: string, method: string): boolean {
     path === "/iso-42001" || path.startsWith("/iso-42001/") ||
     path === "/evidence" || path.startsWith("/evidence/") ||
     path === "/policies" || path.startsWith("/policies/") || path === "/policies.json" ||
-    path === "/roadmap" || path.startsWith("/roadmap/") || path === "/roadmap.json" ||
     path === "/logs" || path.startsWith("/logs/") || path === "/logs.json" ||
     path === "/audit" || path.startsWith("/audit/") || path === "/audit.json" || path === "/audit.jsonl" ||
     path === "/admin" || path.startsWith("/admin/");
@@ -306,7 +299,6 @@ function roomFetch(env: Env, roomId: string, pathAndQuery: string, init?: Reques
  * to the first hour of the build so the window only ever grows.
  */
 async function incidentData(env: Env): Promise<{ incidents: IncidentRecord[]; history: ControlHistoryEntry[]; historyIntegrity: ControlHistoryIntegrity }> { const res = await lobbyStub(env).fetch("https://lobby/incidents"); const data = (await res.json()) as { incidents?: IncidentRecord[]; history?: ControlHistoryEntry[]; historyIntegrity?: ControlHistoryIntegrity }; return { incidents: [...INCIDENTS, ...(data.incidents ?? [])].map((incident) => ({ ...incident, title: tankCopy(incident.title), summary: tankCopy(incident.summary) })), history: data.history ?? [], historyIntegrity: data.historyIntegrity ?? { mode: "append-only tamper-evident hash chain", algorithm: "SHA-256", entryCount: 0, headHash: null } }; }
-async function roadmapAvailability(env: Env): Promise<RoadmapAvailability> { const [{ incidents }, gate] = await Promise.all([incidentData(env), maintenanceState(env, true)]); return { portal: incidentSummary([]), tank: incidentSummary(incidents), gateEnabled: gate.enabled }; }
 /**
  * Availability bar, measured from the first hour of the project to now.
  *
@@ -741,27 +733,9 @@ export default {
           publicLogData(env),
         ]);
         const data = (await statusRes.json()) as PublicEvidenceStatus;
-        return html(renderEvidenceDocument(data, incidentRecord, logs, deploymentMetrics(env)));
+        return html(renderEvidenceDocument(data, incidentRecord, logs));
       }
 
-      if (path === "/roadmap.json") {
-        const availability = await roadmapAvailability(env);
-        const deployment = deploymentMetrics(env);
-        return json({
-          ok: true,
-          release: deployment.release,
-          deployedAt: deployment.deployedAt,
-          commitVelocity: {
-            perDay: Number(deployment.commitsPerDay.toFixed(2)),
-            commits: deployment.commitCount,
-            windowHours: Number(deployment.windowHours.toFixed(1)),
-          },
-          availability,
-          license: "MIT",
-          entries: ROADMAP_MANIFEST.map(publicRoadmapEntry),
-          postDelivery: { entries: POST_DELIVERY_ENTRIES.map(publicRoadmapEntry) },
-        });
-      }
       // Human compatibility redirects are handled once by HUMAN_REDIRECTS above. The
       // machine-readable contracts remain stable because operator tooling and the OpenAPI
       // document still reference them.
@@ -809,7 +783,6 @@ export default {
         const data = (await statusRes.json()) as { billingWindow?: Record<string, unknown> };
         const billing = publicBillingWindow(data.billingWindow ?? {});
         const summary = summarise(ALL_CONTROLS);
-        const lastEntry = [...ROADMAP_MANIFEST, ...POST_DELIVERY_ENTRIES].at(-1) ?? null;
         return html(renderOverviewDocument({
           portal: incidentSummary([]),
           tank: incidentSummary(incidents),
@@ -818,7 +791,8 @@ export default {
           spendUsd: numberValue(recordValue(billing.allTime).estimatedVariableUsd),
           hardLimitUsd: numberValue(billing.hardLimitUsd) || 5,
           readiness: { percent: summary.readiness, met: summary.byStatus.met, partial: summary.byStatus.partial, total: summary.applicable },
-          lastDeployment: lastEntry ? { id: lastEntry.deployment, title: lastEntry.title } : null,
+          release: env.SHARKTANK_RELEASE ?? "development",
+          environment: env.ENVIRONMENT ?? "unknown",
         }));
       }
 
@@ -839,9 +813,9 @@ export default {
         const tankAvailability = incidentSummary(incidents), portalAvailability = incidentSummary([]);
         return json({ ...publicData, usage: publicUsage, availability: tankAvailability, tankAvailability, portalAvailability, incidents });
       }
-      // ── Operations. Availability, incidents, receipts, backups and delivery ────
+      // ── Operations. Availability, incidents, receipts and backups ─────────────
       // Three routes folded into this one. Everything below was already reachable, but
-      // spread across /status/, /incidents/ and /roadmap/, with the receipt chain rendered
+      // spread across /status/ and /incidents/, with the receipt chain rendered
       // twice and three headline numbers stated on pages that do not own them.
       if (path === "/status" || path === "/status/") {
         const [statusRes, { history: fullHistory, historyIntegrity }] = await Promise.all([
@@ -873,7 +847,7 @@ export default {
         return html(
           shell(
             "Shark — Operations",
-            `<section class="page-intro"><div class="eyebrow">Trust · operations</div><h1>Operations</h1><p class="sub">Live availability for the server and for the tanks, every incident since the project started, the append-only receipt chain behind the controls that caused them, the state copies and restore drills, and the delivery record. <a href="/trust/">Trust overview →</a></p><p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a> <a class="action-link" href="/incidents.json">Incident JSON →</a> <a class="action-link" href="/roadmap.json">Delivery JSON →</a></p></section>
+            `<section class="page-intro"><div class="eyebrow">Trust · operations</div><h1>Operations</h1><p class="sub">Live availability for the server and for the tanks, every incident since the project started, the append-only receipt chain behind the controls that caused them, and the state copies and restore drills. <a href="/trust/">Trust overview →</a></p><p class="action-links"><a class="action-link" href="/status.json">Raw status JSON →</a> <a class="action-link" href="/incidents.json">Incident JSON →</a></p></section>
              <div class="live-controls">
                <button type="button" id="status-autoupdate" class="secondary">Pause auto-update</button>
                <p class="sub">Live figures refresh every 15 seconds in place. Last updated <time id="status-updated-at">just now</time>.</p>
@@ -892,7 +866,6 @@ export default {
              ${backupPanelHtml(data.backup)}
              ${incidentsSection(incidents, history)}
              ${controlHistoryListHtml(history, integrity)}
-             ${deliverySection(ROADMAP_MANIFEST, deploymentMetrics(env), incidents, history, publicBillingWindow(data.billingWindow ?? {}))}
              ${statusLiveScript()}`,
             "Live availability, the full incident record, the append-only control receipt chain, state copies and restore drills, and the delivery record for sharktank.wizardgang.ai.",
           ),

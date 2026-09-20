@@ -12,12 +12,10 @@ export const HUMAN_REDIRECTS: Readonly<Record<string, string>> = Object.freeze({
   "/logs": "/evidence/#logs", "/logs/": "/evidence/#logs",
   "/spend": "/evidence/#spend", "/spend/": "/evidence/#spend",
   "/inquiry": "/evidence/#spend", "/inquiry/": "/evidence/#spend",
-  "/roadmap": "/evidence/#changes", "/roadmap/": "/evidence/#changes",
 });
 
 export function canonicalPublicHref(href: string): string {
   if (href === "/trust/" || href === "/trust") return "/";
-  if (href === "/status/#delivery") return "/evidence/#changes";
   if (href === "/status/#control-history") return "/evidence/#receipts";
   if (href === "/status/#backup") return "/evidence/#continuity";
   if (href.startsWith("/status/#incidents")) return href.replace("/status/", "/evidence/");
