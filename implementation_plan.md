@@ -83,18 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-055 — BUILD — Upgrade React 19 and React Three Fiber 9
-
-**Depends on:** ST-054.
-
-Required outcome:
-
-- React and React DOM 19;
-- `@react-three/fiber` 9 and compatible first-party game client code;
-- remove the obsolete Dependabot major-version ignore;
-- preserve deterministic engine/protocol behavior and realtime gameplay acceptance;
-- do not use this task to redesign the UI or server rendering architecture.
-
 ### ST-056 — REFACTOR — Split Worker routing, data, and presentation boundaries
 
 **Depends on:** ST-055.
