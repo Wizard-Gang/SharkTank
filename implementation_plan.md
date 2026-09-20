@@ -83,18 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-054 — BUILD — Upgrade TypeScript 7 and Vitest 5
-
-**Depends on:** ST-052.
-
-Required outcome:
-
-- TypeScript 7 with strict mode remains green for every TS program, including the tracked first-party vendor program;
-- Vitest 5 replaces Vitest 4;
-- tooling does not depend on the TypeScript compiler API;
-- update tests/config only as required by real migration differences;
-- keep Vite 8, Wrangler 4, Node 26, and npm 11 fixed as the already-adopted baseline.
-
 ### ST-055 — BUILD — Upgrade React 19 and React Three Fiber 9
 
 **Depends on:** ST-054.
