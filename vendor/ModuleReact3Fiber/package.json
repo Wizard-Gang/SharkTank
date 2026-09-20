@@ -20,11 +20,17 @@
     "three": ">=0.160"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "@react-three/fiber": { "optional": true },
-    "three": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "@react-three/fiber": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "typescript": "^5.6.0"
+    "typescript": "^7.0.2"
   }
 }
