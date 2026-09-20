@@ -39,6 +39,12 @@ function assertStrictPresentation(path, response, html) {
   }
 }
 
+function assertNotGameDocument(path, html) {
+  if (html.includes('<div id="root">') || html.includes("Wizard Gang Shark Tank")) {
+    fail(`${path} unexpectedly received the /play/ game document`);
+  }
+}
+
 async function main() {
   const pages = new Map();
   for (const path of canonical) {
@@ -127,7 +133,28 @@ async function main() {
   if (unknownPage.headers.get("cache-control") !== "no-store") fail("unknown human route must remain no-store");
   const unknownHtml = await unknownPage.text();
   assertStrictPresentation("/not-a-real-route", unknownPage, unknownHtml);
+  assertNotGameDocument("/not-a-real-route", unknownHtml);
   if (!unknownHtml.includes("<h1>Route not found</h1>")) fail("unknown human route lost its not-found presentation");
+
+  const nestedClientRoute = await request("/play/not-a-client-route");
+  if (nestedClientRoute.status !== 404) fail(`nested /play/ path expected 404, got ${nestedClientRoute.status}`);
+  const nestedClientHtml = await nestedClientRoute.text();
+  assertStrictPresentation("/play/not-a-client-route", nestedClientRoute, nestedClientHtml);
+  assertNotGameDocument("/play/not-a-client-route", nestedClientHtml);
+
+  const rawIndex = await request("/index.html");
+  if (rawIndex.status !== 404) fail(`raw /index.html expected Worker 404, got ${rawIndex.status}`);
+  const rawIndexHtml = await rawIndex.text();
+  assertStrictPresentation("/index.html", rawIndex, rawIndexHtml);
+  assertNotGameDocument("/index.html", rawIndexHtml);
+
+  const missingAsset = await request("/assets/not-a-real-asset.js");
+  if (missingAsset.status !== 404) fail(`unknown static asset expected 404, got ${missingAsset.status}`);
+  if ((missingAsset.headers.get("content-type") || "").startsWith("text/html")) fail("unknown static asset must not receive an HTML document");
+  if (missingAsset.headers.get("x-content-type-options") !== "nosniff") fail("unknown static asset is missing shared security headers");
+  const missingAssetCsp = missingAsset.headers.get("content-security-policy") || "";
+  if (missingAssetCsp.includes("'unsafe-inline'")) fail("unknown static asset CSP still allows unsafe-inline");
+  assertNotGameDocument("/assets/not-a-real-asset.js", await missingAsset.text());
 
   const adminDenied = await request("/admin/");
   if (adminDenied.status !== 401) fail(`unauthenticated /admin/ expected 401, got ${adminDenied.status}`);
@@ -205,7 +232,7 @@ async function main() {
     console.error(`\n${failures.length} public IA check(s) failed.`);
     process.exit(1);
   }
-  console.log(`Verified ${canonical.length} canonical pages, strict no-unsafe-inline CSP/generated-HTML contracts, the React-generated game shell and hashed/lazy Vite assets, OpenAPI/admin/404 HTML, API separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
+  console.log(`Verified ${canonical.length} canonical pages, strict no-unsafe-inline CSP/generated-HTML contracts, explicit /play/ Static Assets routing with hashed/lazy Vite assets, application/index/asset misses that cannot fall back to the game document, OpenAPI/admin/404 HTML, API separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

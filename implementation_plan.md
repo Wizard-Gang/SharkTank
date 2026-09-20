@@ -83,20 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-060 — REFACTOR — Normalize Static Assets and unknown-route behavior
-
-**Depends on:** ST-058 and ST-059.
-
-Required outcome:
-
-- remove repository-wide SPA fallback semantics;
-- `/play/` intentionally serves the game client document and its Vite assets;
-- unknown application paths and unknown assets produce ordinary 404 behavior unless a current documented route contract requires otherwise;
-- no client-side router is required for canonical navigation;
-- update public IA acceptance so it proves the final routing contract rather than legacy Vite fallback behavior.
-
-Existing compatibility redirects are not automatically removed by this task: keep only those that still have a documented current compatibility requirement, and remove stale compatibility prose/logic when no such requirement remains.
-
 ### ST-061 — DOCS — Retire checked-in release and deployment history
 
 **Depends on:** ST-050.

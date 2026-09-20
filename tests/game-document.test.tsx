@@ -6,6 +6,8 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 const source = read("../src/client/game-document.tsx");
 const indexSource = read("../index.html");
 const viteSource = read("../vite.config.ts");
+const wranglerSource = read("../wrangler.jsonc");
+const workerSource = read("../src/worker/index.ts");
 const mainSource = read("../src/client/main.tsx");
 const humanDocsSource = read("../src/client/human-docs.ts");
 const workerPresentationSource = read("../src/worker/presentation-react.tsx");
@@ -72,6 +74,14 @@ describe("React game document", () => {
     expect(mainSource).toContain("createRoot(el).render(");
     expect(mainSource).toContain('import "./styles.css"');
     expect(appSource).toContain('lazy(() => import("./ui/GameScreen.js")');
+  });
+
+  it("makes the game document explicit instead of using a repository-wide SPA fallback", () => {
+    expect(wranglerSource).toContain('"html_handling": "none"');
+    expect(wranglerSource).toContain('"not_found_handling": "none"');
+    expect(wranglerSource).not.toContain('"single-page-application"');
+    expect(workerSource).toContain('new Request(new URL("/index.html", request.url)');
+    expect(workerSource).toContain("if (!gameShell && !staticAsset)");
   });
 
   it("keeps the game client separate from non-game static documents", () => {
