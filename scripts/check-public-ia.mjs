@@ -44,6 +44,40 @@ function assertNotGameDocument(path, html) {
   }
 }
 
+async function verifyRoomWebSocket() {
+  const wsBase = base.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+  let socket;
+  try {
+    const welcome = await new Promise((resolve, reject) => {
+      socket = new WebSocket(`${wsBase}/room/room-1/ws?roomName=Tank%201`);
+      let settled = false;
+      let timer;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (error) reject(error); else resolve(value);
+      };
+      timer = setTimeout(() => finish(new Error("timed out waiting for welcome")), 5_000);
+      socket.addEventListener("open", () => socket.send(JSON.stringify({ t: "hello", name: "Acceptance Shark", skin: "cyan" })), { once: true });
+      socket.addEventListener("message", (event) => {
+        let message;
+        try { message = JSON.parse(String(event.data)); } catch { return; }
+        if (message?.t === "welcome") finish(null, message);
+      });
+      socket.addEventListener("error", () => finish(new Error("WebSocket error")), { once: true });
+      socket.addEventListener("close", (event) => { if (!settled) finish(new Error(`closed before welcome (code ${event.code})`)); }, { once: true });
+    });
+    if (welcome?.roomId !== "room-1") fail(`WebSocket welcome expected room-1, got ${welcome?.roomId}`);
+    if (typeof welcome?.youId !== "string" || !welcome.youId) fail("WebSocket welcome lost player identity");
+    if (!welcome?.state || typeof welcome.state.tick !== "number") fail("WebSocket welcome lost authoritative room state");
+  } catch (error) {
+    fail(`Room WebSocket acceptance failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    try { socket?.close(); } catch { /* already closed */ }
+  }
+}
+
 async function main() {
   const pages = new Map();
   for (const path of canonical) {
@@ -119,6 +153,22 @@ async function main() {
   if (health.headers.get("x-content-type-options") !== "nosniff") fail("/api/health is missing shared security headers");
   const healthBody = await health.json().catch(() => null);
   if (!healthBody?.ok || healthBody.module !== "module-react3fiber") fail("/api/health response shape changed");
+
+  for (const [path, arrayField] of [["/api/tank", "rooms"], ["/api/leaderboard", "entries"]]) {
+    const response = await request(path);
+    if (response.status !== 200) { fail(`${path} expected 200, got ${response.status}`); continue; }
+    const body = await response.json().catch(() => null);
+    if (!body?.ok || !Array.isArray(body?.[arrayField])) fail(`${path} response shape changed`);
+  }
+
+  const profile = await request("/api/profile");
+  if (profile.status !== 200) fail(`/api/profile expected 200, got ${profile.status}`);
+  const profileBody = await profile.json().catch(() => null);
+  if (!profileBody?.ok || !profileBody?.profile) fail("/api/profile response shape changed");
+
+  const roomWithoutUpgrade = await request("/room/room-1/ws");
+  if (roomWithoutUpgrade.status !== 426) fail(`non-upgraded room route expected 426, got ${roomWithoutUpgrade.status}`);
+  await verifyRoomWebSocket();
 
   const unknownApi = await request("/api/not-a-real-endpoint");
   if (unknownApi.status !== 404) fail(`unknown API expected 404, got ${unknownApi.status}`);
@@ -239,7 +289,7 @@ async function main() {
     console.error(`\n${failures.length} public IA check(s) failed.`);
     process.exit(1);
   }
-  console.log(`Verified ${canonical.length} canonical pages, strict no-unsafe-inline CSP/generated-HTML contracts, explicit /play/ Static Assets routing with hashed/lazy Vite assets, application/index/asset misses that cannot fall back to the game document, OpenAPI/admin/404 HTML, API separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
+  console.log(`Verified ${canonical.length} canonical pages, strict no-unsafe-inline CSP/generated-HTML contracts, explicit /play/ Static Assets routing with hashed/lazy Vite assets, application/index/asset misses that cannot fall back to the game document, OpenAPI/admin/404 HTML, health/tank/profile/leaderboard APIs, a live Room Durable Object WebSocket welcome plus 426 non-upgrade behavior, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

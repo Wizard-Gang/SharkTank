@@ -1,6 +1,6 @@
 # Change management
 
-Git and GitHub are the authority for SharkTank implementation history. Human controlled non-merge commits use the next sequential `ST-###` identifier, one WG-ARCH-001 §16 type, and the structured body required by `AGENTS.md`. Published commits and tags are immutable; corrections move forward as new controlled changes.
+Git and GitHub are the authority for SharkTank implementation history. Human-controlled changes use the next sequential `ST-###` identifier, one WG-ARCH-001 §16 type, and the structured body required by `AGENTS.md`. Each accepted ST change lands as one non-merge controlled commit on `main`; feature branches remain one controlled commit and are squash-merged when necessary. Published commits and tags are immutable; corrections move forward as new controlled changes.
 
 ## Repository acceptance
 
@@ -19,6 +19,6 @@ Pull-request CI supplies event metadata to that same gate and otherwise performs
 
 ## Provider settings
 
-Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. `npm run check:github-settings` is the read-only provider-authenticated verifier. `npm run apply:github-settings` is the explicit administrative mutation path.
+Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. SharkTank's repository-specific delivery policy is squash-only so each accepted ST change remains one controlled commit on `main`; merge commits and rebase merges are disabled. `npm run check:github-settings` is the read-only provider-authenticated verifier. `npm run apply:github-settings` is the explicit administrative mutation path.
 
 Provider administration, release publication, and production deployment remain separate from the credential-free repository gate.
