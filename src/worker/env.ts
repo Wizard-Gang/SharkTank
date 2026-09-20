@@ -1,0 +1,23 @@
+export interface Env {
+  ASSETS: { fetch: (req: Request) => Promise<Response> };
+  ROOM: DurableObjectNamespace;
+  LOBBY: DurableObjectNamespace;
+  ENVIRONMENT?: string;
+  SHARKTANK_RELEASE?: string;
+  SHARKTANK_COMMIT_COUNT?: string;
+  SHARKTANK_COMMIT_WINDOW_HOURS?: string;
+  SHARKTANK_COMMIT_VELOCITY?: string;
+  SHARKTANK_DEPLOYED_AT?: string;
+  OPS_USERNAME?: string;
+  OPS_TOKEN?: string;
+  AUDIT_GENERATION?: string;
+  CF_VERSION_METADATA?: WorkerVersionMetadata;
+  PHP_HTTP_ORIGIN?: string;
+  PHP_WS_ORIGIN?: string;
+  PHP_ORIGIN_TOKEN?: string;
+  /** Object storage. Bound in wrangler.jsonc; holds the state copies runBackup writes. */
+  R2_ASSETS?: R2Bucket;
+  R2_PREFIX?: string;
+}
+
+export interface MaintenanceState { enabled: boolean; changedAt: number; reason: string }

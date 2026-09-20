@@ -83,19 +83,6 @@ After a task is successfully merged and its plan entry is therefore purged, fini
 
 ## 7. Sequenced controlled changes
 
-### ST-056 — REFACTOR — Split Worker routing, data, and presentation boundaries
-
-**Depends on:** ST-055.
-
-Behavior-preserving extraction before the rendering migration.
-
-Required outcome:
-
-- `src/worker/index.ts` becomes an orchestration/entry module rather than the owner of all HTML and operational presentation;
-- move human route rendering, shared security-response helpers, route declarations, and presentation data adapters into focused modules;
-- keep Durable Object, API, WebSocket, auth, backup, and operational behavior unchanged;
-- add characterization tests around canonical routes, status codes, headers, and key generated content before deleting old helpers.
-
 ### ST-057 — REFACTOR — Render human documents with React 19 on the Worker
 
 **Depends on:** ST-056.

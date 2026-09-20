@@ -29,8 +29,25 @@ async function main() {
   for (const path of canonical) {
     const response = await request(path);
     if (response.status !== 200) { fail(`${path} expected 200, got ${response.status}`); continue; }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.startsWith("text/html")) fail(`${path} expected HTML content type, got ${contentType || "none"}`);
+    for (const [header, expected] of [
+      ["x-content-type-options", "nosniff"],
+      ["x-frame-options", "DENY"],
+      ["permissions-policy", "camera=(), microphone=(), geolocation=()"],
+      ["strict-transport-security", "max-age=31536000; includeSubDomains"],
+    ]) {
+      if (response.headers.get(header) !== expected) fail(`${path} expected ${header}: ${expected}, got ${response.headers.get(header)}`);
+    }
+    const csp = response.headers.get("content-security-policy") || "";
+    if (!csp.includes("default-src 'self'")) fail(`${path} is missing the expected CSP default-src`);
     const html = await response.text();
     pages.set(path, html);
+    if (path !== "/play/") {
+      if (response.headers.get("cache-control") !== "no-store") fail(`${path} expected cache-control no-store`);
+      const canonicalHref = `https://sharktank.wizardgang.ai${path}`;
+      if (!html.includes(`<link rel="canonical" href="${canonicalHref}">`)) fail(`${path} is missing canonical link ${canonicalHref}`);
+    }
     if (path !== "/play/" && !html.includes('<nav aria-label="Primary">')) fail(`${path} is missing the primary navigation`);
     if (path !== "/play/" && (html.match(/<h1(?:\s|>)/g) || []).length !== 1) fail(`${path} must contain exactly one h1`);
     if (path !== "/play/") {
@@ -40,7 +57,39 @@ async function main() {
     }
   }
 
-  const home = pages.get("/") || "";
+  const health = await request("/api/health");
+  if (health.status !== 200) fail(`/api/health expected 200, got ${health.status}`);
+  if (!(health.headers.get("content-type") || "").startsWith("application/json")) fail("/api/health must remain JSON");
+  if (health.headers.get("cache-control") !== "no-store") fail("/api/health must remain no-store");
+  if (health.headers.get("x-content-type-options") !== "nosniff") fail("/api/health is missing shared security headers");
+  const healthBody = await health.json().catch(() => null);
+  if (!healthBody?.ok || healthBody.module !== "module-react3fiber") fail("/api/health response shape changed");
+
+  const unknownApi = await request("/api/not-a-real-endpoint");
+  if (unknownApi.status !== 404) fail(`unknown API expected 404, got ${unknownApi.status}`);
+  if (!(unknownApi.headers.get("content-type") || "").startsWith("application/json")) fail("unknown API must remain JSON rather than human HTML");
+  const unknownApiBody = await unknownApi.json().catch(() => null);
+  if (unknownApiBody?.error !== "unknown endpoint") fail("unknown API response body changed");
+
+  const unknownPage = await request("/not-a-real-route");
+  if (unknownPage.status !== 404) fail(`unknown human route expected 404, got ${unknownPage.status}`);
+  if (!(unknownPage.headers.get("content-type") || "").startsWith("text/html")) fail("unknown human route must remain HTML");
+  if (unknownPage.headers.get("cache-control") !== "no-store") fail("unknown human route must remain no-store");
+  const unknownHtml = await unknownPage.text();
+  if (!unknownHtml.includes("<h1>Route not found</h1>")) fail("unknown human route lost its not-found presentation");
+
+  const adminDenied = await request("/admin/");
+  if (adminDenied.status !== 401) fail(`unauthenticated /admin/ expected 401, got ${adminDenied.status}`);
+  if (!(adminDenied.headers.get("www-authenticate") || "").startsWith("Basic realm=")) fail("unauthenticated /admin/ lost its authentication challenge");
+  const auth = Buffer.from("ops:local-acceptance-only").toString("base64");
+  const admin = await fetch(`${base}/admin/`, { redirect: "manual", headers: { authorization: `Basic ${auth}`, "cache-control": "no-cache" } });
+  if (admin.status !== 200) fail(`authenticated /admin/ expected 200, got ${admin.status}`);
+  if (!(admin.headers.get("content-type") || "").startsWith("text/html")) fail("authenticated /admin/ must remain HTML");
+  if (admin.headers.get("cache-control") !== "no-store") fail("authenticated /admin/ must remain no-store");
+  const adminHtml = await admin.text();
+  if (!adminHtml.includes("<h1>Admin</h1>")) fail("authenticated /admin/ lost its control-room content");
+
+    const home = pages.get("/") || "";
   const headerNav = home.match(/<header[\s\S]*?<nav aria-label="Primary">([\s\S]*?)<\/nav>/)?.[1] || "";
   const primaryLinks = [...headerNav.matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map((match) => [match[1], match[2]]);
   if (JSON.stringify(primaryLinks) !== JSON.stringify([["/", "Overview"], ["/controls/", "Controls"], ["/evidence/", "Evidence"], ["/play/", "Play"]])) fail(`primary navigation is not the four-route contract: ${JSON.stringify(primaryLinks)}`);
@@ -95,7 +144,7 @@ async function main() {
     console.error(`\n${failures.length} public IA check(s) failed.`);
     process.exit(1);
   }
-  console.log(`Verified ${canonical.length} canonical pages, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
+  console.log(`Verified ${canonical.length} canonical pages, response security/content contracts, authenticated admin HTML, API/404 separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });

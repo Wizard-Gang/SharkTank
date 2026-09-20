@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const worker = read("../src/worker/index.ts");
+const env = read("../src/worker/env.ts");
+const presentation = read("../src/worker/presentation.ts");
 const conformance = read("../src/worker/conformance.ts");
 const deploy = read("../scripts/deploy-prod.mjs");
 const gameShell = read("../index.html");
@@ -10,9 +12,9 @@ const gameMenu = read("../vendor/ModuleReact3Fiber/src/client/ui/MainMenu.tsx");
 
 describe("concise public copy", () => {
   it("uses the current WizardGang mark on the evidence site and game menu", () => {
-    expect(worker).toContain('class="brand-mark" aria-hidden="true"');
-    expect(worker).toContain('<strong>WIZARDGANG</strong><small>SharkTank</small>');
-    expect(worker).toContain("background:#d9ff43;box-shadow:.5rem -.5rem 0 #a489ff");
+    expect(presentation).toContain('class="brand-mark" aria-hidden="true"');
+    expect(presentation).toContain('<strong>WIZARDGANG</strong><small>SharkTank</small>');
+    expect(presentation).toContain("background:#d9ff43;box-shadow:.5rem -.5rem 0 #a489ff");
     expect(gameMenu).toContain('className="wizardgang-menu-mark"');
     expect(gameMenu).toContain("<span>WIZARDGANG</span>");
     expect(gameShell).toContain('rel="icon"');
@@ -27,7 +29,7 @@ describe("concise public copy", () => {
       "Scheduled tank downtime is tracked separately",
       "Records older than 24 hours are purged at the source",
       "The public evidence estate and the game’s menus",
-    ]) expect(worker + gameShell + gameMenu).not.toContain(text);
+    ]) expect(worker + presentation + gameShell + gameMenu).not.toContain(text);
 
     for (const text of [
       "The implementation starts with the governed system",
@@ -35,11 +37,11 @@ describe("concise public copy", () => {
       "This is a readiness register, not a certificate",
       "Readiness counts only the controls this organisation has to close",
       "ISO/IEC 27001 asks for change control in four separate places",
-    ]) expect(worker + conformance).not.toContain(text);
+    ]) expect(worker + presentation + conformance).not.toContain(text);
   });
 
   it("provides one short public summary for every change listing", () => {
-    const block = worker.match(/const PUBLIC_ROADMAP_SUMMARIES:[\s\S]*?\n};/)?.[0] ?? "";
+    const block = presentation.match(/const PUBLIC_ROADMAP_SUMMARIES:[\s\S]*?\n};/)?.[0] ?? "";
     const summaries = [...block.matchAll(/"ST-\d{3}": "([^"]+)"/g)].map((match) => match[1]);
     expect(summaries).toHaveLength(52);
     for (const summary of summaries) {
@@ -61,7 +63,7 @@ describe("deployment metrics", () => {
       "SHARKTANK_DEPLOYED_AT",
     ]) {
       expect(deploy).toContain(name);
-      expect(worker).toContain(name);
+      expect(env + presentation).toContain(name);
     }
   });
 });
