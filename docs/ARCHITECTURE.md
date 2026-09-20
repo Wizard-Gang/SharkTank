@@ -1,6 +1,6 @@
 # Architecture
 
-SharkTank is one Cloudflare Worker deployment with a static React client, a routing and governance Worker, two Durable Object classes, and one R2 binding. The repository also carries an optional PHP protocol-parity runtime; it is not required to build or operate the TypeScript deployment.
+SharkTank is one Cloudflare Worker deployment with a React browser game, two Durable Object classes, one R2 binding, and an optional PHP protocol-parity runtime. The PHP runtime is validation-only and is not required to build or operate the TypeScript deployment.
 
 ```text
 browser ── HTTPS ──> Worker router ──> Lobby Durable Object
@@ -9,22 +9,36 @@ browser ── HTTPS ──> Worker router ──> Lobby Durable Object
    │                    ├───────────> Room Durable Objects
    └── WebSocket ───────┘             authoritative simulation
                         │
-                        ├───────────> static Vite assets
+                        ├───────────> Static Assets
                         └───────────> R2 state copies
 ```
 
-The Worker has four canonical human destinations: the governance overview at `/`, the complete ISO/IEC 27001 and ISO/IEC 42001 control and policy record at `/controls/`, consolidated live operational evidence at `/evidence/`, and the governed workload at `/play/`. Former human destinations redirect directly to their owning section without redirect chains. Machine-readable evidence remains available at its stable JSON and text routes, public APIs live under `/api/`, and authenticated operations remain under `/admin/`. WebSockets at `/room/:id/ws` terminate in a room object. The Lobby object is addressed by the stable name `global`; room objects use stable room identifiers.
+## Public and operator boundaries
 
-`src/worker/index.ts` is the Worker orchestration entry: it owns request sequencing and controller flow, while `src/worker/routes.ts` owns route declarations/predicates, `src/worker/responses.ts` owns shared security-aware response construction, and `src/worker/presentation-data.ts` owns public presentation shaping/redaction. `src/worker/presentation-react.tsx` owns the React 19 static document shell and route-level human presentation; `src/worker/presentation.ts` remains the focused source of legacy evidence/conformance generators that feed one audited raw-artifact boundary during the normalization sequence. Ordinary Worker documents are emitted with `renderToStaticMarkup`, are complete without JavaScript, and are not hydrated. `src/client/human-docs.ts` provides optional progressive enhancement only. Durable Object, API, WebSocket, authentication, backup, and scheduled behavior remain controller/runtime concerns rather than presentation concerns.
+The canonical human destinations are `/`, `/controls/`, `/evidence/`, and `/play/`. Compatibility human routes redirect directly to their owning canonical section. Machine-readable evidence remains on its stable JSON/text routes, public APIs live under `/api/`, authenticated operations live under `/admin/`, and room WebSockets terminate at `/room/:id/ws`.
 
-`/play/` is the separate interactive browser application boundary. `src/client/game-document.tsx` owns its React 19 document shell and is rendered to static markup by a Vite `transformIndexHtml` pre-transform at build time; the checked-in `index.html` is only the HTML-entry sentinel. That pre-mount document carries the game identity, loading context, canonical/social metadata, and a route to governance evidence without requiring JavaScript. `src/client/main.tsx` then mounts the interactive game with `createRoot` into `#root`. Vite remains the authority for the client module graph, CSS extraction, content-hashed production entry/assets, and the existing lazy `GameScreen` chunk. No client router is introduced, and none of the Worker-rendered human documents are hydrated.
+The Lobby Durable Object uses the stable name `global`. Room objects use stable room identifiers. Production Durable Object class names, migration tag `v1`, environment identity, and storage bindings are stateful compatibility boundaries and must not be changed as ordinary refactors.
 
-Static Assets are fail-closed rather than a repository-wide SPA router. Wrangler keeps `run_worker_first` enabled and sets both `html_handling` and `not_found_handling` to `none`. After Worker routing and maintenance/security policy run, the explicit game-shell contract fetches Vite's built `/index.html` through the `ASSETS` binding, while known `/assets/*` files and `/sharktank-art.jpg` keep their own paths. An unknown application path is a Worker-rendered 404, an unknown asset is an asset 404, and neither can fall back to the game document.
+## Worker structure
 
-Presentation CSS follows the same boundary rather than creating a universal client shell. Worker human documents link the fingerprinted `PAGE_CSS_PATH` asset served by the Worker, including maintenance and generated evidence/OpenAPI/control content; dynamic charts and meters use SVG geometry/presentation attributes instead of style strings. The `/play/` boot shell and mounted game UI use Vite-processed CSS, with dynamic game overlays using SVG attributes or finite data/class tokens. Production `style-src` is therefore limited to `'self'` on both surfaces and neither emits style attributes or embedded style blocks. Per-response script nonces remain for the narrowly scoped Worker enhancement scripts and the Cloudflare analytics integration; unmarked inline script is not authorised.
+`src/worker/index.ts` owns request sequencing and controller flow. `src/worker/routes.ts` owns route declarations and predicates, `src/worker/responses.ts` owns shared security-aware response construction, and `src/worker/presentation-data.ts` owns public presentation shaping and redaction.
 
-Accessibility is part of the application architecture. The server-rendered governance pages, menu, settings, and supported game controls use semantic structure, keyboard operation, visible focus, managed focus, alternative status output, configurable contrast and text scale, and reduced-motion support. The WCAG 2.0 AA target is scoped to those implemented interfaces rather than to every spatial visual interaction in the realtime game.
+`src/worker/presentation-react.tsx` renders ordinary human documents with React 19 `renderToStaticMarkup`. `src/worker/presentation.ts` supplies focused evidence and conformance generators through one audited raw-artifact boundary. Ordinary Worker documents are complete without JavaScript and are not hydrated. `src/client/human-docs.ts` provides optional progressive enhancement only.
 
-`vendor/ModuleReact3Fiber` is first-party source, not a downloaded or private git dependency. Both the Worker and client import its deterministic engine and protocol. `packages/php-runtime` independently reproduces the seed and replay contract as an optional cross-language proof.
+## Game client boundary
 
-The production Durable Object names, migration tag, environment name, and storage bindings are intentionally stable. Changing them is a state migration, not a rename.
+`/play/` is the one explicit browser application boundary. `src/client/game-document.tsx` owns the React 19 game document shell and Vite renders it to static markup during `transformIndexHtml`; checked-in `index.html` is only the Vite HTML-entry sentinel.
+
+`src/client/main.tsx` mounts the interactive game with `createRoot` into `#root`. Vite owns the client module graph, CSS extraction, content-hashed production assets, and the lazy `GameScreen` chunk. No client-side router is used, and Worker-rendered human documents are not hydrated.
+
+## Static assets and CSP
+
+Wrangler keeps `run_worker_first` enabled with `html_handling` and `not_found_handling` set to `none`. The Worker explicitly fetches Vite's built `/index.html` through the `ASSETS` binding for the game shell. Known assets keep their own paths; unknown application and asset paths remain ordinary 404s and cannot fall back to the game document.
+
+Worker pages use the fingerprinted `PAGE_CSS_PATH` stylesheet. The game shell and mounted game use Vite-processed CSS. Dynamic visual state uses SVG attributes or finite data/class tokens rather than inline style strings. Production `style-src` is limited to `'self'`; narrowly scoped inline scripts require per-response nonces.
+
+## Accessibility and deterministic runtime
+
+The governance pages and supported game controls use semantic structure, keyboard operation, visible focus, managed focus, alternative status output, configurable contrast/text scale, and reduced-motion support. The implemented interface target is WCAG 2.0 AA; no certification is claimed.
+
+`vendor/ModuleReact3Fiber` is first-party source and supplies the deterministic engine and protocol used by the Worker and browser client. `packages/php-runtime` independently exercises the replay contract as a cross-language parity check. See [Runtime parity](PARITY.md) for that validation boundary.
