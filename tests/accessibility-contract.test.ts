@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 const worker = read("../src/worker/index.ts");
+const presentation = read("../src/worker/presentation.ts");
+const routes = read("../src/worker/routes.ts");
 const app = read("../vendor/ModuleReact3Fiber/src/client/App.tsx");
 const focusTrap = read("../vendor/ModuleReact3Fiber/src/client/a11y/useFocusTrap.ts");
 const input = read("../vendor/ModuleReact3Fiber/src/client/game/useLocalInput.ts");
@@ -12,18 +14,18 @@ const settings = read("../vendor/ModuleReact3Fiber/src/client/ui/Settings.tsx");
 
 describe("public accessibility contract", () => {
   it("keeps a keyboard bypass, visible focus, contrast, motion, and hash focus handling on evidence pages", () => {
-    expect(worker).toContain('class="skip-link" href="#main"');
-    expect(worker).toContain('<main id="main" tabindex="-1">');
-    expect(worker).toContain(":focus-visible{outline:3px solid var(--focus)");
-    expect(worker).toContain("@media(prefers-reduced-motion:reduce)");
-    expect(worker).toContain("@media(prefers-contrast:more)");
-    expect(worker).toContain('el.focus({preventScroll:true})');
+    expect(presentation).toContain('class="skip-link" href="#main"');
+    expect(presentation).toContain('<main id="main" tabindex="-1">');
+    expect(presentation).toContain(":focus-visible{outline:3px solid var(--focus)");
+    expect(presentation).toContain("@media(prefers-reduced-motion:reduce)");
+    expect(presentation).toContain("@media(prefers-contrast:more)");
+    expect(presentation).toContain('el.focus({preventScroll:true})');
   });
 
   it("keeps the validated WCAG claim without the removed explanatory block", () => {
-    expect(worker).toContain("WCAG 2.0 AA");
-    expect(worker).not.toContain("The public evidence estate and the game’s menus");
-    expect(worker).not.toContain("The claim is deliberately scoped");
+    expect(presentation).toContain("WCAG 2.0 AA");
+    expect(worker + presentation).not.toContain("The public evidence estate and the game’s menus");
+    expect(worker + presentation).not.toContain("The claim is deliberately scoped");
   });
 
   it("keeps the game operable by keyboard with managed focus and reduced motion", () => {
@@ -43,7 +45,7 @@ describe("public accessibility contract", () => {
 
 describe("canonical public information architecture", () => {
   it("keeps exactly four primary navigation destinations", () => {
-    const nav = worker.match(/const TRUST_NAV:[\s\S]*?\n\];/)?.[0] ?? "";
+    const nav = presentation.match(/const TRUST_NAV:[\s\S]*?\n\];/)?.[0] ?? "";
     expect(nav).toContain('["/", "Overview"]');
     expect(nav).toContain('["/controls/", "Controls"]');
     expect(nav).toContain('["/evidence/", "Evidence"]');
@@ -52,7 +54,7 @@ describe("canonical public information architecture", () => {
   });
 
   it("redirects former human routes directly to canonical destinations", () => {
-    const redirects = worker.match(/export const HUMAN_REDIRECTS:[\s\S]*?\n\}\);/)?.[0] ?? "";
+    const redirects = routes.match(/export const HUMAN_REDIRECTS:[\s\S]*?\n\}\);/)?.[0] ?? "";
     expect(redirects).toContain('"/trust/": "/"');
     expect(redirects).toContain('"/audit/": "/controls/#registers"');
     expect(redirects).toContain('"/policies/": "/controls/#policies"');
