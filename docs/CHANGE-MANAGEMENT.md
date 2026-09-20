@@ -1,13 +1,24 @@
 # Change management
 
-Git history is the authority for forward SharkTank change sequencing. Every human controlled non-merge commit uses the next sequential ST identifier, one WG-ARCH-001 §16 type, and a structured body describing change, reason, impact, risk, controls, validation, and evidence. Medium- and high-risk operational changes include rollback guidance.
+Git and GitHub are the authority for SharkTank implementation history. Human controlled non-merge commits use the next sequential `ST-###` identifier, one WG-ARCH-001 §16 type, and the structured body required by `AGENTS.md`. Published commits and tags are immutable; corrections move forward as new controlled changes.
 
-Published reconstruction commits that used the earlier `GOV` or `UX` labels are immutable. The history validator carries only exact ID/type exceptions for those published commits; new changes must use the current §16 vocabulary.
+## Repository acceptance
 
-The provenance files under `docs/history/` exist only to prove imported source lineage from the private reconstruction sources. `docs/history/CHANGE-MAP.csv` contains source-backed reconstruction mappings, and `NESTED-SOURCE-MAP.csv` records imported nested-source commits. Forward changes do not add provenance rows merely to duplicate Git.
+```sh
+npm ci
+npm run check
+```
 
-`npm run check` is the complete credential-free acceptance gate. It validates TypeScript, tests, PHP parity, the production build, the controlled-change contract, sequential history, reconstruction provenance, local public information architecture and evidence routes, dependency audit, and patch whitespace. Its local HTTP acceptance owns a local-only Wrangler lifecycle and strips Cloudflare provider credentials before starting the Worker.
+`npm run check` is the complete credential-free acceptance gate. It covers TypeScript, tests, PHP parity, the production build, controlled-change policy, sequential history, reconstruction provenance, local public information architecture and evidence HTTP acceptance, GitHub-settings comparison tests, dependency audit, and patch whitespace.
 
-Pull-request CI supplies event metadata to that same repository-owned gate and otherwise runs only the locked install plus `npm run check`. Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. `npm run check:github-settings` is the read-only provider-authenticated verifier; `npm run apply:github-settings` is the explicit admin mutation path. Provider-authenticated repository administration and production deployment remain separate from the credential-free gate.
+Pull-request CI supplies event metadata to that same gate and otherwise performs the locked install plus `npm run check`.
 
-Published commits and tags are immutable. Corrections move forward as new controlled changes.
+## Provenance exception data
+
+`docs/history/CHANGE-MAP.csv` and `docs/history/NESTED-SOURCE-MAP.csv` are exact validator inputs for imported source lineage. They are not a changelog, release archive, roadmap, or forward implementation ledger. New controlled changes do not add provenance rows merely to duplicate Git history.
+
+## Provider settings
+
+Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. `npm run check:github-settings` is the read-only provider-authenticated verifier. `npm run apply:github-settings` is the explicit administrative mutation path.
+
+Provider administration, release publication, and production deployment remain separate from the credential-free repository gate.

@@ -1,6 +1,6 @@
 # SharkTank
 
-SharkTank is a realtime multiplayer game backed by authoritative Cloudflare Durable Objects. The same deployment publishes its operational status, controls, incidents, logs, recovery records, and spend limits.
+SharkTank is a realtime multiplayer game backed by authoritative Cloudflare Durable Objects. The same deployment publishes operational status, controls, incidents, logs, continuity evidence, and spend limits.
 
 **[Overview](https://sharktank.wizardgang.ai)** · **[Play](https://sharktank.wizardgang.ai/play/)** · **[Evidence](https://sharktank.wizardgang.ai/evidence/)**
 
@@ -19,26 +19,27 @@ The Worker and browser client run locally on port 8787. The optional PHP runtime
 npm run check
 ```
 
-This runs TypeScript checks, unit tests, the PHP replay check, the production build, and the dependency audit.
+`npm run check` is the complete credential-free repository acceptance gate.
 
-## Structure
+## Repository map
 
-- `src/worker/` contains routes, Durable Objects, controls, and public evidence.
-- `src/client/` contains the browser entry.
-- `vendor/ModuleReact3Fiber/` contains the game client and deterministic engine.
-- `packages/php-runtime/` contains the optional protocol-parity runtime.
-- `scripts/` contains local, verification, and release commands.
+- `src/worker/` — Worker routing, Durable Objects, controls, operations, and public evidence.
+- `src/client/` — browser application entry and progressive enhancement.
+- `vendor/ModuleReact3Fiber/` — first-party deterministic game engine and client source.
+- `packages/php-runtime/` — optional cross-language protocol-parity runtime.
+- `scripts/` — local development, verification, release, and deployment tooling.
 
-## Documentation
+## Current-state documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security model](docs/SECURITY-MODEL.md)
 - [Operations](docs/OPERATIONS.md)
+- [Continuity and recovery](docs/CONTINUITY.md)
 - [Deployment](docs/DEPLOYMENT.md)
 - [Release management](docs/RELEASE-MANAGEMENT.md)
+- [Change management](docs/CHANGE-MANAGEMENT.md)
+- [AI applicability](docs/AI-APPLICABILITY.md)
+- [Runtime parity](docs/PARITY.md)
+- [Security reporting](SECURITY.md)
 
-## Deployment
-
-Production releases are deployed from exact semantic-version tags. The deploy script verifies the tag, runs the build, and records the release and current Git commit metrics.
-
-Release history is authoritative in annotated `v*` tags and GitHub Releases. GitHub Actions records CI and release-run history, and Cloudflare/provider evidence records deployment state.
+These documents describe the current system and operating policy. Git/GitHub are authoritative for implementation and release history; provider evidence is authoritative for deployment/runtime provider state.
