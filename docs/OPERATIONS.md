@@ -12,6 +12,8 @@ The public `/` governance overview links every operational figure to its source.
 
 Confirm the signal, contain with the smallest appropriate control, preserve the incident and receipt records, restore service, verify the evidence and version routes, then document cause and corrective action. Spend enforcement fails closed: raising the limit is an owner decision, not an automated recovery action.
 
-## Local verification
+## Verification
 
-Run `npm run verify`, start `npm run dev`, then run `npm run check:public-ia -- http://127.0.0.1:8787` and `npm run check:evidence -- http://127.0.0.1:8787`. The public information-architecture check covers canonical pages, navigation, IDs, anchors, assets, direct redirects, query preservation, and the sitemap. Production verification uses both checks against the canonical origin after an authorized tagged deployment.
+Run `npm ci` and `npm run check` for the complete credential-free repository gate. For focused manual public-information-architecture or evidence checks, start `npm run dev` and run `npm run check:public-ia -- http://127.0.0.1:8787` or `npm run check:evidence -- http://127.0.0.1:8787`.
+
+GitHub Actions is authoritative for CI/release-run history. After an authorized tagged deployment, Cloudflare/provider evidence is authoritative for deployment state; public-origin checks supplement that provider proof when the edge is reachable.
