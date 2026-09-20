@@ -41,7 +41,9 @@ if (result.failures.length) {
   process.exit(1);
 }
 
-if (result.kind === "push") {
+if (result.kind === "local") {
+  console.log("Controlled change contract: local execution; PR metadata validation not applicable.");
+} else if (result.kind === "push") {
   console.log("Controlled change contract: push event; PR metadata validation not applicable.");
 } else if (result.kind === "dependabot") {
   console.log("Controlled change contract: verified Dependabot pull request accepted.");

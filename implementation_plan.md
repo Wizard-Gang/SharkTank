@@ -24,16 +24,13 @@ ST-048 established the repository-level shell of WG-ARCH-001:
 
 Those choices are now constraints, not items to revisit during the normalization series.
 
-## 3. Verified gaps after ST-048
+## 3. Remaining verified gaps
 
 ### Toolchain and validation
 
 - TypeScript is still `^5.6.0`; WG-ARCH-001 requires TypeScript 7 in strict mode.
 - Vitest is still `^4.1.11`; the baseline requires Vitest 5 for TS/TSX/DOM tests.
 - React / React DOM are 18.x and `@react-three/fiber` is 8.x; the baseline presentation target is React 19, and the existing Dependabot policy explicitly blocks the R3F 9 major until that migration occurs.
-- `npm run check` currently runs typecheck, tests, PHP parity, build, and dependency audit, while `check:history` and `check:provenance` are separate CI steps.
-- `check:evidence` and `check:public-ia` are credential-free local acceptance checks but are not orchestrated by `check`.
-- `scripts/check-history.mjs` accepts any uppercase bracketed type rather than the complete §16 type vocabulary, and CI does not validate the pull-request title contract.
 
 ### Presentation and Worker structure
 
@@ -92,19 +89,6 @@ Unless a task explicitly authorizes a change, preserve:
 After a task is successfully merged and its plan entry is therefore purged, finish the working session with a ready-to-run prompt for the next remaining task. The handoff prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope and acceptance criteria, validation commands, and the merge/purge completion rule. Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
 
 ## 7. Sequenced controlled changes
-
-### ST-052 — TEST — Make `npm run check` the complete credential-free acceptance gate
-
-**Depends on:** ST-051.
-
-Required outcome:
-
-- `check` includes every validation that can run without provider credentials;
-- start and stop the local Worker automatically for local HTTP acceptance rather than requiring a second terminal;
-- include public IA and evidence-route acceptance in the normal gate when they can run locally;
-- include history/provenance validation under the same top-level command;
-- keep provider-authenticated repository/deployment checks separate and explicitly named;
-- CI on PRs and `main` reduces to `npm ci` plus `npm run check` (and only genuinely external checks beyond that).
 
 ### ST-053 — BUILD — Codify WizardGang GitHub repository settings
 

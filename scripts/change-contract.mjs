@@ -119,6 +119,10 @@ export function validateHistoryRecords(records) {
 export function validatePullRequestContext(context) {
   const failures = [];
 
+  if (!context.eventName) {
+    return { failures, kind: "local" };
+  }
+
   if (context.eventName === "push") {
     return { failures, kind: "push" };
   }
