@@ -10,10 +10,12 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    // serve index.html for client-side routes...
-    "not_found_handling": "single-page-application",
-    // Every request must pass through the Worker so global maintenance mode can also
-    // replace the SPA shell and immutable asset requests with the downtime response.
+    // The Worker owns application routing. /play/ explicitly fetches the built index.html;
+    // missing application paths and missing assets must never fall back to that document.
+    "html_handling": "none",
+    "not_found_handling": "none",
+    // Every request still passes through the Worker so maintenance/security policy can
+    // replace the game document and immutable asset requests when required.
     "run_worker_first": true
   },
   // Authoritative realtime: Room hosts one arena's sim over a WebSocket; Lobby is a

@@ -515,10 +515,9 @@ export default {
           return response;
         }
       }
-      // The page stylesheet, ahead of every other route and of the asset fallback. Only the
-      // current fingerprint is served: any other /styles/ path is a miss and says so, rather
-      // than falling through to the single-page-application fallback, which would answer a
-      // text/css request with the game shell and leave the page unstyled with no error.
+      // The page stylesheet, ahead of every other route and of static asset dispatch. Only
+      // the current fingerprint is served: any other /styles/ path is an explicit miss, so a
+      // text/css request can never be answered with the game document.
       if (path === PAGE_CSS_PATH) return pageCssResponse();
       if (path.startsWith("/styles/")) return new Response("Not found", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS } });
 
@@ -763,19 +762,11 @@ export default {
           postDelivery: { entries: POST_DELIVERY_ENTRIES.map(publicRoadmapEntry) },
         });
       }
-      // The roadmap and incident *pages* folded into /status/. The JSON did not move: it is
-      // a published contract with fixed figures, and folding a page is no reason to break it.
-      if (path === "/roadmap" || path === "/roadmap/") return movedTo(url, "/status/#delivery");
-
+      // Human compatibility redirects are handled once by HUMAN_REDIRECTS above. The
+      // machine-readable contracts remain stable because operator tooling and the OpenAPI
+      // document still reference them.
       if (path === "/incidents.json") { const data = await incidentData(env); return json({ ok: true, summary: incidentSummary(data.incidents), ...data }); }
-      if (path === "/incidents" || path === "/incidents/") return movedTo(url, "/status/#incidents");
 
-      // "Inquiry" meant two different things on this site — this billing page, and the
-      // whole transparency estate — and the word appeared on all seven content pages
-      // carrying both senses. The page is /spend/ now, which is what it is about. The old
-      // names keep redirecting, and the old JSON keeps answering, because operator tooling
-      // and the OpenAPI document were both written against them.
-      if (path === "/inquiry" || path === "/inquiry/") return movedTo(url, "/spend/");
       if (path === "/spend.json" || path === "/inquiry.json") {
         const res = await lobbyStub(env).fetch("https://lobby/status");
         const data = (await res.json()) as { billingWindow?: Record<string, unknown> };
@@ -968,17 +959,20 @@ export default {
       return json({ ok: false, error: "internal error" }, 500);
     }
 
-    // The SPA fallback is deliberately limited to the current game route. Previously every
-    // unknown path — including retired UNO, X4, 21 and Checkers URLs — returned the same
-    // Shark Tank document with a 200, which made distinct public routes appear duplicated.
+    // Static Assets is fail-closed: application misses stay Worker 404s and asset misses stay
+    // asset 404s. Only the explicit game-shell contract may read Vite's built document.
     const gameShell = isGameShellPath(path);
     const staticAsset = isStaticAssetPath(path);
     if (!gameShell && !staticAsset) {
       return html(renderNotFoundDocument(), 404);
     }
 
-    // Game shell and immutable static assets.
-    const asset = await env.ASSETS.fetch(request);
+    // /play/ (plus retained game-shell compatibility aliases) intentionally maps to the one
+    // Vite-built document. Static assets keep their requested path and can therefore miss.
+    const assetTarget = gameShell
+      ? new Request(new URL("/index.html", request.url), { method: request.method, headers: request.headers })
+      : request;
+    const asset = await env.ASSETS.fetch(assetTarget);
     const secured = new Response(asset.body, asset); for (const [key, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(key, value); secured.headers.set("content-security-policy", assetCsp(mintNonce())); return secured;
   },
 
