@@ -128,11 +128,16 @@ test("Dependabot actor on a human branch does not bypass validation", () => {
   assert.ok(result.failures.length > 0);
 });
 
+test("local execution skips only unavailable PR metadata validation", () => {
+  const result = validatePullRequestContext(controlledContext({ eventName: "" }));
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.kind, "local");
+});
+
 test("push events skip only PR metadata validation", () => {
-  assert.deepEqual(
-    validatePullRequestContext(controlledContext({ eventName: "push" })).failures,
-    [],
-  );
+  const result = validatePullRequestContext(controlledContext({ eventName: "push" }));
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.kind, "push");
 });
 
 test("sequential controlled history passes", () => {

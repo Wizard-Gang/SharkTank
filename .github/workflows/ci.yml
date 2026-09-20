@@ -26,19 +26,11 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Check TypeScript, tests, PHP parity, build, and dependency audit
-        run: npm run check
-      - name: Validate controlled change contract
+      - name: Run complete credential-free repository gate
         env:
           CHANGE_EVENT_NAME: ${{ github.event_name }}
           CHANGE_PR_TITLE: ${{ github.event.pull_request.title }}
           CHANGE_HEAD_REF: ${{ github.head_ref }}
           CHANGE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           CHANGE_ACTOR: ${{ github.actor }}
-        run: npm run check:change-contract
-      - name: Verify structured history
-        run: npm run check:history
-      - name: Verify reconstruction provenance
-        run: npm run check:provenance
-      - name: Check patch whitespace
-        run: git diff --check HEAD^
+        run: npm run check

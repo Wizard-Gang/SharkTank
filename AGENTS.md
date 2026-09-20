@@ -39,19 +39,17 @@ Git history is authoritative for forward ST sequencing. Provenance ledgers are l
 
 ## Required validation
 
-Current pre-ST-052 gate:
+The complete credential-free repository gate is:
 
 ```sh
 npm ci
 npm run check
-npm run check:history
-npm run check:provenance
-git diff --check
 ```
 
-When trust/public IA behavior changes before ST-052, also run the local Worker acceptance required by the affected scripts (including `check:evidence` and/or `check:public-ia`). Do not invoke the production deploy path merely to validate a PR; use dry-run behavior when deployment code itself is in scope.
+`npm run check` owns type checking, tests, PHP parity, production build validation, controlled-change policy/context validation when applicable, structured history, reconstruction provenance, local public-IA/evidence HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own local-only Wrangler process; do not run a second Worker manually for repository acceptance.
 
-ST-052 is planned to make `npm run check` the complete credential-free acceptance gate. After it lands, follow the then-current package scripts rather than preserving duplicate commands in prose.
+Provider-authenticated checks remain explicit and separate. Do not invoke production deploy paths merely to validate a pull request.
+
 
 ## Implementation-plan maintenance and session handoff
 
