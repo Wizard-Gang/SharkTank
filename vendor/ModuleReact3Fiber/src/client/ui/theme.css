@@ -529,3 +529,61 @@ body {
   .game-leaderboard li:nth-child(n+6){display:none!important}
 }
 @media (pointer:coarse){.icon-button{width:56px;height:56px}.game-tools>.icon-button,.game-tools>.gearbox>.icon-button{width:52px;height:52px}.btn{min-height:52px}}
+
+
+/* ST-059: CSP-safe game presentation. React components select external classes and SVG
+   presentation attributes; they never need DOM style attributes. */
+:root[data-font-scale="9"]{--font-scale:.9}
+:root[data-font-scale="10"]{--font-scale:1}
+:root[data-font-scale="11"]{--font-scale:1.1}
+:root[data-font-scale="12"]{--font-scale:1.2}
+:root[data-font-scale="13"]{--font-scale:1.3}
+:root[data-font-scale="14"]{--font-scale:1.4}
+:root[data-font-scale="15"]{--font-scale:1.5}
+:root[data-font-scale="16"]{--font-scale:1.6}
+
+.screen-region{min-height:100%;outline:none}
+.settings-screen{padding:24px}
+.shark-menu--centered{width:min(620px,100%);text-align:center}
+.row--center{justify-content:center}.row--end{justify-content:flex-end}
+.menu-player-summary{margin:0;color:var(--text-muted);font-size:.9rem}
+.backend-switcher{gap:6px}.backend-label{color:var(--text-faint);font-size:.8rem}
+.backend-segments{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--border);border-radius:999px;background:var(--surface-2)}
+.backend-segment{min-height:36px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:var(--text-muted);font:inherit;font-weight:600;cursor:pointer}
+.backend-segment.is-active{background:var(--accent);color:var(--accent-contrast)}
+
+.screen-title,.dialog-title{margin:0}.screen-title{font-size:1.6rem}
+.lobby-panel,.settings-panel{width:min(720px,100%)}.customize-panel,.help-panel{width:min(560px,100%)}
+.settings-panel{overflow:auto}.settings-panel--overlay,.help-panel{max-height:86vh}
+.pause-panel{max-width:380px;width:100%}
+.dialog-note,.settings-note{margin:0;color:var(--text-muted);font-size:.9rem}
+.lobby-table-scroll{overflow-x:auto}.text-muted{color:var(--text-muted)}.font-strong{font-weight:700}.tabular-nums{font-variant-numeric:tabular-nums}.text-right{text-align:right}
+.lobby-live-count{display:block;color:var(--text-muted);font-size:.76rem;white-space:nowrap}
+.field-error{color:var(--danger,#ff7b7b)}
+.skin-fieldset{border:0;padding:0;margin:0}.skin-legend{font-weight:600;margin-bottom:8px}
+.skin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.skin-option{display:grid;gap:8px;place-items:center;padding:12px;border-radius:var(--radius);background:var(--surface-2);cursor:pointer;outline:1px solid var(--border)}
+.skin-option.is-selected{outline:3px solid var(--focus-ring)}.skin-preview{width:56px;height:56px}
+.settings-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:8px}
+.settings-toggle{cursor:pointer;padding:8px 0}.settings-field-label{font-weight:600}.settings-hint{display:block;color:var(--text-muted);font-size:.9rem}
+.settings-checkbox{width:24px;height:24px}.settings-choice{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px}
+.settings-choice-legend{padding:0 6px;font-weight:600}.settings-choice-options{flex-wrap:wrap}.settings-choice-option{gap:6px;cursor:pointer}.settings-radio{width:20px;height:20px}
+.settings-keybind-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+
+.game-screen,.game-canvas-surface{position:absolute;inset:0;overflow:hidden}.game-canvas-surface{outline:none}.game-canvas{width:100%;height:100%;display:block;touch-action:none}
+.game-captions{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);z-index:11;pointer-events:none}
+.game-caption-pill{display:inline-block;padding:6px 14px;border:1px solid var(--border-strong);border-radius:999px;background:rgba(6,5,12,.85);color:var(--text);font-weight:700;letter-spacing:.4px}
+.control-key{display:inline-block;min-width:22px;padding:2px 6px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface-3);color:var(--text);font-family:ui-monospace,monospace;font-size:.85rem;text-align:center}
+
+.game-leaderboard{position:absolute;top:12px;right:12px;width:220px;max-width:40vw;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--overlay-scrim);color:var(--text);z-index:10}
+.game-leaderboard__heading{margin:0 0 8px;color:var(--text-muted);font-size:.85rem;letter-spacing:.6px;text-transform:uppercase}
+.game-leaderboard__list{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.game-leaderboard__row{display:grid;grid-template-columns:20px 12px 1fr auto;align-items:center;gap:8px;padding:3px 4px;border-radius:6px;font-size:.95rem}
+.game-leaderboard__row.is-me{background:var(--surface-3);font-weight:700}
+.game-leaderboard__rank{color:var(--text-muted);text-align:right}.game-leaderboard__dot{width:10px;height:10px}
+.game-leaderboard__name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.game-leaderboard__score{font-variant-numeric:tabular-nums}
+.game-minimap{position:absolute;bottom:12px;right:12px;width:140px;height:140px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;z-index:10}.game-minimap__canvas{display:block}
+
+.snake-label-layer{position:absolute;inset:0;z-index:9;overflow:hidden;pointer-events:none}
+.snake-label text{fill:#0b0a14;font:600 .75rem ui-sans-serif,system-ui,sans-serif;paint-order:stroke;stroke:rgba(255,255,255,.12);stroke-width:.4px}.snake-label.is-me text{font-size:.85rem;font-weight:800}
+.stick-visual{position:absolute;inset:0;overflow:visible;pointer-events:none}.stick-live-base{fill:rgba(11,10,20,.46);stroke:rgba(34,230,255,.55);stroke-width:2}.stick-live-knob{stroke:rgba(255,255,255,.9);stroke-width:2;filter:drop-shadow(0 6px 9px rgba(0,0,0,.45))}

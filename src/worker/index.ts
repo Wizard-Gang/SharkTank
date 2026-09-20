@@ -894,8 +894,8 @@ export default {
                ${metricCard(formatCompactDuration(availability.scheduledDowntimeMs), "Scheduled downtime", "excluded from availability", "uptime", "tone-violet", "status-scheduled-downtime")}
                ${metricCard(data.maintenance.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
              </div>
-             <div class="card hero-card"><h2 style="margin-top:0;font-size:1.1rem">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
-             <div class="card"><h2 style="margin-top:0;font-size:1.1rem">Tank activity</h2>
+             <div class="card hero-card"><h2 class="u-card-heading">Availability since project start</h2>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
+             <div class="card"><h2 class="u-card-heading">Tank activity</h2>
                <div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div>
              </div>
              ${backupPanelHtml(data.backup)}

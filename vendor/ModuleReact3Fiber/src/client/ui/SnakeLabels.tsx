@@ -20,32 +20,13 @@ export function SnakeLabels({ labelsRef }: { labelsRef: React.MutableRefObject<S
   }, [labelsRef]);
 
   return (
-    <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9, overflow: "hidden" }}>
+    <svg className="snake-label-layer" width="100%" height="100%" aria-hidden="true">
       {labels.map((l) => (
-        <span
-          key={l.id}
-          style={{
-            position: "absolute",
-            left: l.x,
-            top: l.y,
-            transform: "translate(-50%, -160%)",
-            padding: "1px 6px",
-            borderRadius: 6,
-            fontSize: l.me ? "0.85rem" : "0.75rem",
-            fontWeight: l.me ? 800 : 600,
-            maxWidth: "8.5rem",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            color: "#0b0a14",
-            background: l.color,
-            border: l.me ? "2px solid #fff" : "1px solid rgba(0,0,0,0.35)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.5)",
-          }}
-        >
-          {l.name}
-        </span>
+        <g key={l.id} className={l.me ? "snake-label is-me" : "snake-label"} transform={`translate(${l.x} ${l.y - 28})`}>
+          <rect x="-68" y="-12" width="136" height="24" rx="6" fill={l.color} stroke={l.me ? "#fff" : "rgba(0,0,0,0.35)"} strokeWidth={l.me ? 2 : 1} />
+          <text x="0" y="4" textAnchor="middle">{l.name}</text>
+        </g>
       ))}
-    </div>
+    </svg>
   );
 }

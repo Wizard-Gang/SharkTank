@@ -265,8 +265,6 @@ const DOWNTIME_QUIPS = [
   "The sharks ordered premium chum for the table. Finance approved tap water.",
 ] as const;
 
-const DOWNTIME_CSS = "body{display:grid;min-height:100vh;place-items:center;overflow-x:hidden;text-align:center}.downtime{width:min(720px,calc(100% - 24px));min-width:0;padding:24px}.downtime .card{width:100%;min-width:0;padding:clamp(26px,7vw,52px)}.downtime-mark{width:min(210px,64vw);margin:0 auto 12px;filter:drop-shadow(0 16px 34px rgba(34,230,255,.2))}.downtime-quip{margin:0 auto 22px;color:var(--muted)}.downtime-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:0 auto 22px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(11,10,20,.52);overflow:hidden}.downtime-trigger span{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.downtime-trigger strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.downtime .action-link{max-width:100%;justify-content:center;text-align:center;white-space:normal}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}";
-
 function mix(value: number): number {
   let h = value >>> 0;
   h = Math.imul(h ^ (h >>> 16), 2246822507) >>> 0;
@@ -384,9 +382,8 @@ export function renderDowntimeDocument(state: MaintenanceState): string {
         <title>Game offline — Wizard Gang</title>
         <link rel="icon" href={WIZARDGANG_FAVICON} />
         <link rel="stylesheet" href={PAGE_CSS_PATH} />
-        <style>{DOWNTIME_CSS}</style>
       </head>
-      <body>
+      <body className="downtime-page">
         <main className="downtime">
           <div className="card hero-card">
             <div className="downtime-mark"><SharkMark /></div>

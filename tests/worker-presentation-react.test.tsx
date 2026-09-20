@@ -6,6 +6,7 @@ import {
   renderOpenApiDocument,
   renderOverviewDocument,
 } from "../src/worker/presentation-react.js";
+import { html as htmlResponse } from "../src/worker/responses.js";
 
 const source = readFileSync(new URL("../src/worker/presentation-react.tsx", import.meta.url), "utf8");
 
@@ -34,6 +35,22 @@ describe("React Worker presentation", () => {
     expect(html).toContain('src="/assets/human-docs.js"');
     expect(html).toContain('nonce="__WG_CSP_NONCE__"');
     expect(source).not.toMatch(/hydrateRoot|createRoot|BrowserRouter|createBrowserRouter/);
+  });
+
+  it("serves maintenance with external styles and a strict generated response", async () => {
+    const response = htmlResponse(
+      renderDowntimeDocument({ enabled: true, changedAt: 1, reason: "Scheduled maintenance" }),
+      503,
+    );
+    const csp = response.headers.get("content-security-policy") ?? "";
+    const body = await response.text();
+
+    expect(csp).toContain("style-src 'self'");
+    expect(csp).not.toContain("'unsafe-inline'");
+    expect(body).toMatch(/<link rel="stylesheet" href="\/styles\/page-[^"]+\.css"/);
+    expect(body).not.toMatch(/<style\b/i);
+    expect(body).not.toMatch(/\sstyle=/i);
+    expect(body).not.toMatch(/\son[a-z][a-z0-9_-]*\s*=/i);
   });
 
   it("keeps raw HTML confined to one audited generated-artifact boundary", () => {

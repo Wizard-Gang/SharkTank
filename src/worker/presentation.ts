@@ -68,7 +68,7 @@ const ROADMAP_MANIFEST: readonly RoadmapEntry[] = [
 function downtimeResponse(state: MaintenanceState): Response {
   const tick = nextDowntimeTick(), headline = tickPick(DOWNTIME_HEADLINES, tick, 0), quip = tickPick(DOWNTIME_QUIPS, tick, 7);
   const trigger = state.reason || "Safety control active";
-  const response = html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game offline — Wizard Gang</title><link rel="icon" href="${WIZARDGANG_FAVICON}"><style>${PAGE_CSS}body{display:grid;min-height:100vh;place-items:center;overflow-x:hidden;text-align:center}.downtime{width:min(720px,calc(100% - 24px));min-width:0;padding:24px}.downtime .card{width:100%;min-width:0;padding:clamp(26px,7vw,52px)}.downtime-mark{width:min(210px,64vw);margin:0 auto 12px;filter:drop-shadow(0 16px 34px rgba(34,230,255,.2))}.downtime-quip{margin:0 auto 22px;color:var(--muted)}.downtime-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:0 auto 22px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(11,10,20,.52);overflow:hidden}.downtime-trigger span{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.downtime-trigger strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.downtime .action-link{max-width:100%;justify-content:center;text-align:center;white-space:normal}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}</style></head><body><main class="downtime"><div class="card hero-card"><div class="downtime-mark">${SHARK_MARK_SVG}</div><div class="eyebrow">Controlled outage · ${esc(headline)}</div><h1>The game is offline right now</h1><p class="downtime-quip">${esc(quip)}</p><div class="downtime-trigger"><span>Current trigger</span><strong>${esc(trigger)}</strong></div><p><a class="action-link" href="/evidence/#availability">Check live status and incident history →</a></p></div></main></body></html>`, 503);
+  const response = html(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Game offline — Wizard Gang</title><link rel="icon" href="${WIZARDGANG_FAVICON}"><link rel="stylesheet" href="${PAGE_CSS_PATH}"></head><body class="downtime-page"><main class="downtime"><div class="card hero-card"><div class="downtime-mark">${SHARK_MARK_SVG}</div><div class="eyebrow">Controlled outage · ${esc(headline)}</div><h1>The game is offline right now</h1><p class="downtime-quip">${esc(quip)}</p><div class="downtime-trigger"><span>Current trigger</span><strong>${esc(trigger)}</strong></div><p><a class="action-link" href="/evidence/#availability">Check live status and incident history →</a></p></div></main></body></html>`, 503);
   response.headers.set("retry-after", "60");
   response.headers.set("cache-control", "no-store");
   return response;
@@ -681,7 +681,7 @@ function deliverySection(entries: readonly RoadmapEntry[], deployment: Deploymen
     : "populated by the production deploy";
   return `<section id="changes" class="evidence-block" tabindex="-1" aria-labelledby="delivery-heading">
     <div class="eyebrow">Project record</div>
-    <h2 id="delivery-heading" style="margin:6px 0 10px">Delivery</h2>
+    <h2 id="delivery-heading" class="u-m-6-0-10">Delivery</h2>
     <p class="sub">Every feature update, the deployment batch that carried it, and how those batches line up against the availability above and the <a href="#spend">metered spend</a>. The same record is available as <a href="/roadmap.json">data</a>.</p>
     <div class="card hero-card">
       <div class="metric-grid showcase-metrics">
@@ -840,7 +840,7 @@ const PAGE_CSS = `
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
   .live-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 18px}
   .live-controls .sub{margin:0}
-  .server-controls{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}.server-controls>*{flex:1 1 240px}.security-report-button{background:linear-gradient(100deg,#ff8a1f,#ffd54a);color:#170d02}.security-receipt{margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.alert-test{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.alert-code{width:8rem;min-height:44px;border:1px solid var(--strong);border-radius:10px;background:var(--surface-1);color:var(--text);font:900 1rem ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;padding:8px 12px}.report-confetti{position:fixed;z-index:9999;top:-24px;width:9px;height:16px;border-radius:2px;pointer-events:none;animation:report-fall 1.5s cubic-bezier(.2,.7,.3,1) forwards}@keyframes report-fall{to{transform:translate3d(var(--drift),105vh,0) rotate(720deg);opacity:.1}}
+  .server-controls{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}.server-controls>*{flex:1 1 240px}.security-report-button{background:linear-gradient(100deg,#ff8a1f,#ffd54a);color:#170d02}.security-receipt{margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.alert-test{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.alert-code{width:8rem;min-height:44px;border:1px solid var(--strong);border-radius:10px;background:var(--surface-1);color:var(--text);font:900 1rem ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;padding:8px 12px}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
   .gov-doc{margin:0 0 14px}.gov-head h2{margin:2px 0 0;font-size:1.2rem}.gov-purpose{margin:8px 0 12px}.gov-satisfies{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 16px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(11,10,20,.48)}.gov-satisfies-label{color:var(--faint);font:900 .66rem/1 ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase}.gov-satisfies ul{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none}.gov-satisfies code{font-size:.72rem}.gov-section{margin:0 0 14px}.gov-section h3{margin:0 0 6px;font-size:.98rem}.gov-section p{margin:0 0 8px;color:var(--muted)}.gov-review{margin:14px 0 0;padding:10px 12px;border-left:2px solid var(--cyan);color:var(--muted);font-size:.86rem}.gov-index{display:block}.gov-index ul{margin:0;padding:0 0 0 2px;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:7px 14px}.gov-index a{color:var(--text)}.gov-index a>code{flex:0 0 auto;white-space:nowrap}.skip-link{position:absolute;left:-9999px;top:0;z-index:100;padding:10px 16px;border-radius:0 0 10px 0;background:var(--cyan);color:#07131a;font-weight:800;text-decoration:none}.skip-link:focus{left:0}main:focus{outline:none}table caption{caption-side:top;padding:0 0 8px;color:var(--muted);font-size:.78rem;text-align:left}[hidden]{display:none!important}.history-list{display:grid;gap:10px;margin-top:14px}.history-item{display:grid;grid-template-columns:7.2rem 1fr auto;gap:14px;align-items:start;padding:14px;border:1px solid var(--border);border-radius:12px;background:rgba(11,10,20,.48)}.history-sequence{color:var(--cyan);font:800 .76rem/1.4 ui-monospace,monospace}.history-copy strong{display:block}.history-copy p{margin:3px 0;color:var(--muted)}.history-meta{color:var(--faint);font-size:.75rem}.history-receipt{max-width:11rem;overflow:hidden;color:var(--faint);font:700 .72rem/1.4 ui-monospace,monospace;text-overflow:ellipsis;white-space:nowrap}.history-item--focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(34,230,255,.28)}.history-pager{display:flex;gap:12px;align-items:center;justify-content:center;margin:16px 0 0;color:var(--muted);font-size:.8rem}.pager-btn{padding:7px 14px;border:1px solid var(--strong);border-radius:999px;background:rgba(11,10,20,.52);color:var(--text);font:inherit;font-weight:700;cursor:pointer}.pager-btn:disabled{opacity:.4;cursor:default}.pager-btn[aria-disabled="true"]{background:none;color:var(--faint);cursor:default}.integrity-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted)}.status-incident-list{display:grid;gap:8px}.status-incident{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(11,10,20,.48);color:var(--text);text-decoration:none}.status-incident:hover,.status-incident:focus-visible{border-color:var(--cyan)}.status-incident--active{border-color:#ff8a1f}.status-incident-state{color:var(--faint);font:900 .66rem/1 ui-monospace,monospace;letter-spacing:.08em}.status-incident-title{min-width:0;font-weight:700;overflow-wrap:anywhere}.status-incident-cause{color:var(--muted);font-size:.74rem;white-space:nowrap}@media(max-width:560px){.status-incident{grid-template-columns:auto auto 1fr}.status-incident-cause{grid-column:2/-1}}.incident-card{margin:0 0 12px}.incident-card--active{border-color:#ff8a1f}.incident-dot{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:3px;vertical-align:middle}.integrity-line code{overflow-wrap:anywhere}.integrity-badge{display:inline-flex;padding:3px 8px;border:1px solid #4ade80;border-radius:999px;color:#4ade80;font-size:.7rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.integrity-badge.verdict-pass{border-color:#4ade80;color:#4ade80}.integrity-badge.verdict-fail{border-color:#ff6b6b;color:#ff6b6b}.integrity-badge.verdict-idle{border-color:var(--strong);color:var(--muted)}
   /* ── Spend ── */
@@ -1122,7 +1122,7 @@ const PAGE_CSS = `
     .metric-card,.card,.trust-tile,.gov-card,.iso-table tr{border:1px solid CanvasText}
     .iso-pill,.meter-pill,.integrity-badge,.status-pill{border:1px solid CanvasText;forced-color-adjust:none;background:Canvas;color:CanvasText}
     :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid Highlight;outline-offset:2px}
-    .key-dot,.incident-dot,.meter-bar i{forced-color-adjust:none}
+    .key-dot,.incident-dot,.meter-fill{forced-color-adjust:none}
     svg a:focus-visible{outline:3px solid Highlight}
   }
   /* Estate footer. The top nav stays six items for the common path; this carries the
@@ -1138,6 +1138,17 @@ const PAGE_CSS = `
   .site-footer nav a:hover{border-color:transparent;background:none;color:var(--text);text-decoration:underline}
   .footer-note{margin:20px 0 0;color:var(--muted);font-size:.76rem;max-width:76ch}
   @media(max-width:760px){.site-footer{padding:0 12px 44px}.site-footer nav{grid-template-columns:1fr 1fr}}
+
+  /* ST-059: CSP-safe presentation. All document styles are external first-party CSS. */
+  .downtime-page{display:grid;min-height:100vh;place-items:center;overflow-x:hidden;text-align:center}.downtime{width:min(720px,calc(100% - 24px));min-width:0;padding:24px}.downtime .card{width:100%;min-width:0;padding:clamp(26px,7vw,52px)}
+  .downtime-mark{width:min(210px,64vw);margin:0 auto 12px;filter:drop-shadow(0 16px 34px rgba(34,230,255,.2))}.downtime-quip{margin:0 auto 22px;color:var(--muted)}.downtime-trigger{display:flex;align-items:center;justify-content:center;gap:10px;width:max-content;max-width:100%;margin:0 auto 22px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(11,10,20,.52);overflow:hidden}.downtime-trigger span{color:var(--faint);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.downtime-trigger strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.downtime .action-link{max-width:100%;justify-content:center;text-align:center;white-space:normal}
+  .u-m-6-0-10{margin:6px 0 10px}.u-m-14-0-0{margin:14px 0 0}.u-m-12-0-0{margin:12px 0 0}.u-m-8-0-0{margin:8px 0 0}.u-card-heading{margin-top:0;font-size:1.1rem}.u-m-10-0-0{margin:10px 0 0}.u-m-0{margin:0}.u-m-6-0-14{margin:6px 0 14px}.u-m-6-0-0{margin:6px 0 0}.u-incident-heading{margin:0 0 4px;font-size:1.1rem}.u-m-0-0-10{margin:0 0 10px}.u-panel-heading{margin:0 0 10px;font-size:1.1rem}.u-panel-heading-tight{margin:0 0 8px;font-size:1.1rem}.u-mt-0{margin-top:0}.u-ops-pulse-heading{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:#b9b4d6}.u-mt-14{margin-top:14px}.u-m-0-0-8{margin:0 0 8px}.u-font-1rem{font-size:1rem}.u-api-description{margin:6px 0 0;color:#b9b4d6}.u-index-heading{margin:0 0 10px;font-size:1.05rem}.coverage-reference{margin-left:8px}
+  .tr-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-value{fill:#22e6ff;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-today{fill:#8f7bff;font:700 9px ui-monospace,SFMono-Regular,Consolas,monospace}
+  .ic-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.ic-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.ic-count{fill:#8f89ae;font-weight:800}a:focus-visible .ic-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}
+  .sc-axis{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-lane{fill:#f3f1ff;font:700 11px ui-sans-serif,system-ui,sans-serif}.sc-unit{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-band-value{fill:#0b0a14;font:800 11px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-note{fill:#b9b4d6;font:600 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-build{fill:#22e6ff;font:700 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-pct{fill:#4ade80;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}
+  .tl-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.tl-axis{fill:#8f89ae;font:500 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tl-marker{transition:transform 120ms ease}a:hover .tl-marker,a:focus-visible .tl-marker{transform:translateY(-2px)}a:focus-visible .tl-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}
+  .meter-bar{display:block;width:100%;height:9px;overflow:visible}.meter-track{fill:#292544}.meter-ticks{fill:none;stroke:rgba(233,230,255,.22);stroke-width:.5}.meter-fill{fill:#4ade80}.meter-bar.is-amber .meter-fill{fill:#f6c445}.meter-bar.is-red .meter-fill{fill:#ff5f66}.meter-marker{stroke:#e9e6ff;stroke-width:2}
+  @media(prefers-reduced-motion:reduce){.tl-marker{transition:none}}@media(max-width:420px){.downtime{padding:12px}.downtime .card{padding:24px 18px}.downtime-trigger{width:100%}}
 `;
 
 /**
@@ -1278,7 +1289,7 @@ function billingGaugeSvg(prefix: string, projectedMonthly = 0, currentSpend = 0,
   const ratio = Math.max(0, Math.min(1, projectedMonthly / 5)), angle = -90 + ratio * 180;
   const tone = projectedMonthly > 5 ? "tone-red" : projectedMonthly > 0 ? "tone-yellow" : "tone-green";
   const state = projectedMonthly > 5 ? "REDLINE" : projectedMonthly > 0 ? "METERED" : "INCLUDED";
-  return `<div class="gauge-layout"><svg class="gauge-svg" viewBox="0 0 220 145" role="img" aria-labelledby="${prefix}-gauge-title ${prefix}-gauge-desc"><title id="${prefix}-gauge-title">Projected monthly variable spend above included free-tier limits</title><desc id="${prefix}-gauge-desc">Yellow indicates projected spend up to five dollars. Red indicates more than five dollars.</desc><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#292544" stroke-width="19"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#4ade80" stroke-width="19" stroke-dasharray="4 96"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#f6c445" stroke-width="19" stroke-dasharray="84 16" stroke-dashoffset="-4"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#ff5f66" stroke-width="19" stroke-dasharray="12 88" stroke-dashoffset="-88"/><g id="${prefix}-gauge-needle" class="gauge-needle ${tone}" style="transform-origin:110px 112px;transform:rotate(${angle.toFixed(1)}deg)"><line x1="110" y1="112" x2="110" y2="35" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="110" cy="112" r="9" fill="currentColor"/><circle cx="110" cy="112" r="4" fill="#16142a"/></g><text x="20" y="137" fill="#8f89ae" font-size="9">$0</text><text x="188" y="137" fill="#ff8c92" font-size="9">$5+</text></svg><div class="gauge-readout ${tone}"><strong id="${prefix}-gauge-value">$${projectedMonthly.toFixed(2)}</strong><span>projected spend above free tier / 30 days</span><span id="${prefix}-gauge-state" class="meter-pill">${state}</span><p class="sub" style="margin:14px 0 0">${esc(measuredLabel)}: <b id="${prefix}-current-spend">$${currentSpend.toFixed(8)}</b></p></div></div>`;
+  return `<div class="gauge-layout"><svg class="gauge-svg" viewBox="0 0 220 145" role="img" aria-labelledby="${prefix}-gauge-title ${prefix}-gauge-desc"><title id="${prefix}-gauge-title">Projected monthly variable spend above included free-tier limits</title><desc id="${prefix}-gauge-desc">Yellow indicates projected spend up to five dollars. Red indicates more than five dollars.</desc><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#292544" stroke-width="19"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#4ade80" stroke-width="19" stroke-dasharray="4 96"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#f6c445" stroke-width="19" stroke-dasharray="84 16" stroke-dashoffset="-4"/><path d="M22 112 A88 88 0 0 1 198 112" pathLength="100" fill="none" stroke="#ff5f66" stroke-width="19" stroke-dasharray="12 88" stroke-dashoffset="-88"/><g id="${prefix}-gauge-needle" class="gauge-needle ${tone}" transform="rotate(${angle.toFixed(1)} 110 112)"><line x1="110" y1="112" x2="110" y2="35" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><circle cx="110" cy="112" r="9" fill="currentColor"/><circle cx="110" cy="112" r="4" fill="#16142a"/></g><text x="20" y="137" fill="#8f89ae" font-size="9">$0</text><text x="188" y="137" fill="#ff8c92" font-size="9">$5+</text></svg><div class="gauge-readout ${tone}"><strong id="${prefix}-gauge-value">$${projectedMonthly.toFixed(2)}</strong><span>projected spend above free tier / 30 days</span><span id="${prefix}-gauge-state" class="meter-pill">${state}</span><p class="sub u-m-14-0-0">${esc(measuredLabel)}: <b id="${prefix}-current-spend">$${currentSpend.toFixed(8)}</b></p></div></div>`;
 }
 
 /**
@@ -1336,7 +1347,6 @@ function spendTrendSvg(samples: Array<{ ts: number; usd: number }>, hardLimitUsd
     : "";
   const day = (ts: number) => new Date(ts).toISOString().slice(5, 16).replace("T", " ");
   return `<div class="trend-scroll" role="region" aria-label="Cumulative spend trend" tabindex="0"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(`Cumulative metered spend rose from $${lo.toFixed(8)} to $${hi.toFixed(8)} across ${samples.length} hourly samples, against a $${hardLimitUsd.toFixed(2)} hard stop${zoomed ? `. The axis starts at $${base.toFixed(decimals)}, not zero` : ""}`)}">
-    <style>.tr-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-value{fill:#22e6ff;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tr-today{fill:#8f7bff;font:700 9px ui-monospace,SFMono-Regular,Consolas,monospace}</style>
     ${ticks.join("")}
     ${area}
     ${todayMark}
@@ -1399,17 +1409,15 @@ function meterPercentLabel(share: number): string {
 
 /** The bar shows today against the daily limit; the tick marks where the average sits. */
 function meterBarHtml(todayShare: number | null, averageShare: number | null, limitLabel: string): string {
-  // No bar rather than a "not comparable" note: the cell's own value already says why
-  // (analytics required, not bound, a level rather than a rate).
   if (todayShare == null) return "";
   const percent = todayShare * 100;
   const tone = percent >= 90 ? " is-red" : percent >= 60 ? " is-amber" : "";
+  const used = meterPosition(todayShare).toFixed(2);
   const marker = averageShare == null || averageShare <= 0
     ? ""
-    : `<b style="left:${meterPosition(averageShare).toFixed(2)}%"></b>`;
-  // The average is not repeated in this caption — it is the marker on the bar, and the
-  // Daily average column prints it as a number one cell to the right.
-  return `<span class="meter-bar${tone}" role="img" aria-label="${esc(`${meterPercentLabel(todayShare)} percent of ${limitLabel}, on a logarithmic axis${averageShare ? `; the daily average is ${meterPercentLabel(averageShare)} percent` : ""}`)}"><i style="width:${meterPosition(todayShare).toFixed(2)}%"></i>${marker}</span>`
+    : `<line class="meter-marker" x1="${meterPosition(averageShare).toFixed(2)}" x2="${meterPosition(averageShare).toFixed(2)}" y1="0" y2="9"/>`;
+  const label = esc(`${meterPercentLabel(todayShare)} percent of ${limitLabel}, on a logarithmic axis${averageShare ? `; the daily average is ${meterPercentLabel(averageShare)} percent` : ""}`);
+  return `<svg class="meter-bar${tone}" viewBox="0 0 100 9" preserveAspectRatio="none" role="img" aria-label="${label}"><rect class="meter-track" x="0" y="0" width="100" height="9" rx="4.5"/><rect class="meter-fill" x="0" y="0" width="${used}" height="9" rx="4.5"/><path class="meter-ticks" d="M20 0v9M40 0v9M60 0v9M80 0v9"/>${marker}</svg>`
     + `<span class="meter-share">${meterPercentLabel(todayShare)}% of ${esc(limitLabel)}</span>`;
 }
 
@@ -1585,7 +1593,7 @@ function spendHtml(billing: Record<string, unknown>, embedded = false): string {
       <p class="meter-legend"><span><i></i> today, against a whole day's allowance</span><span><b></b> where the daily average sits</span><span>ticks mark 0.001 / 0.01 / 0.1 / 1 / 10 / 100% — the axis is logarithmic</span></p>
       <div class="table-scroll" role="region" aria-label="Usage against the free tier" tabindex="0"><table class="billing-table meter-table"><caption class="sr-only">Usage against the free tier</caption><thead><tr><th scope="col">Service</th><th scope="col">Used to date</th><th scope="col">Limit</th><th scope="col">Today</th><th scope="col">Daily average</th></tr></thead><tbody>
       ${rows.map(meterRowHtml).join("")}
-    </tbody></table></div><p class="sub" style="margin:12px 0 0">Sources: <a href="${esc(String(sources.workers ?? "#"))}">Workers</a>, <a href="${esc(String(sources.durableObjects ?? "#"))}">Durable Objects</a>, <a href="${esc(String(sources.r2 ?? "#"))}">R2</a>. Worker requests are not counted here: exact request billing is only available from account analytics.</p></div>`;
+    </tbody></table></div><p class="sub u-m-12-0-0">Sources: <a href="${esc(String(sources.workers ?? "#"))}">Workers</a>, <a href="${esc(String(sources.durableObjects ?? "#"))}">Durable Objects</a>, <a href="${esc(String(sources.r2 ?? "#"))}">R2</a>. Worker requests are not counted here: exact request billing is only available from account analytics.</p></div>`;
 }
 
 
@@ -1596,9 +1604,17 @@ function securityReportCard(id: string): string {
 function securityReportControl(id: string): string { return `<button type="button" class="security-report-button" id="${id}">🚀 FILE A SECURITY REPORT AND TAKE THE GAME DOWN 🚀</button><pre class="security-receipt" id="${id}-output" role="status" aria-live="polite" aria-atomic="true" hidden></pre>`; }
 
 function securityReportScript(id: string): string {
-  return `<script nonce="__WG_CSP_NONCE__">(function(){var b=document.getElementById('${id}'),o=document.getElementById('${id}-output');if(!b)return;b.addEventListener('click',async function(){b.disabled=true;o.hidden=false;o.textContent='Recording report and forcing game downtime…';try{var r=await fetch('/admin/security-report',{method:'POST',headers:{'x-wg-ops-action':'security-report'}}),d=await r.json();o.textContent=(r.ok?d.message||'Security report recorded and the game is down.':'Rejected: '+(d.error||'the report could not be recorded.'))+'\\n\\n'+JSON.stringify(d,null,2);if(r.ok&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){var colors=['#22e6ff','#8f7bff','#ffd54a','#ff8a1f','#57ff5a'];for(var i=0;i<48;i++){var c=document.createElement('i');c.className='report-confetti';c.style.left=(Math.random()*100)+'vw';c.style.background=colors[i%colors.length];c.style.setProperty('--drift',((Math.random()-.5)*260)+'px');c.style.animationDelay=(Math.random()*.35)+'s';document.body.appendChild(c);setTimeout(function(x){x.remove()},2100,c);}}}catch(e){o.textContent='Unable to record report and lockdown receipt.';}finally{b.disabled=false;}});}());</script>`;
+  return `<script nonce="__WG_CSP_NONCE__">(function(){var b=document.getElementById('${id}'),o=document.getElementById('${id}-output');if(!b)return;b.addEventListener('click',async function(){b.disabled=true;o.hidden=false;o.textContent='Recording report and forcing game downtime…';try{var r=await fetch('/admin/security-report',{method:'POST',headers:{'x-wg-ops-action':'security-report'}}),d=await r.json();o.textContent=(r.ok?d.message||'Security report recorded and the game is down.':'Rejected: '+(d.error||'the report could not be recorded.'))+'\\n\\n'+JSON.stringify(d,null,2);}catch(e){o.textContent='Unable to record report and lockdown receipt.';}finally{b.disabled=false;}});}());</script>`;
 }
 
+/**
+ * The page states the chain's verdict, not just its head.
+ *
+ * A hash chain that only validates against itself proves nothing to a reader — the whole
+ * claim on this page is tamper-evidence, so the check has to be visible. Colour is never
+ * the only cue: the badge carries its own word, and the sentence beside it says what was
+ * actually checked.
+ */
 const PROJECT_START_MS = Date.parse("2026-08-18T16:15:00.000Z");
 const projectWindowMs = (now: number) => Math.max(1, now - PROJECT_START_MS);
 /** "2d 7h" / "7h 20m" / "18m" — the span an availability figure is measured over. */
@@ -1769,10 +1785,9 @@ function incidentChartSvg(incidents: IncidentRecord[], now: number, history: Con
   // well — the chart was reachable by pointer and by nothing else (SC 2.1.1, SC 4.1.2).
   // `role="group"` with a title/desc pair keeps the summary and lets the links exist, which
   // is the pattern the delivery chart on this same page was already using.
-  return `<div class="timeline-scroll incident-chart" role="region" aria-label="Incident chart" tabindex="0"><svg viewBox="0 0 ${width} ${height}" role="group" aria-labelledby="ic-chart-title ic-chart-desc" style="height:${height}px">
+  return `<div class="timeline-scroll incident-chart" role="region" aria-label="Incident chart" tabindex="0"><svg viewBox="0 0 ${width} ${height}" height="${height}" role="group" aria-labelledby="ic-chart-title ic-chart-desc">
     <title id="ic-chart-title">Incidents by cause since project start</title>
     <desc id="ic-chart-desc">${esc(`${incidents.length} incidents across ${formatWindow(span)} of project time, grouped into ${causes.length} causes. Each mark is a link to that incident's entry and control receipt.`)}</desc>
-    <style>.ic-axis{fill:#8f89ae;font:500 9px ui-monospace,SFMono-Regular,Consolas,monospace}.ic-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.ic-count{fill:#8f89ae;font-weight:800}a:focus-visible .ic-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}</style>
     ${grid.join("")}
     ${lanes}
     <line x1="${nowX}" y1="${top - 6}" x2="${nowX}" y2="${top + causes.length * laneH}" stroke="#22e6ff" stroke-width="1.5" stroke-dasharray="3 3"/>
@@ -1897,7 +1912,6 @@ function showcaseChartSvg(input: ShowcaseInput): string {
     + `<line x1="${(left + plot).toFixed(1)}" y1="${top}" x2="${(left + plot).toFixed(1)}" y2="${bottom}" stroke="#22e6ff" stroke-width="1.5" stroke-dasharray="3 3"/>`;
   const laneLabel = (name: string, unit: string, y: number) =>
     `<text x="${left - 10}" y="${y}" class="sc-lane" text-anchor="end">${esc(name)} <tspan class="sc-unit">${esc(unit)}</tspan></text>`;
-  const chartStyle = `<style>.sc-axis{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-lane{fill:#f3f1ff;font:700 11px ui-sans-serif,system-ui,sans-serif}.sc-unit{fill:#b9b4d6;font:500 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-band-value{fill:#0b0a14;font:800 11px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-note{fill:#b9b4d6;font:600 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-build{fill:#22e6ff;font:700 9.5px ui-monospace,SFMono-Regular,Consolas,monospace}.sc-pct{fill:#4ade80;font:800 10px ui-monospace,SFMono-Regular,Consolas,monospace}</style>`;
 
   // ── Graph one: availability, as two segmented strips.
   //
@@ -1991,7 +2005,6 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   const availability = `<svg viewBox="0 0 ${width} ${aHeight}" role="group" aria-labelledby="wg-uptime-title wg-uptime-desc">
     <title id="wg-uptime-title">${esc(`Server and tank availability across ${formatWindow(span)} of project time`)}</title>
     <desc id="wg-uptime-desc">${esc(`Each strip is ${TICKS} equal slices of the project. Server availability ${portal.availabilityPercent} percent, with the slices carrying the ${batches.length} deployments picked out. Tank availability ${tank.availabilityPercent} percent, with the slices carrying its ${incidents.length} incidents picked out, of which ${formatCompactDuration(tank.scheduledDowntimeMs)} was scheduled downtime excluded from the figure.`)}</desc>
-    ${chartStyle}
     ${frame(aTop, aBottom)}
     ${dayTicks.map((ts) => `<text x="${x(ts).toFixed(1)}" y="13" class="sc-axis" text-anchor="middle">${new Date(ts).toISOString().slice(5, 10)}</text>`).join("")}
     <text x="${(x(buildEnd) + 5).toFixed(1)}" y="21" class="sc-build">${esc(`${formatElapsed(ROADMAP_ELAPSED_MINUTES)} build ends`)}</text>
@@ -2048,7 +2061,6 @@ function showcaseChartSvg(input: ShowcaseInput): string {
   const spend = `<svg viewBox="0 0 ${width} ${bHeight}" role="group" aria-labelledby="wg-spend-title wg-spend-desc">
     <title id="wg-spend-title">${esc(`Metered spend across the same ${formatWindow(span)}`)}</title>
     <desc id="wg-spend-desc">${esc(`Metered spend reached $${spendUsd.toFixed(4)}, ${(used * 100).toFixed(2)} percent of the $${hardLimitUsd.toFixed(2)} hard stop that closes the game.`)}</desc>
-    ${chartStyle}
     ${frame(bTop, spendBase)}
     ${laneLabel("Metered spend", "USD", spendTop + 30)}
     <g role="list" aria-label="Metered spend">${series}</g>
@@ -2091,9 +2103,9 @@ function backupPanelHtml(backup?: BackupState): string {
     ["Drill result", state.lastDrillDetail || "—"],
   ];
   const failure = state.lastBackupError
-    ? `<p class="sub" style="margin:8px 0 0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
+    ? `<p class="sub u-m-8-0-0"><span class="key-dot key-red"></span>The last scheduled copy did not complete: ${esc(state.lastBackupError)}</p>`
     : "";
-  return `<section class="card evidence-block" id="continuity" tabindex="-1"><h2 style="margin-top:0;font-size:1.1rem">State copies and restore drills</h2>
+  return `<section class="card evidence-block" id="continuity" tabindex="-1"><h2 class="u-card-heading">State copies and restore drills</h2>
     <div class="table-scroll" role="region" aria-label="State copies and restore drills" tabindex="0"><table class="capacity-table"><caption class="sr-only">State copies and restore drills</caption><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody>${rows.map(([label, value, tone]) => `<tr><td><strong>${esc(label)}</strong></td><td>${tone ? `<span class="key-dot ${tone}"></span>` : ""}${esc(value)}</td></tr>`).join("")}</tbody></table></div>${failure}</section>`;
 }
 
@@ -2119,21 +2131,21 @@ function incidentsSection(incidents: IncidentRecord[], history: ControlHistoryEn
       ? `${new Date(incidentTime(x.startedAt, now)).toISOString()} → impact ended ${new Date(incidentImpactEnd(x, now)).toISOString()} · investigation remains open`
       : `${new Date(incidentTime(x.startedAt, now)).toISOString()} → ${x.resolvedAt == null ? "ongoing" : new Date(incidentTime(x.resolvedAt, now)).toISOString()}`;
     const tone = incidentTone(x.cause), anchor = receiptAnchor(x, history);
-    const receipt = anchor ? `<p style="margin:10px 0 0"><a class="action-link" href="#${anchor}">Open control receipt →</a></p>` : "";
+    const receipt = anchor ? `<p class="u-m-10-0-0"><a class="action-link" href="#${anchor}">Open control receipt →</a></p>` : "";
     // Every incident card carries its own anchor so a timeline marker without a control
     // receipt still has somewhere to land — no mark on the chart is a dead end.
-    return `<article class="card incident-card${x.status === "active" ? " incident-card--active" : ""}" id="${incidentAnchor(x)}" tabindex="-1"><div class="m ${x.status === "active" ? "o" : "g"}"><i class="incident-dot ${tone.key}"></i>${x.status.toUpperCase()} · ${esc(x.cause)}</div><h3>${esc(x.title)}</h3><p>${esc(x.summary)}</p><p class="sub" style="margin:0">${timing}</p>${receipt}</article>`;
+    return `<article class="card incident-card${x.status === "active" ? " incident-card--active" : ""}" id="${incidentAnchor(x)}" tabindex="-1"><div class="m ${x.status === "active" ? "o" : "g"}"><i class="incident-dot ${tone.key}"></i>${x.status.toUpperCase()} · ${esc(x.cause)}</div><h3>${esc(x.title)}</h3><p>${esc(x.summary)}</p><p class="sub u-m-0">${timing}</p>${receipt}</article>`;
   };
   const activeBlock = active.length
-    ? `<section aria-labelledby="active-incidents"><div class="eyebrow">Needs attention</div><h3 id="active-incidents" style="margin:6px 0 14px">Active incidents (${active.length})</h3>${active.map(card).join("")}</section>`
-    : `<section class="card"><div class="m g">ALL CLEAR</div><h3 style="margin:6px 0 0">No active incidents</h3></section>`;
+    ? `<section aria-labelledby="active-incidents"><div class="eyebrow">Needs attention</div><h3 id="active-incidents" class="u-m-6-0-14">Active incidents (${active.length})</h3>${active.map(card).join("")}</section>`
+    : `<section class="card"><div class="m g">ALL CLEAR</div><h3 class="u-m-6-0-0">No active incidents</h3></section>`;
   const resolvedBlock = resolved.length
-    ? `<section aria-labelledby="resolved-incidents"><div class="eyebrow">History</div><h3 id="resolved-incidents" style="margin:6px 0 14px">Resolved incidents (${resolved.length})</h3>${resolved.map(card).join("")}</section>`
+    ? `<section aria-labelledby="resolved-incidents"><div class="eyebrow">History</div><h3 id="resolved-incidents" class="u-m-6-0-14">Resolved incidents (${resolved.length})</h3>${resolved.map(card).join("")}</section>`
     : "";
   return `<section id="incidents" tabindex="-1" aria-labelledby="incidents-heading">
     <div class="eyebrow">Availability evidence</div>
-    <h2 id="incidents-heading" style="margin:6px 0 10px">Incidents</h2>
-    <div class="card hero-card"><h3 style="margin:0 0 4px;font-size:1.1rem">Every incident since project start</h3><p class="sub" style="margin:0 0 10px">${formatCompactDuration(s.scheduledDowntimeMs)} of it scheduled and excluded from availability.</p>${incidentChartSvg(incidents, now, history)}<p class="timeline-key-note" style="margin:8px 0 0">Bars show how long impact lasted; diamonds are instantaneous events. Every mark is a link to its incident and control receipt, reachable by keyboard as well as pointer.</p></div>
+    <h2 id="incidents-heading" class="u-m-6-0-10">Incidents</h2>
+    <div class="card hero-card"><h3 class="u-incident-heading">Every incident since project start</h3><p class="sub u-m-0-0-10">${formatCompactDuration(s.scheduledDowntimeMs)} of it scheduled and excluded from availability.</p>${incidentChartSvg(incidents, now, history)}<p class="timeline-key-note u-m-8-0-0">Bars show how long impact lasted; diamonds are instantaneous events. Every mark is a link to its incident and control receipt, reachable by keyboard as well as pointer.</p></div>
     ${activeBlock}${resolvedBlock}
   </section>`;
 }
@@ -2219,7 +2231,6 @@ function incidentTimelineSvg(incidents: IncidentRecord[], now = Date.now(), hist
   return `<div class="timeline-scroll availability-chart" role="region" aria-label="Availability timeline" tabindex="0"><svg role="group" aria-labelledby="tl-title tl-desc" viewBox="0 0 ${width} 90" preserveAspectRatio="xMidYMid meet">
     <title id="tl-title">Availability timeline</title>
     <desc id="tl-desc">${esc(spoken)}</desc>
-    <style>.tl-lane{fill:#b9b4d6;font:600 11px ui-sans-serif,system-ui,sans-serif}.tl-axis{fill:#8f89ae;font:500 10px ui-monospace,SFMono-Regular,Consolas,monospace}.tl-marker{transition:transform 120ms ease}a:hover .tl-marker,a:focus-visible .tl-marker{transform:translateY(-2px)}a:focus-visible .tl-hit{fill:rgba(255,213,74,.22);stroke:#ffd54a;stroke-width:2}@media(prefers-reduced-motion:reduce){.tl-marker{transition:none}}</style>
     <text x="0" y="32" class="tl-lane">Server</text>${serverLane}
     <text x="0" y="60" class="tl-lane">Tank</text>${tankLane}
     <g role="list" aria-label="Incident markers">${markers}</g>
@@ -2258,7 +2269,7 @@ function controlHistoryListHtml(history: ControlHistoryEntry[], integrity: Contr
   const items = ordered.map((entry) => historyItemHtml(entry, true)).join("");
   const codes = [...new Set(history.map((entry) => entry.code))].sort().map((code) => `<option value="${esc(code)}">${esc(code)}</option>`).join("");
   const head = integrity.headHash ? `<code>${esc(integrity.headHash)}</code>` : "No receipt yet";
-  return `<section class="card evidence-block" id="receipts" tabindex="-1"><div class="eyebrow">Control receipts</div><h2 style="margin-top:0">Append-only control history</h2><div class="integrity-line"><span class="integrity-badge">${esc(integrity.algorithm)}</span><span>${integrity.entryCount} entries · chain head ${head}</span></div><div class="integrity-line">${integrityVerdict(integrity)}</div>
+  return `<section class="card evidence-block" id="receipts" tabindex="-1"><div class="eyebrow">Control receipts</div><h2 class="u-mt-0">Append-only control history</h2><div class="integrity-line"><span class="integrity-badge">${esc(integrity.algorithm)}</span><span>${integrity.entryCount} entries · chain head ${head}</span></div><div class="integrity-line">${integrityVerdict(integrity)}</div>
     <div class="log-toolbar"><label><span>Search</span><input type="search" id="history-search" placeholder="Title, actor, reference, detail" autocomplete="off"></label><label><span>Control code</span><select id="history-code"><option value="">All codes</option>${codes}</select></label><span class="log-visible-count" id="history-count" role="status" aria-live="polite" aria-atomic="true">${esc(historyCountText(ordered.length, ordered.length, 1, controlHistoryPageCount(ordered.length)))}</span></div>
     <div class="history-list" id="history-list">${items || '<p class="sub">No control events recorded.</p>'}</div>
     <div class="history-pager"><button type="button" class="pager-btn" id="history-prev" aria-disabled="true">← Newer</button><span id="history-page" aria-hidden="true">Page 1 of ${controlHistoryPageCount(ordered.length)}</span><button type="button" class="pager-btn" id="history-next"${ordered.length > CONTROL_HISTORY_PAGE_SIZE ? "" : ' aria-disabled="true"'}>Older →</button></div></section>${controlHistoryScript(ordered.length)}`;
@@ -2451,7 +2462,7 @@ function publicLogsHtml(events: PublicLogEvent[], gameLogs: PublicTankLog[], cap
     return `<details class="card log-room"><summary><span class="log-summary"><strong>${esc(tankName)} Tank</strong><code>${esc(room)}</code><span class="log-count">${records.length} ${records.length === 1 ? "capture" : "captures"} · past 24h</span></span></summary><div class="log-room-body"><div class="log-actions"><a class="action-link" href="/logs/game/${encodeURIComponent(room)}.txt" download>Download the full 24-hour capture (TXT)</a></div>${logToolbar(tableId, records, `${tankName} Tank captures`)}<div class="table-scroll" role="region" aria-label="${esc(tankName)} Tank captures" tabindex="0"><table class="capture-table" id="${tableId}"><caption class="sr-only">${esc(tankName)} Tank captures</caption><thead><tr>${sortButton("timestamp", "Timestamp", "desc")}${sortButton("code", "Reason")}${sortButton("tick", "Tick")}${sortButton("action", "Action")}${sortButton("language", "Language")}${sortButton("details", "Details")}</tr></thead><tbody>${captures || '<tr><td colspan="6">No captures in the past 24 hours.</td></tr>'}</tbody></table></div>${records.length > LOG_PAGE_SIZE ? logPager(tableId, records.length) : ""}</div></details>`;
   }).join("");
   const truncationNote = caps.serviceTruncated || caps.captureTruncated
-    ? `<p class="table-note" style="margin:0">Showing the newest ${caps.serviceTruncated ? `${serviceRecords.length} service records` : ""}${caps.serviceTruncated && caps.captureTruncated ? " and " : ""}${caps.captureTruncated ? "captures per tank" : ""} — the retained record is larger than one page can carry. The JSON and TXT exports carry the rest.</p>`
+    ? `<p class="table-note u-m-0">Showing the newest ${caps.serviceTruncated ? `${serviceRecords.length} service records` : ""}${caps.serviceTruncated && caps.captureTruncated ? " and " : ""}${caps.captureTruncated ? "captures per tank" : ""} — the retained record is larger than one page can carry. The JSON and TXT exports carry the rest.</p>`
     : "";
   const heading = embedded ? "h2" : "h1";
   return `<section class="page-intro${embedded ? " evidence-block" : ""}"${embedded ? ' id="logs" tabindex="-1"' : ""}><div class="eyebrow">Public Shark Tank evidence</div><${heading}>Every operational move leaves a reason.</${heading}><p class="sub">Service evidence is retained for 90 days; tank captures for 24 hours. Both are shown in full below — every row carries a reason code.</p><a class="action-link" href="/logs.json">Public log JSON →</a></section>
@@ -2547,8 +2558,8 @@ function evidenceDashboardHtml(
       ${metricCard(formatCompactDuration(availability.scheduledDowntimeMs), "Scheduled downtime", "excluded from availability", "uptime", "tone-violet", "status-scheduled-downtime")}
       ${metricCard(data.maintenance?.enabled ? "CLOSED" : "OPEN", "Tank access", data.maintenance?.enabled ? "scheduled gate active" : `${players} active players`, "traffic", data.maintenance?.enabled ? "tone-violet" : "tone-green", "status-tank-access")}
     </div>
-    <div class="card hero-card"><h3 style="margin-top:0;font-size:1.1rem">Availability since project start</h3>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
-    <div class="card"><h3 style="margin-top:0;font-size:1.1rem">Tank activity</h3><div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div></div>
+    <div class="card hero-card"><h3 class="u-card-heading">Availability since project start</h3>${incidentTimelineSvg(incidents, Date.now(), history)}${timelineLegend(incidents, history)}</div>
+    <div class="card"><h3 class="u-card-heading">Tank activity</h3><div class="table-scroll" role="region" aria-label="Tank activity" tabindex="0"><table class="capacity-table"><caption class="sr-only">Tank activity: human players and computer-controlled agents per tank</caption><thead><tr><th scope="col">Tank</th><th scope="col">Active players</th><th scope="col">Agents</th><th scope="col">Top score</th><th scope="col">Leader</th></tr></thead><tbody id="status-tank-rows">${roomRows}</tbody></table></div></div>
   </section>
   ${incidentsSection(incidents, history)}
   ${backupPanelHtml(data.backup)}
@@ -2585,7 +2596,7 @@ function adminViewerHtml(): string {
   // No template literals / ${} inside, to stay valid in this string.
   const script = [
     "function duration(ms){var s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return d?d+'d '+h+'h':h?h+'h '+m+'m':m+'m';}",
-    "function coverageRow(body,name,value,url){var tr=document.createElement('tr'),a=document.createElement('td'),b=document.createElement('td'),span=document.createElement('span');a.className='cell-key';a.title=name;a.textContent=name;b.className='cell-detail';b.title=value;span.textContent=value;b.appendChild(span);if(url){var link=document.createElement('a');link.href=url;link.textContent='Reference';link.style.marginLeft='8px';b.appendChild(link);}tr.appendChild(a);tr.appendChild(b);body.appendChild(tr);}",
+    "function coverageRow(body,name,value,url){var tr=document.createElement('tr'),a=document.createElement('td'),b=document.createElement('td'),span=document.createElement('span');a.className='cell-key';a.title=name;a.textContent=name;b.className='cell-detail';b.title=value;span.textContent=value;b.appendChild(span);if(url){var link=document.createElement('a');link.href=url;link.textContent='Reference';link.className='coverage-reference';b.appendChild(link);}tr.appendChild(a);tr.appendChild(b);body.appendChild(tr);}",
     "async function tick(){try{",
     "var sr=await fetch('/admin/status.json');var sd=await sr.json();var b=sd.billingWindow||{};",
     "document.getElementById('billing-cost').textContent=typeof b.estimatedVariableUsd==='number'?'$'+b.estimatedVariableUsd.toFixed(8):'—';",
@@ -2595,7 +2606,7 @@ function adminViewerHtml(): string {
     "document.getElementById('billing-rate').textContent=(b.requestRatePerMinute||0).toFixed(2)+'/min';",
     "var services=b.services||{},dob=services.durableObjects||{},d1=services.d1||{},r2s=services.r2||{},workers=services.workers||{},sources=(b.freeTier||{}).sources||{},coverage=document.getElementById('billing-coverage');coverage.textContent='';if(workers.configured!==false)coverageRow(coverage,'Workers',workers.requests==null?String(workers.note||'Account analytics required'):(workers.requests||0).toLocaleString()+' requests',sources.workers);if(dob.configured!==false)coverageRow(coverage,'Durable Objects',(dob.requests||0).toLocaleString()+' requests · '+(dob.rowsRead||0).toLocaleString()+' reads · '+(dob.rowsWritten||0).toLocaleString()+' writes',sources.durableObjects);if(d1.configured)coverageRow(coverage,'D1',(d1.rowsRead||0).toLocaleString()+' reads · '+(d1.rowsWritten||0).toLocaleString()+' writes',sources.d1);if(r2s.configured)coverageRow(coverage,'R2',(r2s.objects||0).toLocaleString()+' objects · '+((r2s.classAOperations||0)+(r2s.classBOperations||0)).toLocaleString()+' operations · '+((r2s.storageBytes||0)/1000000).toFixed(2)+' MB',sources.r2);document.getElementById('billing-coverage-card').hidden=!coverage.children.length;document.getElementById('billing-r2-footprint').textContent=((r2s.classAOperations||0)+(r2s.classBOperations||0)).toLocaleString()+' · '+((r2s.storageBytes||0)/1000000).toFixed(2)+' MB';",
     "var monthly=b.freeTierProjectedMonthlyUsd||0,ratio=Math.max(0,Math.min(1,monthly/5)),angle=-90+ratio*180,tone=monthly>5?'tone-red':monthly>0?'tone-yellow':'tone-green',state=monthly>5?'REDLINE':monthly>0?'METERED':'INCLUDED';",
-    "var needle=document.getElementById('billing-gauge-needle');needle.style.transform='rotate('+angle+'deg)';needle.setAttribute('class','gauge-needle '+tone);document.getElementById('billing-gauge-value').textContent='$'+monthly.toFixed(2);document.getElementById('billing-gauge-state').textContent=state;document.getElementById('billing-gauge-state').className='meter-pill '+tone;document.getElementById('billing-gauge-value').parentElement.className='gauge-readout '+tone;document.getElementById('billing-current-spend').textContent='$'+(b.estimatedVariableUsd||0).toFixed(8);",
+    "var needle=document.getElementById('billing-gauge-needle');needle.setAttribute('transform','rotate('+angle+' 110 112)');needle.setAttribute('class','gauge-needle '+tone);document.getElementById('billing-gauge-value').textContent='$'+monthly.toFixed(2);document.getElementById('billing-gauge-state').textContent=state;document.getElementById('billing-gauge-state').className='meter-pill '+tone;document.getElementById('billing-gauge-value').parentElement.className='gauge-readout '+tone;document.getElementById('billing-current-spend').textContent='$'+(b.estimatedVariableUsd||0).toFixed(8);",
     "var rooms=sd.rooms||[],players=rooms.reduce(function(n,x){return n+(x.players||0)},0),seats=rooms.reduce(function(n,x){return n+(x.capacity||0)},0),active=rooms.filter(function(x){return x.players>0}).length,bots=rooms.reduce(function(n,x){return n+(x.bots||0)},0);",
     "document.getElementById('kpi-active-players').textContent=players.toLocaleString();document.getElementById('kpi-human-seats').textContent=players+' / '+seats;document.getElementById('kpi-bot-seats').textContent=bots.toLocaleString();document.getElementById('kpi-active-rooms').textContent=active+' / '+rooms.length;document.getElementById('kpi-uptime').textContent=duration((sd.usage||{}).uptimeMs||0);document.getElementById('kpi-audit-events').textContent=((sd.usage||{}).auditEvents||0).toLocaleString();",
     "var hi=sd.history||[],hib=document.getElementById('history-rows');hib.textContent='';hi.slice().reverse().forEach(function(e){var tr=document.createElement('tr'),cells=['#'+e.sequence,e.code,e.title,e.summary,new Date(e.ts).toLocaleString(),e.reference||'',String(e.hash||'').slice(0,16)+'…'],classes=['cell-seq','cell-code','cell-key','cell-detail','cell-time','cell-key','cell-code'];cells.forEach(function(v,i){var td=document.createElement('td');td.className=classes[i];td.title=String(v);if(i===1||i===6){var c=document.createElement('code');c.textContent=v;td.appendChild(c);}else if(i===3){var span=document.createElement('span');span.textContent=v;td.appendChild(span);}else td.textContent=v;tr.appendChild(td);});hib.appendChild(tr);});if(!hi.length){var hr=document.createElement('tr'),hd=document.createElement('td');hd.colSpan=7;hd.textContent='No control events recorded.';hr.appendChild(hd);hib.appendChild(hr);}var integrity=sd.historyIntegrity||{},head=integrity.headHash||'none',integrityNode=document.getElementById('history-integrity');integrityNode.textContent=(integrity.entryCount||0)+' append-only entries · '+(integrity.algorithm||'SHA-256')+' head '+(head==='none'?head:head.slice(0,16)+'…');integrityNode.title=head;",
@@ -2608,7 +2619,7 @@ function adminViewerHtml(): string {
   ].join("");
   return `<section class="page-intro"><div class="eyebrow">Control room · sharp teeth</div><h1>Admin</h1>
     <p class="sub">Authenticated traffic controls, incident receipts, billing thresholds, and live runtime KPIs. The conformance register these controls produce evidence for is public at <a href="/audit/">Audit</a>.</p></section>
-    <h2 style="font-size:1rem;letter-spacing:.08em;text-transform:uppercase;color:#b9b4d6">Operations pulse</h2>
+    <h2 class="u-ops-pulse-heading">Operations pulse</h2>
     <div class="metric-grid stat-grid">
       ${metricCard("—", "Active players", "live human sessions", "players", "tone-cyan", "kpi-active-players")}
       ${metricCard("—", "Human seats", "used / 24 available", "traffic", "tone-violet", "kpi-human-seats")}
@@ -2617,15 +2628,15 @@ function adminViewerHtml(): string {
       ${metricCard("—", "Service uptime", "preserved across billing resets", "uptime", "tone-green", "kpi-uptime")}
       ${metricCard("—", "Action log events", "lifetime status counter", "audit", "tone-cyan", "kpi-audit-events")}
     </div>
-    <div class="card"><h2 style="margin:0 0 10px;font-size:1.1rem">Server control</h2>
+    <div class="card"><h2 class="u-panel-heading">Server control</h2>
       <p>Game traffic: <strong id="maintenance-state" class="m">CHECKING…</strong></p>
       <div class="server-controls"><button type="button" id="maintenance-toggle" class="danger" data-enabled="0">Take server down</button>${securityReportControl("admin-security-report")}</div>
       <pre class="security-receipt" id="maintenance-output" role="status" aria-live="polite" aria-atomic="true" hidden></pre>
       <form class="alert-test" id="test-alert-form"><label for="test-alert-code"><strong>Test alert code</strong></label><input class="alert-code" id="test-alert-code" name="code" maxlength="4" minlength="4" pattern="[A-Za-z][0-9]{3}" placeholder="A000" autocomplete="off" required><button type="submit" class="secondary">Send test alert</button></form><pre class="security-receipt" id="test-alert-output" role="status" aria-live="polite" aria-atomic="true" hidden></pre>
-      <p class="sub" style="margin:10px 0 0">Filing a security report here also takes the game down; the unauthenticated public intake at <code>/api/security-report</code> only records a report. Taking the game down disconnects active tanks and gates the game shell, assets, and tank WebSockets. Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, Audit, and Admin stay online. Alert codes are exactly one letter followed by three digits.</p>
+      <p class="sub u-m-10-0-0">Filing a security report here also takes the game down; the unauthenticated public intake at <code>/api/security-report</code> only records a report. Taking the game down disconnects active tanks and gates the game shell, assets, and tank WebSockets. Roadmap, API, Docs, Status, Incidents, Inquiry, Logs, Audit, and Admin stay online. Alert codes are exactly one letter followed by three digits.</p>
     </div>
-    <div class="card"><div class="eyebrow">Control receipts</div><h2 style="margin:0 0 8px;font-size:1.1rem">Append-only control history</h2><p class="sub" id="history-integrity">Loading receipt chain…</p><div class="table-scroll" role="region" aria-label="Append-only control history" tabindex="0"><table class="history-table"><caption class="sr-only">Append-only control history</caption><thead><tr><th scope="col">Seq</th><th scope="col">Code</th><th scope="col">Decision</th><th scope="col">Outcome</th><th scope="col">Time</th><th scope="col">Reference</th><th scope="col">Receipt</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="sub" style="margin:0">SHA-256 receipts link each control decision to the previous entry. These rows are not subject to the 90-day user-action retention policy.</p></div>
-    <div class="card gauge-card"><h2 style="margin:0 0 10px;font-size:1.1rem">Billing fuel gauge</h2>
+    <div class="card"><div class="eyebrow">Control receipts</div><h2 class="u-panel-heading-tight">Append-only control history</h2><p class="sub" id="history-integrity">Loading receipt chain…</p><div class="table-scroll" role="region" aria-label="Append-only control history" tabindex="0"><table class="history-table"><caption class="sr-only">Append-only control history</caption><thead><tr><th scope="col">Seq</th><th scope="col">Code</th><th scope="col">Decision</th><th scope="col">Outcome</th><th scope="col">Time</th><th scope="col">Reference</th><th scope="col">Receipt</th></tr></thead><tbody id="history-rows"></tbody></table></div><p class="sub u-m-0">SHA-256 receipts link each control decision to the previous entry. These rows are not subject to the 90-day user-action retention policy.</p></div>
+    <div class="card gauge-card"><h2 class="u-panel-heading">Billing fuel gauge</h2>
       ${billingGaugeSvg("billing")}
       <div class="metric-grid stat-grid">
         ${metricCard("—", "Window spend", "measured variable estimate", "audit", "tone-cyan", "billing-cost")}
@@ -2635,7 +2646,7 @@ function adminViewerHtml(): string {
         ${metricCard("—", "DO rows R / W", "SQLite threshold window", "audit", "tone-violet", "billing-do-rows")}
         ${metricCard("—", "R2 ops / storage", "bound asset bucket", "rooms", "tone-green", "billing-r2-footprint")}
       </div>
-      <div class="card" id="billing-coverage-card" style="margin-top:14px" hidden><h3 style="margin:0 0 8px">Billing coverage</h3><div class="table-scroll" role="region" aria-label="Billing coverage" tabindex="0" style="margin:0"><table class="billing-table"><caption class="sr-only">Billing coverage</caption><thead><tr><th scope="col">Bound service</th><th scope="col">Measured usage or reference</th></tr></thead><tbody id="billing-coverage"></tbody></table></div></div>
+      <div class="card u-mt-14" id="billing-coverage-card" hidden><h3 class="u-m-0-0-8">Billing coverage</h3><div class="table-scroll u-m-0" role="region" aria-label="Billing coverage" tabindex="0"><table class="billing-table"><caption class="sr-only">Billing coverage</caption><thead><tr><th scope="col">Bound service</th><th scope="col">Measured usage or reference</th></tr></thead><tbody id="billing-coverage"></tbody></table></div></div>
       <p><button type="button" id="billing-reset" class="secondary">Reset billing counter</button></p>
     </div>
     <script nonce="__WG_CSP_NONCE__">${script}</script>${securityReportScript("admin-security-report")}${testAlertScript()}`;

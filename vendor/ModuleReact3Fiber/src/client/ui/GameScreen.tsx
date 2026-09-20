@@ -95,7 +95,6 @@ export function GameScreen({ room, identity, onQuit }: GameScreenProps) {
     <main
       id="main"
       className={touch ? `game-screen game-screen--touch game-screen--stick-${stickSide}` : "game-screen"}
-      style={{ position: "absolute", inset: 0, overflow: "hidden" }}
     >
       <GameCanvas socket={socket} settings={settings} inputEnabled={inputEnabled} labelsRef={labelsRef} stickRef={stickRef} touchControls={touch} />
 

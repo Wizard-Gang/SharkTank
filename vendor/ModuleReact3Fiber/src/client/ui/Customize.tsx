@@ -31,8 +31,8 @@ export function Customize({
 
   return (
     <div className="center-screen">
-      <div className="panel stack" style={{ width: "min(560px, 100%)" }}>
-        <h1 style={{ margin: 0, fontSize: "1.6rem" }}>Customize</h1>
+      <div className="panel stack customize-panel">
+        <h1 className="screen-title">Customize</h1>
 
         <div className="field">
           <label htmlFor="cz-name">Display name</label>
@@ -47,19 +47,27 @@ export function Customize({
             aria-invalid={!validName}
             aria-describedby={!validName ? "cz-name-error" : undefined}
           />
-          {!validName && <span id="cz-name-error" role="alert" style={{ color: "var(--danger, #ff7b7b)" }}>That name can&rsquo;t be used. Try letters and numbers.</span>}
+          {!validName && <span id="cz-name-error" role="alert" className="field-error">That name can&rsquo;t be used. Try letters and numbers.</span>}
         </div>
 
-        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-          <legend style={{ fontWeight: 600, marginBottom: 8 }}>Skin</legend>
-          <div role="radiogroup" aria-label="Shark skin" style={grid}>
+        <fieldset className="skin-fieldset">
+          <legend className="skin-legend">Skin</legend>
+          <div role="radiogroup" aria-label="Shark skin" className="skin-grid">
             {SKINS.map((s) => {
               const selected = s.id === draftSkin;
               return (
-                <label key={s.id} style={{ ...swatch, outline: selected ? "3px solid var(--focus-ring)" : "1px solid var(--border)" }}>
+                <label key={s.id} className={selected ? "skin-option is-selected" : "skin-option"}>
                   <input type="radio" name="skin" checked={selected} onChange={() => setDraftSkin(s.id)} className="sr-only" />
-                  <span aria-hidden="true" style={{ ...preview, background: s.accent ? `linear-gradient(135deg, ${s.color}, ${s.accent})` : s.color }} />
-                  <span style={{ fontWeight: 600 }}>{s.name}</span>
+                  <svg className="skin-preview" viewBox="0 0 56 56" aria-hidden="true">
+                    <defs>
+                      <linearGradient id={`skin-preview-${s.id}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stopColor={s.color} />
+                        <stop offset="1" stopColor={s.accent ?? s.color} />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="28" cy="28" r="28" fill={`url(#skin-preview-${s.id})`} />
+                  </svg>
+                  <span className="font-strong">{s.name}</span>
                   {selected && <span className="sr-only">(selected)</span>}
                 </label>
               );
@@ -67,7 +75,7 @@ export function Customize({
           </div>
         </fieldset>
 
-        <div className="row" style={{ justifyContent: "flex-end" }}>
+        <div className="row row--end">
           <button className="btn" onClick={onExit}>Exit</button>
           <button className="btn btn--primary" onClick={() => onConfirm(storedName, draftSkin)} disabled={!dirty || !validName}>
             Confirm
@@ -77,7 +85,3 @@ export function Customize({
     </div>
   );
 }
-
-const grid: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 };
-const swatch: React.CSSProperties = { display: "grid", gap: 8, placeItems: "center", padding: 12, borderRadius: "var(--radius)", background: "var(--surface-2)", cursor: "pointer" };
-const preview: React.CSSProperties = { width: 56, height: 56, borderRadius: "50%" };

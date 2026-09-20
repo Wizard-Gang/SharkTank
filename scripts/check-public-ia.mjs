@@ -24,6 +24,21 @@ const request = (path, redirect = "manual") => fetch(`${base}${path}`, { redirec
 const ids = (html) => [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
 const hrefs = (html) => [...html.matchAll(/\shref="([^"]+)"/g)].map((match) => match[1].replaceAll("&amp;", "&"));
 
+function assertStrictPresentation(path, response, html) {
+  const csp = response.headers.get("content-security-policy") || "";
+  if (csp.includes("'unsafe-inline'")) fail(`${path} CSP still allows unsafe-inline: ${csp}`);
+  if (/\sstyle\s*=/i.test(html)) fail(`${path} emitted a style attribute`);
+  if (/<style\b/i.test(html)) fail(`${path} emitted an embedded style block`);
+  if (/\son[a-z][a-z0-9_-]*\s*=/i.test(html)) fail(`${path} emitted an inline event-handler attribute`);
+  const cspNonce = csp.match(/'nonce-([^']+)'/)?.[1] || "";
+  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    const attrs = match[1] || "";
+    if (/\ssrc\s*=/.test(attrs)) continue;
+    const nonce = attrs.match(/\snonce="([^"]+)"/)?.[1] || "";
+    if (!nonce || nonce !== cspNonce) fail(`${path} emitted an inline script without the response CSP nonce`);
+  }
+}
+
 async function main() {
   const pages = new Map();
   for (const path of canonical) {
@@ -42,6 +57,7 @@ async function main() {
     const csp = response.headers.get("content-security-policy") || "";
     if (!csp.includes("default-src 'self'")) fail(`${path} is missing the expected CSP default-src`);
     const html = await response.text();
+    assertStrictPresentation(path, response, html);
     pages.set(path, html);
     const canonicalHref = `https://sharktank.wizardgang.ai${path}`;
     if (!html.includes(`<link rel="canonical" href="${canonicalHref}"`)) fail(`${path} is missing canonical link ${canonicalHref}`);
@@ -110,6 +126,7 @@ async function main() {
   if (!(unknownPage.headers.get("content-type") || "").startsWith("text/html")) fail("unknown human route must remain HTML");
   if (unknownPage.headers.get("cache-control") !== "no-store") fail("unknown human route must remain no-store");
   const unknownHtml = await unknownPage.text();
+  assertStrictPresentation("/not-a-real-route", unknownPage, unknownHtml);
   if (!unknownHtml.includes("<h1>Route not found</h1>")) fail("unknown human route lost its not-found presentation");
 
   const adminDenied = await request("/admin/");
@@ -121,7 +138,15 @@ async function main() {
   if (!(admin.headers.get("content-type") || "").startsWith("text/html")) fail("authenticated /admin/ must remain HTML");
   if (admin.headers.get("cache-control") !== "no-store") fail("authenticated /admin/ must remain no-store");
   const adminHtml = await admin.text();
+  assertStrictPresentation("/admin/", admin, adminHtml);
   if (!adminHtml.includes("<h1>Admin</h1>")) fail("authenticated /admin/ lost its control-room content");
+
+  const docs = await request("/docs/");
+  if (docs.status !== 200) fail(`/docs/ expected 200, got ${docs.status}`);
+  if (!(docs.headers.get("content-type") || "").startsWith("text/html")) fail("/docs/ must remain HTML");
+  const docsHtml = await docs.text();
+  assertStrictPresentation("/docs/", docs, docsHtml);
+  if (!docsHtml.includes("OpenAPI")) fail("/docs/ lost its OpenAPI presentation");
 
     const home = pages.get("/") || "";
   const headerNav = home.match(/<header[\s\S]*?<nav aria-label="Primary">([\s\S]*?)<\/nav>/)?.[1] || "";
@@ -153,6 +178,8 @@ async function main() {
   for (const path of assetPaths) {
     const response = await request(path);
     if (response.status !== 200) fail(`asset ${path} expected 200, got ${response.status}`);
+    const assetCsp = response.headers.get("content-security-policy") || "";
+    if (assetCsp.includes("'unsafe-inline'")) fail(`asset ${path} CSP still allows unsafe-inline`);
   }
 
   for (const [from, to] of Object.entries(redirects)) {
@@ -178,7 +205,7 @@ async function main() {
     console.error(`\n${failures.length} public IA check(s) failed.`);
     process.exit(1);
   }
-  console.log(`Verified ${canonical.length} canonical pages, the React-generated game shell and hashed/lazy Vite assets, response security/content contracts, authenticated admin HTML, API/404 separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
+  console.log(`Verified ${canonical.length} canonical pages, strict no-unsafe-inline CSP/generated-HTML contracts, the React-generated game shell and hashed/lazy Vite assets, OpenAPI/admin/404 HTML, API separation, primary navigation, unique IDs, internal anchors, assets, ${Object.keys(redirects).length} one-hop redirects, query preservation, and canonical sitemap.`);
 }
 
 main().catch((error) => { console.error(error); process.exit(1); });
