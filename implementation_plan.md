@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 
 ## Open tasks
 
-### ST-073 — [OPS] Publish the GitHub Release before production deployment
-
-- Dependency: ST-072 merged.
-- Why: Release `publish-release` and `deploy-production` both depend only on `verify`, so deployment can begin before publication succeeds.
-- Scope: Make production deployment depend on successful exact-tag reproduction and GitHub Release publication; preserve the existing opt-in variable, protected environment and provider-version proof.
-- Non-goals: Do not deploy, publish a release or change Cloudflare credentials in this task.
-- Acceptance: Failed publication prevents a production deploy job; a successful tag still follows the current protected path.
-- Validation: Focused workflow dependency test; `npm run check`; `git diff --check`.
-- Authorities: `.github/workflows/release.yml`, `docs/RELEASE-MANAGEMENT.md`.
-
 ### ST-074 — [BUILD] Prove annotated tag and package identity before publication
 
 - Dependency: ST-073 merged.
