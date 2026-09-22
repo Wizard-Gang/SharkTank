@@ -149,11 +149,12 @@ expect(packageJson.scripts?.dev === "node scripts/local.mjs", "dev must use the 
 expect(packageJson.scripts?.local === packageJson.scripts?.dev, "local and dev must share one lifecycle implementation");
 expect(packageJson.scripts?.["dev:worker"] === "wrangler dev --port 8787", "dev:worker must be the explicit Worker-only path");
 expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve Worker-only behavior through the explicit command");
+expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/local-readiness-cases.mjs", "local readiness must have focused behavior coverage");
 
 for (const requiredCheck of [
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
-  "npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
+  "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
 ]) has(packageJson.scripts?.check ?? "", requiredCheck, "npm run check must remain complete");
 
 if (failures.length) {

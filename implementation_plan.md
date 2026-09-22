@@ -2,19 +2,9 @@
 
 This is SharkTank's current/future process-parity wave under WG-ARCH-001 §27. The former empty placeholder is replaced by real open work. On `do needful`, re-fetch `main`, open PRs, exact-head CI and live settings; finish a current green authoritative PR first, then take only the first open task. A blocked first task is reported, not skipped. The delivering squash removes its own task and updates later scope. Delete this plan in its final delivery; Git/GitHub keep history. No task here authorizes a release or production deploy.
 
-Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run dev` now uses the safe whole-stack lifecycle shared with `npm run local`; the narrow raw Worker path is explicitly named `dev:worker`. Process ownership and reset/data-preservation protections remain authoritative. Browser opening still uses the fixed-delay behavior reserved for the next task. Tasks are intentionally one reviewable outcome each.
+Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run dev` now uses the safe whole-stack lifecycle shared with `npm run local`; the narrow raw Worker path is explicitly named `dev:worker`. Process ownership, reset/data-preservation, and bounded local readiness protections remain authoritative. Tasks are intentionally one reviewable outcome each.
 
 ## Open tasks
-
-### ST-072 — [FIX] Replace fixed-delay browser opening with readiness
-
-- Dependency: ST-071 merged.
-- Why: `scripts/local.mjs` opens a browser after a fixed delay and cannot be suppressed in a headless cloud session.
-- Scope: Probe local readiness before reporting/opening the URL; add a no-open mode and bounded timeout with owned-process cleanup.
-- Non-goals: No protocol change, production action or port reclamation.
-- Acceptance: Browser opening follows readiness only, headless mode does not open it, and timeout exits cleanly.
-- Validation: Focused readiness tests; `npm run check`; manual headless smoke; `git diff --check`.
-- Authorities: `scripts/local.mjs`, `README.md`.
 
 ### ST-073 — [OPS] Publish the GitHub Release before production deployment
 

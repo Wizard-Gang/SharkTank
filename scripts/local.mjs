@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-click local dev for the WHOLE stack: teardown → reset → build → start → open.
+// One-click local dev for the WHOLE stack: teardown → reset → build → start → readiness → open.
 // Starts BOTH backends so the client can toggle between them (menu switch / ?api=):
 //   • PHP backend (packages/php-runtime): http://localhost:8080 · ws://localhost:8081
 //   • TS/Cloudflare backend + client: http://localhost:8787
@@ -19,9 +19,13 @@ import {
   writeOwnershipRecord,
 } from "./local-process-ownership.mjs";
 import {
+  parseLocalLifecycleArgs,
+  waitForHttpReady,
+  waitForReadinessAndMaybeOpen,
+} from "./local-readiness.mjs";
+import {
   createLocalResetPlan,
   executeLocalResetPlan,
-  parseLocalResetArgs,
 } from "./local-reset.mjs";
 
 const PORT = 8787;
@@ -32,7 +36,7 @@ const phpScript = fileURLToPath(new URL("./php.mjs", import.meta.url));
 const MODULE_PHP = resolve(fileURLToPath(new URL("../packages/php-runtime", import.meta.url)));
 const WRANGLER_OWNER_FILE = join(PROJECT_ROOT, ".wrangler", "sharktank-local-owner.json");
 const HAS_PHP = existsSync(MODULE_PHP);
-const { resetPhpData } = parseLocalResetArgs(process.argv.slice(2));
+const { noOpen, resetPhpData } = parseLocalLifecycleArgs(process.argv.slice(2));
 
 const run = (cmd, opts = {}) =>
   execSync(cmd, { cwd: PROJECT_ROOT, stdio: "inherit", ...opts });
@@ -40,7 +44,7 @@ const quiet = (cmd) => {
   try {
     execSync(cmd, { cwd: PROJECT_ROOT, stdio: "ignore" });
   } catch {
-    // Browser opening is best-effort.
+    // Best-effort local convenience commands must not redefine lifecycle success.
   }
 };
 const step = (msg) => console.log(`\n\x1b[35m▸ ${msg}\x1b[0m`);
@@ -57,10 +61,8 @@ function signalManagedChild(child, signal) {
   }
 }
 
-async function stopRecordedWrangler() {
-  const record = readOwnershipRecord(WRANGLER_OWNER_FILE);
-  if (!record) return;
-
+async function stopOwnedWrangler(record) {
+  if (!record) return true;
   const result = await stopOwnedProcess(record, {
     kind: "wrangler",
     root: PROJECT_ROOT,
@@ -69,9 +71,16 @@ async function stopRecordedWrangler() {
   });
   if (result.stopped || result.reason === "not-running") {
     removeOwnershipRecord(WRANGLER_OWNER_FILE);
-    return;
+    return true;
   }
+  return false;
+}
 
+async function stopRecordedWrangler() {
+  const record = readOwnershipRecord(WRANGLER_OWNER_FILE);
+  if (!record) return;
+
+  if (await stopOwnedWrangler(record)) return;
   console.warn(
     "\x1b[33m⚠ Existing Wrangler ownership record could not be proven; it will not be signaled.\x1b[0m",
   );
@@ -91,6 +100,38 @@ async function captureWranglerOwner(child) {
     await sleep(50);
   }
   throw new Error("could not establish checkout ownership for the started Wrangler process");
+}
+
+function openBrowser(url) {
+  const opener =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  quiet(`${opener} ${url}`);
+}
+
+async function cleanupFailedStartup(ownerRecord) {
+  const failures = [];
+  try {
+    if (!(await stopOwnedWrangler(ownerRecord))) {
+      failures.push(new Error(
+        "Wrangler ownership changed during startup cleanup; refusing further signals.",
+      ));
+    }
+  } catch (error) {
+    failures.push(error);
+  }
+
+  if (HAS_PHP) {
+    const stoppedPhp = php("stop");
+    if (stoppedPhp.error) failures.push(stoppedPhp.error);
+    else if (stoppedPhp.status !== 0) {
+      failures.push(new Error("PHP backend stop refused because checkout ownership was not proven"));
+    }
+  }
+
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(failures, "local startup cleanup could not be fully verified");
+  }
 }
 
 // 0. First-run setup. Both runtime implementations are tracked in this repository.
@@ -142,30 +183,17 @@ if (HAS_PHP) {
 }
 
 // 5. START — TS/Cloudflare server in the foreground.
-step(`Start: wrangler dev  ->  ${APP_URL}   (toggle backend from the menu)`);
+step(`Start: wrangler dev on port ${PORT}   (toggle backend from the menu)`);
 const child = spawn("npx", ["wrangler", "dev", "--port", String(PORT)], {
   cwd: PROJECT_ROOT,
   stdio: "inherit",
   detached: process.platform !== "win32",
 });
 
-try {
-  const ownerRecord = await captureWranglerOwner(child);
-  writeOwnershipRecord(WRANGLER_OWNER_FILE, ownerRecord);
-} catch (error) {
-  signalManagedChild(child, "SIGTERM");
-  if (HAS_PHP) php("stop");
-  throw error;
-}
-
-// 6. OPEN — current fixed-delay behavior is intentionally left for ST-072.
-setTimeout(() => {
-  const opener =
-    process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-  quiet(`${opener} ${APP_URL}`);
-}, 4000);
-
 let stopped = false;
+let startupComplete = false;
+let observedChildExit = false;
+let observedChildExitCode = 1;
 const clearWranglerOwner = () => removeOwnershipRecord(WRANGLER_OWNER_FILE);
 const stopPhp = () => {
   if (stopped || !HAS_PHP) return;
@@ -177,13 +205,61 @@ const stopPhp = () => {
 };
 
 child.on("exit", (code) => {
+  observedChildExit = true;
+  observedChildExitCode = code ?? 1;
+  if (!startupComplete) return;
   clearWranglerOwner();
   stopPhp();
   process.exit(code ?? 0);
 });
+
+let ownerRecord;
+try {
+  ownerRecord = await captureWranglerOwner(child);
+  writeOwnershipRecord(WRANGLER_OWNER_FILE, ownerRecord);
+} catch (error) {
+  if (HAS_PHP) php("stop");
+  throw error;
+}
+
 process.on("SIGINT", () => signalManagedChild(child, "SIGINT"));
 process.on("SIGTERM", () => signalManagedChild(child, "SIGTERM"));
 process.on("exit", () => {
   clearWranglerOwner();
   stopPhp();
 });
+
+// 6. READINESS + OPEN — HTTP readiness is bounded; browser launching is optional/best-effort.
+try {
+  await waitForReadinessAndMaybeOpen({
+    noOpen,
+    waitForReadyFn: () => waitForHttpReady({
+      url: APP_URL,
+      childExitedFn: () => observedChildExit || child.exitCode !== null,
+    }),
+    onReadyFn: () => step(
+      `Ready: ${APP_URL}${noOpen ? "   (browser opening disabled by --no-open)" : ""}`,
+    ),
+    openFn: () => openBrowser(APP_URL),
+  });
+  if (observedChildExit || child.exitCode !== null) {
+    throw new Error("managed Wrangler exited before local application readiness completed");
+  }
+} catch (error) {
+  try {
+    await cleanupFailedStartup(ownerRecord);
+  } catch (cleanupError) {
+    throw new AggregateError(
+      [error, cleanupError],
+      "local application startup failed and cleanup could not be fully verified",
+    );
+  }
+  throw error;
+}
+
+startupComplete = true;
+if (observedChildExit || child.exitCode !== null) {
+  clearWranglerOwner();
+  stopPhp();
+  process.exit(observedChildExitCode);
+}
