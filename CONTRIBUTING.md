@@ -4,24 +4,35 @@ Thank you for helping improve SharkTank. This repository contains the complete W
 
 ## Local setup
 
-Use the Node.js version pinned in `.node-version`, npm 11, and PHP 8.2 or newer:
+Use the Node.js release pinned in `.node-version`, npm 11, and PHP 8.2 or newer:
 
 ```sh
 npm ci
-npm run check
 ```
 
-For the local Worker, copy `.env.example` to an ignored local configuration file, provide non-production values, and run:
+For normal Worker-only development, run:
 
 ```sh
 npm run dev
 ```
 
-The application is available at `http://127.0.0.1:8787`. In a second terminal, verify the evidence-bearing routes with:
+That command is raw Wrangler on `http://127.0.0.1:8787`; it does not start the PHP backend. Local admin credentials, when needed, belong in ignored `.dev.vars`, not in tracked files.
 
-```sh
-npm run check:evidence -- http://127.0.0.1:8787
-```
+`npm run local` is a different, whole-stack convenience command. Today it performs broad process teardown, can force-kill listeners on ports 8787/8080/8081, deletes `dist/`, `.wrangler/`, and PHP `data/`, builds, starts the PHP backend when available, opens a browser after a fixed delay, and then runs Wrangler. Use it only when that destructive reset is intentional; later work is queued to make this lifecycle safer.
+
+## Validation and operations commands
+
+- `npm test` runs Vitest only.
+- `npm run test:php` runs the PHP parity self-test and requires PHP.
+- `npm run build` creates the Vite production build locally; it does not deploy.
+- `npm run check` is the complete credential-free repository gate. It includes the tests above, the production build, repository/change/history/provenance/settings checks, local HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own Worker on port 8792.
+- An ignored `.dev.vars` can currently influence the Wrangler process used by local HTTP acceptance. Do not inspect, print, move, delete, or rewrite local secret files merely to make `npm run check` pass; that isolation gap is queued for a dedicated fix.
+- `npm run check:github-settings` is read-only live provider verification and requires an admin-capable `GH_ADMIN_TOKEN` or `GH_TOKEN` with Repository Administration read access.
+- `npm run apply:github-settings` is the explicit provider mutation path, requires Repository Administration write access, and re-verifies after applying the committed settings.
+- `npm run deploy:wizardgangprod:dry-run` exercises the production deployment configuration without deploying. It still requires a semantic `SHARKTANK_RELEASE` tag at `HEAD` and `CLOUDFLARE_ACCOUNT_ID`; the deployment script may load the ignored `.env`.
+- Pushing a semantic `vX.Y.Z` tag starts the Release workflow. After `npm run check`, GitHub Release publication and optional production deployment currently run as separate jobs. Production deploy is additionally gated by `PRODUCTION_DEPLOY_ENABLED=true`, the protected `production` environment, Cloudflare credentials, and the exact release tag at `HEAD`. A green CI or release verification run does not itself mean a release was published or production changed.
+
+Do not invoke production deployment paths merely to validate a pull request.
 
 ## Planning queue
 

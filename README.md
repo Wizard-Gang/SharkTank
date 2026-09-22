@@ -4,22 +4,27 @@ SharkTank is a realtime multiplayer game backed by authoritative Cloudflare Dura
 
 **[Overview](https://sharktank.wizardgang.ai)** · **[Play](https://sharktank.wizardgang.ai/play/)** · **[Evidence](https://sharktank.wizardgang.ai/evidence/)**
 
-## Run locally
+## Command map
 
-```bash
-npm ci
-npm run dev
-```
+Use the exact Node.js release pinned in `.node-version`, npm 11, and run `npm ci` before repository validation. PHP 8.2 or newer is required for the PHP parity test and therefore for the complete `check` gate.
 
-The Worker and browser client run locally on port 8787. The optional PHP runtime is managed with the `php:*` scripts in `package.json`.
+| Command | Purpose and current side effects |
+| --- | --- |
+| `npm run dev` | Starts raw Wrangler on port 8787 for the TypeScript/Cloudflare Worker and browser client. It does not start or manage the PHP backend. Wrangler may load ignored `.dev.vars` for local values. |
+| `npm run local` | Whole-stack convenience lifecycle: may run `npm install` when `node_modules` is absent, broadly stops Wrangler/Miniflare and PHP processes, force-kills listeners on ports 8787/8080/8081, deletes `dist/`, `.wrangler/`, and PHP `data/`, builds, starts PHP when available, opens a browser after a fixed delay, and runs Wrangler in the foreground. Use it only when that teardown/reset is intentional; this behavior is queued for hardening. |
+| `npm test` | Runs the Vitest suite. It does not build, start the local stack, or mutate provider state. |
+| `npm run test:php` | Runs the PHP protocol-parity self-test and requires a working PHP runtime. |
+| `npm run build` | Runs the Vite production build into local generated output. It does not publish a release or deploy production. |
+| `npm run check` | Complete credential-free repository acceptance: type checks, TypeScript tests, PHP parity, build, repository/change/history/provenance/settings tests, local HTTP acceptance, dependency audit, and patch whitespace. Its local HTTP gate owns a temporary Worker on port 8792. In a developer checkout, ignored `.dev.vars` can currently influence that Wrangler process; do not inspect, print, move, or delete local secret files just to make validation pass. |
+| `npm run check:github-settings` | Read-only live GitHub settings verification against `config/github-repository-settings.json`. Requires an admin-capable `GH_ADMIN_TOKEN` or `GH_TOKEN` with Repository Administration read access. |
+| `npm run apply:github-settings` | Explicitly mutates repository merge settings and rulesets to the committed authority, then re-reads them. Requires Repository Administration write access. This is not part of ordinary repository acceptance. |
+| `npm run deploy:wizardgangprod:dry-run` | Runs the production deployment script with Wrangler `--dry-run`. It still requires `SHARKTANK_RELEASE` to be a semantic `vX.Y.Z` tag at `HEAD` and `CLOUDFLARE_ACCOUNT_ID` (the script can load the ignored `.env`), and it performs a build, but it does not deploy production. |
 
-## Check
+## Release and production boundary
 
-```bash
-npm run check
-```
+Pushing a semantic `vX.Y.Z` tag triggers the Release workflow. The workflow installs locked dependencies and runs `npm run check`; after that verification, GitHub Release publication and the optional production deployment are currently separate jobs that both depend on `verify`. Production deployment runs only when `PRODUCTION_DEPLOY_ENABLED=true`, through the protected `production` environment with Cloudflare credentials, and the deploy script independently requires the release tag at `HEAD`.
 
-`npm run check` is the complete credential-free repository acceptance gate.
+Because those two post-verification jobs are currently independent, production deployment does not wait for GitHub Release publication to complete. A green CI or release verification job therefore proves repository acceptance only; it does not by itself prove that a GitHub Release was published or that production changed. Do not run production deployment paths merely to validate a pull request.
 
 ## Repository map
 
