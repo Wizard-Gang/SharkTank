@@ -116,7 +116,8 @@ for (const row of changeMap) {
   expect(Boolean(match) && Number(match[1]) <= 28, "CHANGE-MAP.csv must not contain forward ST history: " + id);
 }
 const plan = read("implementation_plan.md");
-expect(!/^###\s+ST-/m.test(plan), "implementation plan must contain no completed normalization task");
+expect(/^###\s+ST-\d{3,}\s+—\s+\[[A-Z]+\]/m.test(plan), "active implementation plan must contain open controlled tasks");
+expect(!/^#{1,6}\s+(?:Done|Completed|History|Retrospective)\b/im.test(plan), "active implementation plan must not retain completed-task history");
 expect(!plan.includes("ST-064"), "ST-064 must be purged from implementation_plan.md");
 expect(!read("SECURITY.md").includes("reconstructed releases"), "security policy must describe supported releases as current state");
 
