@@ -30,7 +30,7 @@ Git history is authoritative for forward ST sequencing. Provenance ledgers are l
 
 ## Normalization rules
 
-- Follow the ST task order in `implementation_plan.md`; do not jump ahead across declared dependencies.
+- When `implementation_plan.md` exists, its first task heading is authoritative. Do not skip a blocked first task to take a later task; report the unmet dependency and stop controlled implementation for that turn.
 - Keep structural migrations behavior-preserving unless the task explicitly changes behavior.
 - Do not grow `src/worker/index.ts` to implement presentation work. Extract focused modules instead.
 - The realtime game is the explicit client-application boundary. Ordinary human documentation/operations pages must remain complete without JavaScript and must not become a hydrated SPA.
@@ -54,23 +54,21 @@ Provider-authenticated checks remain explicit and separate. GitHub repository se
 
 ## Implementation-plan maintenance and session handoff
 
-- Standing shorthand: when the user says `do needful`, treat that as authorization to read current `main`, `AGENTS.md`, and `implementation_plan.md`; select the first remaining task whose dependencies are satisfied; and execute its complete workflow without requiring the user to restate the task.
-- For `do needful`, perform branch -> implement -> validate -> one controlled commit -> pull request -> exact-head CI -> squash merge -> verify `main` -> purge the completed plan item. Do not stop at planning or "ready to merge" when the current change is green, current, and mergeable.
-- After that merge/purge, end the session with the ready-to-run prompt for the next remaining task. Do not automatically start that subsequent task in the same session unless the user explicitly says to continue or says `do needful` again.
-- If no task is open or the first open task has an unsatisfied dependency, report that state rather than inventing work.
-
-- `implementation_plan.md` is current/future-state only. The PR that completes a planned task removes that task's section, so a successful merge purges completed work from `main`.
-- Do not keep completed task summaries in the plan for historical purposes; Git, PRs, CI, tags, and releases are the history.
-- After a successful merge and plan purge, end the session with a complete ready-to-run prompt for the next remaining task.
-- That prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope/acceptance criteria, validation, and the same merge/purge completion rule.
-- Do not begin the subsequent task in the same session unless the user explicitly asks to continue.
+- Standing shorthand: when the user says `do needful`, re-fetch authoritative `main`, open pull requests, exact-head CI, and live repository settings, then read `AGENTS.md` and the active implementation plan if one exists.
+- If `implementation_plan.md` exists, select only its first task. If that task has an unsatisfied dependency, report it as blocked and do not skip ahead. If it is ready, execute exactly that one controlled delivery.
+- The delivering change must remove its own task from `implementation_plan.md`. If no task headings remain after that removal, delete `implementation_plan.md` in the same controlled change instead of leaving an empty or exhausted placeholder.
+- If `implementation_plan.md` is absent at the start of a `do needful` turn, enter fresh planning mode: audit current repository and provider state against the applicable authorities, publish a new dependency-ordered current/future task wave, and stop before implementing the first newly planned task. One turn ends after either one controlled delivery or one fresh planning wave.
+- Do not keep completed task summaries in the plan for historical purposes; Git, pull requests, CI, tags, releases, and provider evidence are the history.
+- After a successful controlled delivery, end the session with a complete ready-to-run prompt for the next remaining task. That prompt must include the repository, authoritative `main` SHA, satisfied dependency, required branch and commit/PR title, task scope and acceptance criteria, validation, and the same merge/purge completion rule.
+- If the delivered task exhausted and deleted the plan, hand off fresh planning mode instead of inventing another implementation task.
+- Do not begin the subsequent task or a newly planned task in the same session unless the user explicitly asks to continue.
 
 ## Completion workflow
 
-The normal completion path is:
+The normal controlled-delivery path is:
 
 ```text
-branch -> implement -> validate -> one controlled commit -> pull request -> exact-head CI -> squash merge
+branch -> implement + purge delivered task (or delete exhausted plan) -> validate -> one controlled commit -> pull request -> exact-head CI -> squash merge -> verify main
 ```
 
 If the current PR is the authoritative/up-to-date change, its exact head is green, live repository settings match the committed authority, and GitHub reports it mergeable, squash it so the accepted ST change lands as one controlled commit on `main`. Do not stop at “ready to merge” unless the user explicitly says not to merge. Re-fetch the PR head, CI state, and provider settings before merging so stale evidence is never used.

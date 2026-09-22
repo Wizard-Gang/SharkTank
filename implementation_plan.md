@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 
 ## Open tasks
 
-### ST-066 — [DOCS] Delete an exhausted plan instead of keeping a placeholder
-
-- Dependency: ST-065 merged on `main`.
-- Why: Current `AGENTS.md` and the previous plan allowed an empty active plan, so `do needful` had no automatic research mode.
-- Scope: Define first-open/blocked selection, same-delivery purge, plan deletion, and fresh planning mode consistently in agent/human process docs; make the baseline validator accept an absent exhausted plan. Remove this block in its PR.
-- Non-goals: No runtime, CI or release edit.
-- Acceptance: An empty queue has no active plan file; one `do needful` turn ends after one controlled delivery or a planning wave.
-- Validation: `npm run check`; `git diff --check`.
-- Authorities: `AGENTS.md`, `CONTRIBUTING.md`, `docs/CHANGE-MANAGEMENT.md`.
-
 ### ST-067 — [DOCS] Explain the local and acceptance command map
 
 - Dependency: ST-066 merged.

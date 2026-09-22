@@ -13,6 +13,12 @@ npm run check
 
 Pull-request CI supplies event metadata to that same gate and otherwise performs the locked install plus `npm run check`.
 
+## Implementation queue lifecycle
+
+`implementation_plan.md` is a temporary current/future queue, not a historical ledger. While it exists, the first task is the only selectable task; an unmet dependency blocks the queue and must not be bypassed. The controlled change that delivers a task removes that task in the same commit. If no task headings remain, that same delivery deletes the plan rather than leaving an empty placeholder.
+
+If the plan is absent, `do needful` enters fresh planning mode: re-read authoritative repository and provider state, create a new dependency-ordered task wave, and end the turn without starting its first task. Git, pull requests, CI, tags, releases, and provider evidence remain the historical record.
+
 ## Provenance exception data
 
 `docs/history/CHANGE-MAP.csv` and `docs/history/NESTED-SOURCE-MAP.csv` are exact validator inputs for imported source lineage. They are not a changelog, release archive, roadmap, or forward implementation ledger. New controlled changes do not add provenance rows merely to duplicate Git history.

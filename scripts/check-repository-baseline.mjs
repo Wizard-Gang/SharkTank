@@ -115,10 +115,12 @@ for (const row of changeMap) {
   const match = /^ST-(\d{3})$/.exec(id);
   expect(Boolean(match) && Number(match[1]) <= 28, "CHANGE-MAP.csv must not contain forward ST history: " + id);
 }
-const plan = read("implementation_plan.md");
-expect(/^###\s+ST-\d{3,}\s+—\s+\[[A-Z]+\]/m.test(plan), "active implementation plan must contain open controlled tasks");
-expect(!/^#{1,6}\s+(?:Done|Completed|History|Retrospective)\b/im.test(plan), "active implementation plan must not retain completed-task history");
-expect(!plan.includes("ST-064"), "ST-064 must be purged from implementation_plan.md");
+const planPath = join(root, "implementation_plan.md");
+if (existsSync(planPath)) {
+  const plan = read("implementation_plan.md");
+  expect(/^###\s+ST-\d{3,}\s+—\s+\[[A-Z]+\]/m.test(plan), "active implementation plan must contain open controlled tasks");
+  expect(!/^#{1,6}\s+(?:Done|Completed|History|Retrospective)\b/im.test(plan), "active implementation plan must not retain completed-task history");
+}
 expect(!read("SECURITY.md").includes("reconstructed releases"), "security policy must describe supported releases as current state");
 
 const githubSettings = json("config/github-repository-settings.json");
