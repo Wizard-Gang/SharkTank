@@ -26,7 +26,7 @@ That command is raw Wrangler on `http://127.0.0.1:8787`; it does not start the P
 - `npm run test:php` runs the PHP parity self-test and requires PHP.
 - `npm run build` creates the Vite production build locally; it does not deploy.
 - `npm run check` is the complete credential-free repository gate. It includes the tests above, the production build, repository/change/history/provenance/settings checks, local HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own Worker on port 8792.
-- An ignored `.dev.vars` can currently influence the Wrangler process used by local HTTP acceptance. Do not inspect, print, move, delete, or rewrite local secret files merely to make `npm run check` pass; that isolation gap is queued for a dedicated fix.
+- Local HTTP acceptance launches Wrangler with a temporary test-owned environment file and does not require reading, moving, deleting, or rewriting a developer's ignored `.dev.vars`.
 - `npm run check:github-settings` is read-only live provider verification and requires an admin-capable `GH_ADMIN_TOKEN` or `GH_TOKEN` with Repository Administration read access.
 - `npm run apply:github-settings` is the explicit provider mutation path, requires Repository Administration write access, and re-verifies after applying the committed settings.
 - `npm run deploy:wizardgangprod:dry-run` exercises the production deployment configuration without deploying. It still requires a semantic `SHARKTANK_RELEASE` tag at `HEAD` and `CLOUDFLARE_ACCOUNT_ID`; the deployment script may load the ignored `.env`.

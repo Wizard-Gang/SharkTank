@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 
 ## Open tasks
 
-### ST-068 — [FIX] Isolate local HTTP acceptance from developer secrets
-
-- Dependency: ST-067 merged.
-- Why: In a checkout with ignored `.dev.vars`, Wrangler loads those values during `check:local-http`; the authenticated admin acceptance then fails even though the clean CI checkout uses its deterministic test token.
-- Scope: Make the local HTTP gate use only a temporary test-owned variable source without reading, moving or printing the developer's `.dev.vars`; add a case proving the gate ignores a conflicting ignored file.
-- Non-goals: No admin auth change, production secret mutation or deletion of user files.
-- Acceptance: `npm run check:local-http` behaves the same in clean and developer-configured checkouts and never exposes local secret values.
-- Validation: Focused local-worker cases; `npm run check:local-http`; `npm run check`; `git diff --check`.
-- Authorities: `scripts/local-worker-acceptance.mjs`, `scripts/check-local-http.mjs`, Wrangler local configuration.
-
 ### ST-069 — [SEC] Refuse to stop an unowned local process
 
 - Dependency: ST-068 merged.
