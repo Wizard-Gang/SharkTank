@@ -2,19 +2,9 @@
 
 This is SharkTank's current/future process-parity wave under WG-ARCH-001 §27. The former empty placeholder is replaced by real open work. On `do needful`, re-fetch `main`, open PRs, exact-head CI and live settings; finish a current green authoritative PR first, then take only the first open task. A blocked first task is reported, not skipped. The delivering squash removes its own task and updates later scope. Delete this plan in its final delivery; Git/GitHub keep history. No task here authorizes a release or production deploy.
 
-Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run local` currently has useful whole-stack behavior but its broad `pkill`, port `kill -9`, and reset require safety work before it can become the standard `dev` entry point. Tasks are intentionally one reviewable outcome each.
+Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run local` has useful whole-stack behavior and now fails closed around process ownership; its reset still requires safety work before it can become the standard `dev` entry point. Tasks are intentionally one reviewable outcome each.
 
 ## Open tasks
-
-### ST-069 — [SEC] Refuse to stop an unowned local process
-
-- Dependency: ST-068 merged.
-- Why: `scripts/local.mjs` uses blanket `pkill -f` and `kill -9` for occupied ports, which can stop another checkout or unrelated service.
-- Scope: Replace broad process/port termination with fail-closed checkout-owned identification and a clear foreign-port error; add pure ownership tests.
-- Non-goals: No local reset change, PHP protocol change or production action.
-- Acceptance: Foreign listeners survive; only proven checkout-owned local processes may be stopped.
-- Validation: Focused ownership tests; `npm run check`; local occupied-port smoke; `git diff --check`.
-- Authorities: `scripts/local.mjs`, `scripts/php.mjs`, local HTTP acceptance tests.
 
 ### ST-070 — [FIX] Limit local reset to disposable checkout state
 

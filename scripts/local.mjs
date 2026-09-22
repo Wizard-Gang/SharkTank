@@ -3,77 +3,173 @@
 // Starts BOTH backends so the client can toggle between them (menu switch / ?api=):
 //   • PHP backend (packages/php-runtime): http://localhost:8080 · ws://localhost:8081
 //   • TS/Cloudflare backend + client: http://localhost:8787
-// Run with: npm run local   (Ctrl-C stops wrangler AND the PHP daemon)
+// Run with: npm run local   (Ctrl-C stops the managed Wrangler + PHP processes)
 import { execSync, spawn, spawnSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import {
+  createOwnershipRecord,
+  inspectProcess,
+  readOwnershipRecord,
+  removeOwnershipRecord,
+  requirePortsFree,
+  stopOwnedProcess,
+  writeOwnershipRecord,
+} from "./local-process-ownership.mjs";
 
 const PORT = 8787;
+const PHP_PORTS = [8080, 8081];
 const APP_URL = `http://localhost:${PORT}`;
+const PROJECT_ROOT = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const phpScript = fileURLToPath(new URL("./php.mjs", import.meta.url));
-const MODULE_PHP = fileURLToPath(new URL("../packages/php-runtime", import.meta.url));
+const MODULE_PHP = resolve(fileURLToPath(new URL("../packages/php-runtime", import.meta.url)));
+const WRANGLER_OWNER_FILE = join(PROJECT_ROOT, ".wrangler", "sharktank-local-owner.json");
 const HAS_PHP = existsSync(MODULE_PHP);
 
-const run = (cmd, opts = {}) => execSync(cmd, { stdio: "inherit", ...opts });
-const quiet = (cmd) => { try { execSync(cmd, { stdio: "ignore" }); } catch {} };
-const capture = (cmd) => { try { return execSync(cmd, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { return ""; } };
+const run = (cmd, opts = {}) =>
+  execSync(cmd, { cwd: PROJECT_ROOT, stdio: "inherit", ...opts });
+const quiet = (cmd) => {
+  try {
+    execSync(cmd, { cwd: PROJECT_ROOT, stdio: "ignore" });
+  } catch {
+    // Browser opening is best-effort.
+  }
+};
 const step = (msg) => console.log(`\n\x1b[35m▸ ${msg}\x1b[0m`);
-const php = (cmd) => spawnSync(process.execPath, [phpScript, cmd], { stdio: "inherit" });
+const php = (cmd) =>
+  spawnSync(process.execPath, [phpScript, cmd], { cwd: PROJECT_ROOT, stdio: "inherit" });
 
-/** Kill everything on a port and wait until it's actually free (backstop for a graceful stop). */
-async function freePort(port) {
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const pids = capture(`lsof -ti tcp:${port}`).split(/\s+/).filter(Boolean);
-    if (pids.length === 0) return;
-    quiet(`kill -9 ${pids.join(" ")}`);
-    await sleep(300);
+function signalManagedChild(child, signal) {
+  if (!child || child.exitCode !== null || !child.pid) return;
+  try {
+    if (process.platform === "win32") child.kill(signal);
+    else process.kill(-child.pid, signal);
+  } catch (error) {
+    if (error?.code !== "ESRCH") throw error;
   }
 }
 
+async function stopRecordedWrangler() {
+  const record = readOwnershipRecord(WRANGLER_OWNER_FILE);
+  if (!record) return;
+
+  const result = await stopOwnedProcess(record, {
+    kind: "wrangler",
+    root: PROJECT_ROOT,
+    cwd: PROJECT_ROOT,
+    group: true,
+  });
+  if (result.stopped || result.reason === "not-running") {
+    removeOwnershipRecord(WRANGLER_OWNER_FILE);
+    return;
+  }
+
+  console.warn(
+    "\x1b[33m⚠ Existing Wrangler ownership record could not be proven; it will not be signaled.\x1b[0m",
+  );
+}
+
+async function captureWranglerOwner(child) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const identity = inspectProcess(child.pid);
+    if (identity?.cwd === PROJECT_ROOT) {
+      return createOwnershipRecord(identity, {
+        kind: "wrangler",
+        root: PROJECT_ROOT,
+        cwd: PROJECT_ROOT,
+      });
+    }
+    if (child.exitCode !== null) break;
+    await sleep(50);
+  }
+  throw new Error("could not establish checkout ownership for the started Wrangler process");
+}
+
 // 0. First-run setup. Both runtime implementations are tracked in this repository.
-if (!existsSync("node_modules")) {
+if (!existsSync(join(PROJECT_ROOT, "node_modules"))) {
   step("Installing dependencies (first run)");
   run("npm install");
 }
 
-// 1. TEARDOWN — stop both backends + free every port
-step("Teardown: stopping any running servers (TS :8787" + (HAS_PHP ? ", PHP :8080/:8081)" : ")"));
-quiet(`pkill -f 'wrangler dev'`);
-quiet(`pkill -f 'miniflare'`);
-if (HAS_PHP) php("stop"); // graceful Workerman stop
-await freePort(PORT);
-if (HAS_PHP) { await freePort(8080); await freePort(8081); }
+// 1. TEARDOWN — stop only processes whose ownership by this checkout is proven.
+step("Teardown: stopping checkout-owned local servers only");
+await stopRecordedWrangler();
+if (HAS_PHP) {
+  const stopped = php("stop");
+  if (stopped.error) throw stopped.error;
+  if (stopped.status !== 0) {
+    throw new Error("PHP backend stop refused because checkout ownership was not proven");
+  }
+}
+await requirePortsFree([PORT, ...(HAS_PHP ? PHP_PORTS : [])]);
 
-// 2. RESET — clear built assets + ALL local runtime state (Durable Object + PHP data)
+// 2. RESET — current behavior retained for ST-070 to harden separately.
 step("Reset: clearing dist/, .wrangler/, and PHP data/");
-rmSync("dist", { recursive: true, force: true });
-rmSync(".wrangler", { recursive: true, force: true });
-if (HAS_PHP) rmSync(`${MODULE_PHP}/data`, { recursive: true, force: true });
+rmSync(join(PROJECT_ROOT, "dist"), { recursive: true, force: true });
+rmSync(join(PROJECT_ROOT, ".wrangler"), { recursive: true, force: true });
+if (HAS_PHP) rmSync(join(MODULE_PHP, "data"), { recursive: true, force: true });
 
-// 3. BUILD — the client bundle (served by both backends' clients)
+// 3. BUILD — the client bundle (served by both backends' clients).
 step("Build: vite build");
 run("npx vite build");
 
-// 4. START PHP backend (daemonized); non-fatal if php/composer are missing
+// 4. START PHP backend (daemonized); non-fatal if php/composer are missing.
 if (HAS_PHP) {
   step("Start: PHP backend (packages/php-runtime)");
-  if (php("start").status !== 0) {
-    console.warn("\x1b[33m⚠ PHP backend didn't start (php/composer installed?). Continuing with TS only.\x1b[0m");
+  const started = php("start");
+  if (started.error) throw started.error;
+  if (started.status !== 0) {
+    console.warn(
+      "\x1b[33m⚠ PHP backend didn't start (php/composer installed?). Continuing with TS only.\x1b[0m",
+    );
   }
 }
 
-// 5. OPEN — pop the browser once the TS server has had a moment to boot
+// 5. START — TS/Cloudflare server in the foreground.
+step(`Start: wrangler dev  ->  ${APP_URL}   (toggle backend from the menu)`);
+const child = spawn("npx", ["wrangler", "dev", "--port", String(PORT)], {
+  cwd: PROJECT_ROOT,
+  stdio: "inherit",
+  detached: process.platform !== "win32",
+});
+
+try {
+  const ownerRecord = await captureWranglerOwner(child);
+  writeOwnershipRecord(WRANGLER_OWNER_FILE, ownerRecord);
+} catch (error) {
+  signalManagedChild(child, "SIGTERM");
+  if (HAS_PHP) php("stop");
+  throw error;
+}
+
+// 6. OPEN — current fixed-delay behavior is intentionally left for ST-072.
 setTimeout(() => {
-  const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+  const opener =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
   quiet(`${opener} ${APP_URL}`);
 }, 4000);
 
-// 6. START — TS/Cloudflare server in the foreground (Ctrl-C to stop). Stop PHP on exit.
-step(`Start: wrangler dev  ->  ${APP_URL}   (toggle backend from the menu)`);
-const child = spawn("npx", ["wrangler", "dev", "--port", String(PORT)], { stdio: "inherit" });
 let stopped = false;
-const stopPhp = () => { if (stopped || !HAS_PHP) return; stopped = true; php("stop"); };
-child.on("exit", (code) => { stopPhp(); process.exit(code ?? 0); });
-process.on("SIGINT", () => child.kill("SIGINT"));
-process.on("exit", stopPhp);
+const clearWranglerOwner = () => removeOwnershipRecord(WRANGLER_OWNER_FILE);
+const stopPhp = () => {
+  if (stopped || !HAS_PHP) return;
+  stopped = true;
+  const result = php("stop");
+  if (result.status !== 0) {
+    console.error("\x1b[31m✘ PHP stop refused because ownership could not be proven.\x1b[0m");
+  }
+};
+
+child.on("exit", (code) => {
+  clearWranglerOwner();
+  stopPhp();
+  process.exit(code ?? 0);
+});
+process.on("SIGINT", () => signalManagedChild(child, "SIGINT"));
+process.on("SIGTERM", () => signalManagedChild(child, "SIGTERM"));
+process.on("exit", () => {
+  clearWranglerOwner();
+  stopPhp();
+});

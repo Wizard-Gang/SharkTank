@@ -18,7 +18,7 @@ npm run dev
 
 That command is raw Wrangler on `http://127.0.0.1:8787`; it does not start the PHP backend. Local admin credentials, when needed, belong in ignored `.dev.vars`, not in tracked files.
 
-`npm run local` is a different, whole-stack convenience command. Today it performs broad process teardown, can force-kill listeners on ports 8787/8080/8081, deletes `dist/`, `.wrangler/`, and PHP `data/`, builds, starts the PHP backend when available, opens a browser after a fixed delay, and then runs Wrangler. Use it only when that destructive reset is intentional; later work is queued to make this lifecycle safer.
+`npm run local` is a different, whole-stack convenience command. It now stops only processes positively identified as belonging to this checkout's managed Wrangler or Workerman lifecycle and fails closed when ports 8787/8080/8081 are occupied by anything else. It still deletes `dist/`, `.wrangler/`, and PHP `data/`, builds, starts the PHP backend when available, opens a browser after a fixed delay, and then runs Wrangler. Use it only when that destructive reset is intentional; the reset policy is queued for separate hardening.
 
 ## Validation and operations commands
 
