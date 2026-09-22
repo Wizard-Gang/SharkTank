@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 
 ## Open tasks
 
-### ST-067 — [DOCS] Explain the local and acceptance command map
-
-- Dependency: ST-066 merged.
-- Why: `dev` is raw Wrangler while `local` does whole-stack teardown/reset/build/start; `check` is broad, but those differences are not clearly documented at the point of use.
-- Scope: Add concise, truthful README/CONTRIBUTING guidance for `dev`, `local`, `test`, `test:php`, `build`, `check`, provider settings, dry-run deploy and tag release, including current unsafe `local` behavior pending its later tasks.
-- Non-goals: No script behavior change.
-- Acceptance: A fresh agent can identify every command's prerequisites and side effects without confusing validation with production mutation.
-- Validation: Compare with `package.json`, workflows and scripts; `npm run check`; `git diff --check`.
-- Authorities: `README.md`, `CONTRIBUTING.md`, WG-ARCH-001 §27.
-
 ### ST-068 — [FIX] Isolate local HTTP acceptance from developer secrets
 
 - Dependency: ST-067 merged.
