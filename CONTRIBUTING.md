@@ -16,9 +16,9 @@ For normal development, run:
 npm run dev
 ```
 
-That is the standard whole-stack lifecycle. It uses `scripts/local.mjs`, stops only processes positively identified as belonging to this checkout's managed Wrangler or Workerman lifecycle, fails closed when ports 8787/8080/8081 are occupied by anything else, clears only validated disposable `dist/` and `.wrangler/` state by default, preserves `packages/php-runtime/data/`, builds, starts the PHP backend when available, opens a browser after the current fixed delay, and runs Wrangler.
+That is the standard whole-stack lifecycle. It uses `scripts/local.mjs`, stops only processes positively identified as belonging to this checkout's managed Wrangler or Workerman lifecycle, fails closed when ports 8787/8080/8081 are occupied by anything else, clears only validated disposable `dist/` and `.wrangler/` state by default, preserves `packages/php-runtime/data/`, builds, starts the PHP backend when available, starts Wrangler, waits for bounded HTTP readiness on port 8787, and only then reports/opens the application URL. For headless/cloud development, use exactly `npm run dev -- --no-open`; readiness and every other lifecycle control still run, and only browser launch is suppressed.
 
-`npm run local` remains a compatibility/explicit whole-stack alias to the same implementation. To deliberately clear PHP application state, use exactly `npm run local -- --reset-php-data`; the option authorizes only this checkout's canonical PHP data directory, and containment/symlink validation happens before any reset mutation.
+`npm run local` remains a compatibility/explicit whole-stack alias to the same implementation; its exact headless form is `npm run local -- --no-open`. To deliberately clear PHP application state, use exactly `npm run local -- --reset-php-data`; the option authorizes only this checkout's canonical PHP data directory, and containment/symlink validation happens before any reset mutation.
 
 For a deliberately narrow TypeScript/Cloudflare Worker-only session, use `npm run dev:worker`. It starts raw Wrangler on `http://127.0.0.1:8787` without the PHP lifecycle or whole-stack reset. `npm start` preserves its prior Worker-only behavior by delegating to `dev:worker`. Local admin credentials, when needed, belong in ignored `.dev.vars`, not in tracked files.
 

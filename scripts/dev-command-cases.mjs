@@ -6,6 +6,7 @@ const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const localSource = readFileSync(new URL("./local.mjs", import.meta.url), "utf8");
+const readinessSource = readFileSync(new URL("./local-readiness.mjs", import.meta.url), "utf8");
 
 test("dev and local share the one safe whole-stack lifecycle implementation", () => {
   assert.equal(packageJson.scripts.dev, "node scripts/local.mjs");
@@ -25,6 +26,7 @@ test("the dev lifecycle retains ST-069 ownership and fail-closed port boundaries
     "await requirePortsFree",
     "createOwnershipRecord",
     "writeOwnershipRecord",
+    "await stopOwnedWrangler(ownerRecord)",
   ]) {
     assert.equal(localSource.includes(marker), true, marker);
   }
@@ -34,13 +36,34 @@ test("the dev lifecycle retains ST-069 ownership and fail-closed port boundaries
 });
 
 test("the dev lifecycle retains ST-070 default-preserving reset and exact opt-in parsing", () => {
-  assert.equal(localSource.includes("parseLocalResetArgs(process.argv.slice(2))"), true);
+  assert.equal(localSource.includes("parseLocalLifecycleArgs(process.argv.slice(2))"), true);
+  assert.equal(readinessSource.includes("...parseLocalResetArgs(resetArgs)"), true);
   assert.equal(localSource.includes("createLocalResetPlan(PROJECT_ROOT, { resetPhpData })"), true);
   assert.equal(localSource.includes("executeLocalResetPlan(resetPlan)"), true);
   assert.equal(localSource.includes("preserving PHP data/"), true);
 });
 
-test("ST-072 browser readiness work remains out of scope", () => {
-  assert.equal(localSource.includes("setTimeout(() => {"), true);
-  assert.equal(localSource.includes("}, 4000);"), true);
+test("foreign-port refusal and reset validation remain before Wrangler startup and readiness", () => {
+  const ports = localSource.indexOf("await requirePortsFree");
+  const reset = localSource.indexOf("executeLocalResetPlan(resetPlan)");
+  const spawn = localSource.indexOf('spawn("npx", ["wrangler", "dev"');
+  const readiness = localSource.indexOf("waitForHttpReady({");
+  assert.ok(ports > 0 && ports < reset);
+  assert.ok(reset < spawn);
+  assert.ok(spawn < readiness);
+});
+
+test("readiness failure cleanup reuses checkout-owned process handling", () => {
+  const cleanup = localSource.indexOf("async function cleanupFailedStartup(ownerRecord)");
+  assert.ok(cleanup > 0);
+  assert.ok(localSource.indexOf("await stopOwnedWrangler(ownerRecord)", cleanup) > cleanup);
+  assert.ok(localSource.indexOf('php("stop")', cleanup) > cleanup);
+  assert.equal(localSource.includes('signalManagedChild(child, "SIGKILL")'), false);
+});
+
+test("fixed-delay browser opening is gone and readiness owns browser ordering", () => {
+  assert.equal(localSource.includes("setTimeout(() => {"), false);
+  assert.equal(localSource.includes("}, 4000);"), false);
+  assert.equal(localSource.includes("waitForReadinessAndMaybeOpen({"), true);
+  assert.equal(localSource.includes("noOpen,"), true);
 });
