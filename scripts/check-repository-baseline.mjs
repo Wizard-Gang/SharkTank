@@ -145,13 +145,15 @@ has(release, "npm run deploy:wizardgangprod", "release workflow must own product
 const deploy = read("scripts/deploy-prod.mjs");
 has(deploy, "SHARKTANK_RELEASE", "deployment must bind to release identity");
 has(deploy, "tagsAtHead.includes(release)", "deployment must require the release tag at HEAD");
-expect(packageJson.scripts?.dev === "wrangler dev --port 8787", "dev must remain local-only Wrangler");
-expect(packageJson.scripts?.start === "wrangler dev --port 8787", "start must remain local-only Wrangler");
+expect(packageJson.scripts?.dev === "node scripts/local.mjs", "dev must use the safe whole-stack lifecycle");
+expect(packageJson.scripts?.local === packageJson.scripts?.dev, "local and dev must share one lifecycle implementation");
+expect(packageJson.scripts?.["dev:worker"] === "wrangler dev --port 8787", "dev:worker must be the explicit Worker-only path");
+expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve Worker-only behavior through the explicit command");
 
 for (const requiredCheck of [
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
-  "npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
+  "npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
 ]) has(packageJson.scripts?.check ?? "", requiredCheck, "npm run check must remain complete");
 
 if (failures.length) {
