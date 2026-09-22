@@ -18,6 +18,9 @@ use ModulePHP\Server\HttpServer;
 use ModulePHP\Store\FileBlobStore;
 use Workerman\Worker;
 
+// Keep the daemon identity checkout-local so stop/status never rely on a shared/default pid path.
+Worker::$pidFile = __DIR__ . '/.workerman.pid';
+
 $store = new FileBlobStore(__DIR__ . '/data');
 
 // Realtime game (the "Room Durable Object")
