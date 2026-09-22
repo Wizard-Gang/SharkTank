@@ -39,7 +39,7 @@ jobs:
 
   deploy-production:
     if: vars.PRODUCTION_DEPLOY_ENABLED == 'true'
-    needs: verify
+    needs: publish-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production

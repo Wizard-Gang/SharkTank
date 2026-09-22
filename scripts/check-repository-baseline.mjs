@@ -142,6 +142,7 @@ has(release, "tags:", "release workflow must be tag driven");
 has(release, '"v[0-9]+.[0-9]+.[0-9]+"', "release workflow must target semantic version tags");
 has(release, "environment: production", "production deploy must use the protected production environment");
 has(release, "npm run deploy:wizardgangprod", "release workflow must own production deployment");
+expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 const deploy = read("scripts/deploy-prod.mjs");
 has(deploy, "SHARKTANK_RELEASE", "deployment must bind to release identity");
 has(deploy, "tagsAtHead.includes(release)", "deployment must require the release tag at HEAD");
@@ -153,7 +154,7 @@ expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/l
 
 for (const requiredCheck of [
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
-  "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
+  "npm run check:release-workflow","npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
   "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
 ]) has(packageJson.scripts?.check ?? "", requiredCheck, "npm run check must remain complete");
 
