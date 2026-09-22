@@ -3,7 +3,7 @@
 // Starts BOTH backends so the client can toggle between them (menu switch / ?api=):
 //   • PHP backend (packages/php-runtime): http://localhost:8080 · ws://localhost:8081
 //   • TS/Cloudflare backend + client: http://localhost:8787
-// Run with: npm run local   (Ctrl-C stops the managed Wrangler + PHP processes)
+// Run with: npm run dev (npm run local is the compatibility alias); Ctrl-C stops managed Wrangler + PHP processes.
 import { execSync, spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
