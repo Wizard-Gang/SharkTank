@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 
 ## Open tasks
 
-### ST-074 — [BUILD] Prove annotated tag and package identity before publication
-
-- Dependency: ST-073 merged.
-- Why: The release workflow runs `check` and `gh release --verify-tag`, but does not itself prove annotation, exact checkout and `package.json` version agreement before publication.
-- Scope: Add a reusable exact-tag identity validation step for the tag event; keep `vMAJOR.MINOR.PATCH` and the existing deploy script's independent guard.
-- Non-goals: No tag creation, version bump, release publication or provider mutation.
-- Acceptance: Lightweight, mismatched and wrong-version tags fail before GitHub Release creation.
-- Validation: Focused identity tests; `npm run check`; `git diff --check`.
-- Authorities: `.github/workflows/release.yml`, `scripts/deploy-prod.mjs`.
-
 ### ST-075 — [TEST] Guard release and one-task process boundaries
 
 - Dependency: ST-074 merged.
