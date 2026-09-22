@@ -5,7 +5,7 @@
 //   • TS/Cloudflare backend + client: http://localhost:8787
 // Run with: npm run local   (Ctrl-C stops the managed Wrangler + PHP processes)
 import { execSync, spawn, spawnSync } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,11 @@ import {
   stopOwnedProcess,
   writeOwnershipRecord,
 } from "./local-process-ownership.mjs";
+import {
+  createLocalResetPlan,
+  executeLocalResetPlan,
+  parseLocalResetArgs,
+} from "./local-reset.mjs";
 
 const PORT = 8787;
 const PHP_PORTS = [8080, 8081];
@@ -27,6 +32,7 @@ const phpScript = fileURLToPath(new URL("./php.mjs", import.meta.url));
 const MODULE_PHP = resolve(fileURLToPath(new URL("../packages/php-runtime", import.meta.url)));
 const WRANGLER_OWNER_FILE = join(PROJECT_ROOT, ".wrangler", "sharktank-local-owner.json");
 const HAS_PHP = existsSync(MODULE_PHP);
+const { resetPhpData } = parseLocalResetArgs(process.argv.slice(2));
 
 const run = (cmd, opts = {}) =>
   execSync(cmd, { cwd: PROJECT_ROOT, stdio: "inherit", ...opts });
@@ -103,13 +109,21 @@ if (HAS_PHP) {
     throw new Error("PHP backend stop refused because checkout ownership was not proven");
   }
 }
+if (existsSync(WRANGLER_OWNER_FILE)) {
+  throw new Error(
+    "Wrangler ownership remains ambiguous for this checkout; refusing to reset .wrangler/.",
+  );
+}
 await requirePortsFree([PORT, ...(HAS_PHP ? PHP_PORTS : [])]);
 
-// 2. RESET — current behavior retained for ST-070 to harden separately.
-step("Reset: clearing dist/, .wrangler/, and PHP data/");
-rmSync(join(PROJECT_ROOT, "dist"), { recursive: true, force: true });
-rmSync(join(PROJECT_ROOT, ".wrangler"), { recursive: true, force: true });
-if (HAS_PHP) rmSync(join(MODULE_PHP, "data"), { recursive: true, force: true });
+// 2. RESET — clear only positively classified checkout-local state.
+const resetPlan = createLocalResetPlan(PROJECT_ROOT, { resetPhpData });
+step(
+  resetPhpData
+    ? "Reset: clearing disposable dist/ and .wrangler/ plus explicitly requested PHP data/"
+    : "Reset: clearing disposable dist/ and .wrangler/; preserving PHP data/",
+);
+executeLocalResetPlan(resetPlan);
 
 // 3. BUILD — the client bundle (served by both backends' clients).
 step("Build: vite build");

@@ -2,19 +2,9 @@
 
 This is SharkTank's current/future process-parity wave under WG-ARCH-001 §27. The former empty placeholder is replaced by real open work. On `do needful`, re-fetch `main`, open PRs, exact-head CI and live settings; finish a current green authoritative PR first, then take only the first open task. A blocked first task is reported, not skipped. The delivering squash removes its own task and updates later scope. Delete this plan in its final delivery; Git/GitHub keep history. No task here authorizes a release or production deploy.
 
-Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run local` has useful whole-stack behavior and now fails closed around process ownership; its reset still requires safety work before it can become the standard `dev` entry point. Tasks are intentionally one reviewable outcome each.
+Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, dependency audit, provider settings, protected production environment, immutable release tags and Cloudflare deployed-version confirmation. `npm run local` now fails closed around process ownership, clears only validated disposable checkout state by default, and preserves PHP developer data unless the exact destructive opt-in is supplied. It is ready for the next task to make it the standard `dev` entry point. Tasks are intentionally one reviewable outcome each.
 
 ## Open tasks
-
-### ST-070 — [FIX] Limit local reset to disposable checkout state
-
-- Dependency: ST-069 merged.
-- Why: `npm run local` currently removes `dist`, `.wrangler` and PHP `data` unconditionally; the last may contain developer state.
-- Scope: Classify reset targets, preserve non-disposable/user state by default, and require an explicit narrow opt-in for any destructive PHP-data reset; test path containment and refusal.
-- Non-goals: No game/data migration or broad directory deletion.
-- Acceptance: Default local startup cannot erase PHP user state or any path outside this checkout.
-- Validation: Focused reset tests; `npm run check`; `git diff --check`.
-- Authorities: `scripts/local.mjs`, `packages/php-runtime`, `README.md`.
 
 ### ST-071 — [BUILD] Make `dev` the safe whole-stack entry point
 
