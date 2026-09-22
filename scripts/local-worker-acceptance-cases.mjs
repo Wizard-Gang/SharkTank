@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  createAcceptanceEnvFile,
   localWorkerEnvironment,
   runLocalHttpAcceptance,
   signalWorkerGroup,
@@ -98,13 +102,17 @@ test("Unix cleanup signals only the spawned process group", () => {
   assert.deepEqual(calls, [[-9876, "SIGTERM"]]);
 });
 
-test("local Worker environment strips Cloudflare provider credentials", () => {
+test("local Worker environment strips provider and developer auth inputs", () => {
   const env = localWorkerEnvironment({
     PATH: "/bin",
-    CLOUDFLARE_API_TOKEN: "secret",
-    CLOUDFLARE_API_KEY: "secret",
-    CLOUDFLARE_ACCOUNT_ID: "secret",
-    CLOUDFLARE_EMAIL: "secret",
+    CLOUDFLARE_API_TOKEN: "provider-token",
+    CLOUDFLARE_API_KEY: "provider-key",
+    CLOUDFLARE_ACCOUNT_ID: "provider-account",
+    CLOUDFLARE_EMAIL: "provider-email",
+    CLOUDFLARE_INCLUDE_PROCESS_ENV: "true",
+    CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false",
+    OPS_TOKEN: "developer-token",
+    OPS_USERNAME: "developer-user",
   });
   assert.equal(env.PATH, "/bin");
   assert.equal(env.CI, "1");
@@ -112,22 +120,87 @@ test("local Worker environment strips Cloudflare provider credentials", () => {
   assert.equal(env.CLOUDFLARE_API_KEY, undefined);
   assert.equal(env.CLOUDFLARE_ACCOUNT_ID, undefined);
   assert.equal(env.CLOUDFLARE_EMAIL, undefined);
+  assert.equal(env.OPS_TOKEN, undefined);
+  assert.equal(env.OPS_USERNAME, undefined);
+  assert.equal(env.CLOUDFLARE_INCLUDE_PROCESS_ENV, "false");
+  assert.equal(env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV, undefined);
 });
 
-test("local Worker receives only a deterministic acceptance auth token", () => {
-  let invocation;
+test("acceptance uses an explicit test-owned env file beside a conflicting ignored fixture", () => {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "sharktank-local-http-case-"));
+  try {
+    writeFileSync(
+      join(fixtureRoot, ".dev.vars"),
+      'OPS_TOKEN="fixture-conflict"\nOPS_USERNAME="fixture-user"\n',
+      { encoding: "utf8", mode: 0o600 },
+    );
+    const acceptanceEnv = createAcceptanceEnvFile({ tempRoot: fixtureRoot });
+    try {
+      let invocation;
+      const child = fakeChild();
+      startLocalWorker({
+        port: 8792,
+        envFilePath: acceptanceEnv.path,
+        projectRoot: fixtureRoot,
+        spawnFn: (command, args, options) => {
+          invocation = { command, args, options };
+          return child;
+        },
+      });
+
+      assert.equal(invocation.command, process.execPath);
+      assert.equal(invocation.options.cwd, fixtureRoot);
+      assert.ok(invocation.args.includes("--local"));
+      assert.deepEqual(
+        invocation.args.slice(-4),
+        ["--port", "8792", "--env-file", acceptanceEnv.path],
+      );
+      assert.equal(invocation.args.includes("--var"), false);
+      assert.notEqual(acceptanceEnv.path, join(fixtureRoot, ".dev.vars"));
+    } finally {
+      const path = acceptanceEnv.path;
+      acceptanceEnv.dispose();
+      assert.equal(existsSync(path), false);
+    }
+  } finally {
+    rmSync(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test("test-owned env file is disposed when Worker startup fails", async () => {
+  let disposed = 0;
+  await assert.rejects(
+    runLocalHttpAcceptance({
+      portAvailableFn: async () => true,
+      createAcceptanceEnvFileFn: () => ({
+        path: "/test-owned/acceptance.env",
+        dispose: () => { disposed += 1; },
+      }),
+      startWorkerFn: () => { throw new Error("spawn failed"); },
+      sleepFn: async () => {},
+    }),
+    /spawn failed/,
+  );
+  assert.equal(disposed, 1);
+});
+
+test("test-owned env file is disposed after successful acceptance", async () => {
   const child = fakeChild();
-  startLocalWorker({
-    port: 8792,
-    spawnFn: (command, args, options) => {
-      invocation = { command, args, options };
+  let disposed = 0;
+  await runLocalHttpAcceptance({
+    portAvailableFn: async () => true,
+    createAcceptanceEnvFileFn: () => ({
+      path: "/test-owned/acceptance.env",
+      dispose: () => { disposed += 1; },
+    }),
+    startWorkerFn: ({ envFilePath }) => {
+      assert.equal(envFilePath, "/test-owned/acceptance.env");
       return child;
     },
+    waitForReadyFn: async () => {},
+    runChecksFn: async () => {},
+    stopWorkerFn: async () => { child.exitCode = 0; },
+    sleepFn: async () => {},
   });
-  assert.equal(invocation.command, process.execPath);
-  assert.deepEqual(
-    invocation.args.slice(-4),
-    ["--port", "8792", "--var", "OPS_TOKEN:local-acceptance-only"],
-  );
-  assert.ok(invocation.args.includes("--local"));
+  assert.equal(disposed, 1);
 });

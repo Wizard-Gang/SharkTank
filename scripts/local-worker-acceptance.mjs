@@ -1,10 +1,42 @@
 import { spawn, spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer } from "node:net";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 export const LOCAL_ACCEPTANCE_PORT = 8792;
 export const LOCAL_ACCEPTANCE_HOST = "127.0.0.1";
+const LOCAL_ACCEPTANCE_TOKEN = "local-acceptance-only";
+const PROJECT_ROOT = fileURLToPath(new URL("../", import.meta.url));
+
+export function createAcceptanceEnvFile({
+  tempRoot = tmpdir(),
+  mkdtempFn = mkdtempSync,
+  writeFileFn = writeFileSync,
+  rmFn = rmSync,
+} = {}) {
+  const directory = mkdtempFn(join(tempRoot, "sharktank-local-http-"));
+  const path = join(directory, "acceptance.env");
+
+  try {
+    writeFileFn(path, `OPS_TOKEN=${JSON.stringify(LOCAL_ACCEPTANCE_TOKEN)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+  } catch (error) {
+    rmFn(directory, { recursive: true, force: true });
+    throw error;
+  }
+
+  return {
+    path,
+    dispose() {
+      rmFn(directory, { recursive: true, force: true });
+    },
+  };
+}
 
 export async function isPortAvailable(port, { host = LOCAL_ACCEPTANCE_HOST } = {}) {
   return await new Promise((resolve, reject) => {
@@ -96,17 +128,31 @@ export async function stopWorker(
 }
 
 export function localWorkerEnvironment(source = process.env) {
-  const env = { ...source, CI: "1" };
+  const env = {
+    ...source,
+    CI: "1",
+    CLOUDFLARE_INCLUDE_PROCESS_ENV: "false",
+  };
   for (const name of [
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_API_KEY",
     "CLOUDFLARE_ACCOUNT_ID",
     "CLOUDFLARE_EMAIL",
+    "CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV",
+    "OPS_TOKEN",
+    "OPS_USERNAME",
   ]) delete env[name];
   return env;
 }
 
-export function startLocalWorker({ port = LOCAL_ACCEPTANCE_PORT, spawnFn = spawn } = {}) {
+export function startLocalWorker({
+  port = LOCAL_ACCEPTANCE_PORT,
+  envFilePath,
+  projectRoot = PROJECT_ROOT,
+  spawnFn = spawn,
+} = {}) {
+  if (!envFilePath) throw new Error("local acceptance requires an explicit test-owned env file");
+
   const wrangler = fileURLToPath(
     new URL("../node_modules/wrangler/bin/wrangler.js", import.meta.url),
   );
@@ -118,10 +164,11 @@ export function startLocalWorker({ port = LOCAL_ACCEPTANCE_PORT, spawnFn = spawn
       "--local",
       "--port",
       String(port),
-      "--var",
-      "OPS_TOKEN:local-acceptance-only",
+      "--env-file",
+      envFilePath,
     ],
     {
+      cwd: projectRoot,
       stdio: "inherit",
       detached: process.platform !== "win32",
       env: localWorkerEnvironment(),
@@ -155,9 +202,14 @@ async function waitForPortRelease(
   return false;
 }
 
+function appendFailure(failure, error, message) {
+  return failure ? new AggregateError([failure, error], message) : error;
+}
+
 export async function runLocalHttpAcceptance({
   port = LOCAL_ACCEPTANCE_PORT,
   portAvailableFn = isPortAvailable,
+  createAcceptanceEnvFileFn = createAcceptanceEnvFile,
   startWorkerFn = startLocalWorker,
   waitForReadyFn = waitForReady,
   runChecksFn = runHttpAcceptanceChecks,
@@ -171,11 +223,13 @@ export async function runLocalHttpAcceptance({
   }
 
   const baseUrl = `http://${LOCAL_ACCEPTANCE_HOST}:${port}`;
+  let acceptanceEnv;
   let child;
   let failure;
 
   try {
-    child = startWorkerFn({ port });
+    acceptanceEnv = createAcceptanceEnvFileFn();
+    child = startWorkerFn({ port, envFilePath: acceptanceEnv.path });
     await waitForReadyFn({ baseUrl, child });
     await runChecksFn(baseUrl);
   } catch (error) {
@@ -185,9 +239,19 @@ export async function runLocalHttpAcceptance({
       try {
         await stopWorkerFn(child);
       } catch (stopError) {
-        failure = failure
-          ? new AggregateError([failure, stopError], "local acceptance and cleanup both failed")
-          : stopError;
+        failure = appendFailure(failure, stopError, "local acceptance and Worker cleanup both failed");
+      }
+    }
+
+    if (acceptanceEnv) {
+      try {
+        acceptanceEnv.dispose();
+      } catch (envCleanupError) {
+        failure = appendFailure(
+          failure,
+          envCleanupError,
+          "local acceptance and test environment cleanup both failed",
+        );
       }
     }
   }
@@ -197,9 +261,7 @@ export async function runLocalHttpAcceptance({
     const releaseError = new Error(
       `local acceptance port ${port} remained occupied after Worker cleanup`,
     );
-    failure = failure
-      ? new AggregateError([failure, releaseError], "local acceptance cleanup failed")
-      : releaseError;
+    failure = appendFailure(failure, releaseError, "local acceptance cleanup failed");
   }
 
   if (failure) throw failure;
