@@ -11,11 +11,71 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance, depende
 - Dependency: ST-074 merged.
 - Why: The release ordering/tag rules and plan lifecycle should fail visibly if a later edit regresses them.
 - Scope: Add narrow, behavior-oriented tests for release job ordering and current/future plan semantics; keep the existing change-contract/history validators authoritative.
-- Non-goals: No prose snapshot, runtime change or provider mutation. Delete this plan in the delivering PR unless fresh work is explicitly planned.
+- Non-goals: No prose snapshot, runtime change or provider mutation. Do not delete the plan here; later convergence tasks remain.
 - Acceptance: A lost publication prerequisite or retained completed task produces a focused failure without freezing harmless wording.
 - Validation: Focused process/release tests; `npm run check`; `git diff --check`.
 - Authorities: `.github/workflows/release.yml`, `AGENTS.md`, plan validation scripts.
 
+### ST-077 — [BUILD] Align Node and npm with the shared baseline
+
+- Dependency: ST-075 merged.
+- Why: SharkTank is pinned to Node 26.9.0 and npm 11.19.1 while the active repositories are converging on one exact organization toolchain authority.
+- Scope: Re-fetch the current organization baseline and update `.node-version`, `packageManager`, engine policy, lockfile metadata, CI/release setup and current docs together so local, PR, release and deploy jobs resolve the same exact supported pair. Do not independently invent a patch version if the shared baseline has moved.
+- Non-goals: No dependency-upgrade wave, product behavior change, release or production deployment.
+- Acceptance: `npm ci`, canonical acceptance, CI and release/deploy jobs use the same organization-standard Node/npm pair and mismatched runtimes fail clearly.
+- Validation: Toolchain-focused checks as needed; `npm ci`; `npm run check`; `git diff --check`.
+- Authorities: organization baseline, `.node-version`, `package.json`, `.npmrc`, CI and release workflows.
+
+### ST-078 — [BUILD] Standardize the GitHub settings CLI contract
+
+- Dependency: ST-077 merged.
+- Why: SharkTank already has pure settings tests plus read-only and apply commands, but its read-only command is named `check:github-settings` while the shared normalized command surface is test / verify / apply.
+- Scope: Expose `test:github-settings`, `verify:github-settings` and `apply:github-settings` as the canonical command contract; preserve compatibility only where useful and update current documentation/validators to use the normalized names.
+- Non-goals: Do not mutate GitHub from `npm run check`; no provider-policy change, release or deploy.
+- Acceptance: Pure settings tests remain credential-free; `verify:github-settings` is read-only; `apply:github-settings` is the only explicit mutating path and independently re-verifies after apply.
+- Validation: Settings CLI cases; `npm run check`; credential-free command paths; `git diff --check`.
+- Authorities: `package.json`, settings scripts, committed repository-settings authority.
+
+### ST-079 — [TEST] Complete repository-ruleset drift coverage
+
+- Dependency: ST-078 merged.
+- Why: Live provider state currently matches the high-level committed authority, but the comparison must prove every material field that protects controlled merges and immutable release tags rather than only rule names.
+- Scope: Add focused pure cases for merge toggles, delete-branch behavior, required status-check identity, ruleset enforcement/target/include conditions and material rule configuration. Keep live provider verification separate from canonical acceptance.
+- Non-goals: No provider mutation or new protection policy.
+- Acceptance: Pure tests fail for each material drift that would weaken squash-only delivery, required exact-head verification, main protection or immutable `v*` tags while accepting harmless provider metadata differences.
+- Validation: Focused settings cases; `npm run check`; `git diff --check`.
+- Authorities: `config/github-repository-settings.json`, settings comparator/tests, live ruleset schema.
+
+### ST-080 — [BUILD] Separate dependency advisories from canonical acceptance
+
+- Dependency: ST-079 merged.
+- Why: `npm run check` is documented as the complete credential-free repository gate but currently invokes live `npm audit`, mixing deterministic repository acceptance with a changing network advisory source.
+- Scope: Remove live advisory lookup from canonical `check`; retain deterministic advisory-classification behavior/tests inside the repository gate; expose a named network advisory command and run it as an explicit CI/release gate using the shared severity policy.
+- Non-goals: No ignored advisory, severity downgrade or dependency remediation unless current live evidence requires a separate controlled task.
+- Acceptance: `npm run check` is deterministic with respect to repository inputs; network advisory status remains an explicit required provider gate and cannot silently disappear.
+- Validation: Advisory classifier cases; `npm run check`; explicit network advisory command; exact-head CI; `git diff --check`.
+- Authorities: `package.json`, CI/release workflows, dependency-advisory scripts/tests, organization baseline.
+
+### ST-081 — [REFACTOR] Make production deployment a reusable release stage
+
+- Dependency: ST-080 merged.
+- Why: SharkTank already enforces publication-before-production and exact release-tag deployment, but the production job is embedded directly in `release.yml` while the normalized deployable-repository shape separates release authority from a reusable deploy workflow.
+- Scope: Extract the existing production deployment behavior into a reusable `deploy.yml` called only after GitHub Release publication. Preserve `PRODUCTION_DEPLOY_ENABLED`, the protected `production` environment, Cloudflare secret boundary, exact release tag at HEAD, deployed Version ID proof, 100% traffic proof and current public-evidence limitation handling.
+- Non-goals: No production deployment during the task, no secret mutation, no domain/runtime/protocol behavior change, and no weakening of release prerequisites.
+- Acceptance: Release verification -> GitHub Release publication -> reusable production deploy is the only production path; deploy cannot run from arbitrary `main` or before publication.
+- Validation: Release/deploy dependency tests; canonical `npm run check`; workflow review; exact-head CI; `git diff --check`.
+- Authorities: `.github/workflows/release.yml`, new reusable deploy workflow, deployment scripts, production environment policy.
+
+### ST-082 — [DOCS] Complete shared process-parity acceptance
+
+- Dependency: ST-081 merged.
+- Why: The convergence wave should end with one fresh repository/provider comparison rather than relying on assumptions accumulated across individual tasks.
+- Scope: Re-audit Node/npm authority, canonical acceptance, advisory-network gate, controlled history, exact-head and merged-main CI, squash-only merging, automatic branch cleanup, GitHub settings CLI, live rulesets, annotated semantic-tag identity, GitHub Release publication, reusable exact-tag production deployment and current-state documentation. Delete `implementation_plan.md` in this delivery when all applicable evidence is green.
+- Non-goals: No feature work, package-version bump, tag creation, release publication or production deployment solely to satisfy the audit.
+- Acceptance: Fresh repository and provider evidence show SharkTank follows the shared npm -> controlled merge -> provider CLI -> annotated tag -> GitHub Release -> exact-tag production deploy process everywhere applicable, with no active implementation queue remaining.
+- Validation: `npm ci`; `npm run check`; explicit dependency-advisory gate; `npm run verify:github-settings`; live provider reads; release/tag workflow evidence; exact-head CI; merged-main CI; `git diff --check`.
+- Authorities: current repository state, live GitHub/provider state and organization baseline.
+
 ## Recheck after this wave
 
-Audit current source/provider state again before planning further changes. In particular, reassess whether advisory-network failures should be distinguished in `check`, and whether the provider-settings comparison covers every material live ruleset field. Do not infer a deployment from a green CI or release job.
+After ST-082, enter fresh planning mode only if current repository or provider evidence shows new drift. Do not infer a release or production deployment from green CI, a release verification job, or a planning/audit task.
