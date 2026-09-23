@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance controls
 
 ## Open tasks
 
-### ST-078 — [TEST] Complete repository-ruleset drift coverage
-
-- Dependency: ST-077 merged.
-- Why: Live provider state currently matches the high-level committed authority, but the comparison must prove every material field that protects controlled merges and immutable release tags rather than only rule names.
-- Scope: Add focused pure cases for merge toggles, delete-branch behavior, required status-check identity, ruleset enforcement/target/include conditions and material rule configuration. Keep live provider verification separate from canonical acceptance.
-- Non-goals: No provider mutation or new protection policy.
-- Acceptance: Pure tests fail for each material drift that would weaken squash-only delivery, required exact-head verification, main protection or immutable `v*` tags while accepting harmless provider metadata differences.
-- Validation: Focused settings cases; `npm run check`; `git diff --check`.
-- Authorities: `config/github-repository-settings.json`, settings comparator/tests, live ruleset schema.
-
 ### ST-079 — [BUILD] Separate dependency advisories from canonical acceptance
 
 - Dependency: ST-078 merged.

@@ -18,6 +18,11 @@
       "include": [
         "refs/heads/main"
       ],
+      "exclude": [],
+      "bypassActors": [],
+      "requireBranchUpToDate": true,
+      "doNotEnforceOnCreate": true,
+      "requireExtraApprovalForUnattributedChanges": true,
       "rules": [
         "deletion",
         "non_fast_forward",
@@ -32,6 +37,8 @@
       "include": [
         "refs/tags/v*"
       ],
+      "exclude": [],
+      "bypassActors": [],
       "rules": [
         "deletion",
         "update"

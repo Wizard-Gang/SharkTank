@@ -130,9 +130,24 @@ expect(githubSettings.mergeMethods?.mergeCommit === false, "single-commit policy
 expect(githubSettings.mergeMethods?.squash === true, "single-commit policy must enable squash");
 expect(githubSettings.mergeMethods?.rebase === false, "single-commit policy must disable rebase");
 expect(githubSettings.deleteBranchOnMerge === true, "merged branches must be deleted");
-expect(githubSettings.requiredStatusChecks?.includes("verify"), "main ruleset must require verify");
-expect(githubSettings.rulesets?.some((r) => r.name === "main-protection" && r.rules?.includes("pull_request") && r.rules?.includes("non_fast_forward") && r.rules?.includes("deletion")), "main-protection ruleset contract is incomplete");
-expect(githubSettings.rulesets?.some((r) => r.name === "release-tag-immutability" && r.target === "tag" && r.rules?.includes("update") && r.rules?.includes("deletion")), "release tag immutability ruleset contract is incomplete");
+expect(JSON.stringify(githubSettings.requiredStatusChecks) === JSON.stringify(["verify"]), "main ruleset must require exactly verify");
+const mainRuleset = githubSettings.rulesets?.find((r) => r.name === "main-protection");
+expect(mainRuleset?.target === "branch", "main-protection must target branches");
+expect(mainRuleset?.enforcement === "active", "main-protection must remain active");
+expect(JSON.stringify(mainRuleset?.include) === JSON.stringify(["refs/heads/main"]), "main-protection must target exactly main");
+expect(JSON.stringify(mainRuleset?.exclude) === JSON.stringify([]), "main-protection must not exclude protected refs");
+expect(JSON.stringify(mainRuleset?.bypassActors) === JSON.stringify([]), "main-protection must not allow bypass actors");
+expect(mainRuleset?.requireBranchUpToDate === true, "main-protection must require current-head status checks");
+expect(mainRuleset?.doNotEnforceOnCreate === true, "main-protection must retain the committed create-time status policy");
+expect(mainRuleset?.requireExtraApprovalForUnattributedChanges === true, "main-protection must require extra approval for unattributed changes");
+expect(mainRuleset?.rules?.includes("pull_request") && mainRuleset.rules?.includes("required_status_checks") && mainRuleset.rules?.includes("non_fast_forward") && mainRuleset.rules?.includes("deletion"), "main-protection ruleset contract is incomplete");
+const releaseTagRuleset = githubSettings.rulesets?.find((r) => r.name === "release-tag-immutability");
+expect(releaseTagRuleset?.target === "tag", "release tag immutability must target tags");
+expect(releaseTagRuleset?.enforcement === "active", "release tag immutability must remain active");
+expect(JSON.stringify(releaseTagRuleset?.include) === JSON.stringify(["refs/tags/v*"]), "release tag immutability must target v* tags");
+expect(JSON.stringify(releaseTagRuleset?.exclude) === JSON.stringify([]), "release tag immutability must not exclude release refs");
+expect(JSON.stringify(releaseTagRuleset?.bypassActors) === JSON.stringify([]), "release tag immutability must not allow bypass actors");
+expect(releaseTagRuleset?.rules?.includes("update") && releaseTagRuleset.rules?.includes("deletion"), "release tag immutability ruleset contract is incomplete");
 
 expect(packageJson.scripts?.["test:github-settings"] === "node --test scripts/github-settings-cases.mjs", "GitHub settings pure test command must use the normalized test:github-settings contract");
 expect(packageJson.scripts?.["verify:github-settings"] === "node scripts/verify-github-settings.mjs", "GitHub settings live verification must use the normalized verify:github-settings contract");
