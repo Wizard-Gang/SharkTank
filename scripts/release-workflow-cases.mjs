@@ -30,6 +30,15 @@ test("publication verifies the exact existing tag", () => {
   assert.match(validateReleaseWorkflow(changed).join("\n"), /verify and publish the exact release tag/);
 });
 
+test("release verification cannot omit or reorder network advisories", () => {
+  const removed = replaceRequired(workflow, "      - name: Network dependency advisories\n        run: npm run audit:dependencies\n", "");
+  assert.match(validateReleaseWorkflow(removed).join("\n"), /separate network advisory gate/);
+  const moved = replaceRequired(workflow,
+    "      - run: npm run check\n      - name: Network dependency advisories\n        run: npm run audit:dependencies",
+    "      - name: Network dependency advisories\n        run: npm run audit:dependencies\n      - run: npm run check");
+  assert.match(validateReleaseWorkflow(moved).join("\n"), /network advisory gate must follow canonical acceptance/);
+});
+
 test("production cannot depend directly on verification", () => {
   const changed = replaceRequired(workflow, "    needs: publish-release", "    needs: verify");
   assert.match(validateReleaseWorkflow(changed).join("\n"), /depend on successful publish-release/);

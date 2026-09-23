@@ -47,17 +47,6 @@ export function isVerifiedDependabotCommit({ authorName, authorEmail, subject })
     && dependabotSubjectPattern.test(subject);
 }
 
-export function isVerifiedDependabotPullRequest(context) {
-  return context.actor === "dependabot[bot]"
-    && context.branch.startsWith("dependabot/")
-    && dependabotSubjectPattern.test(context.title)
-    && isVerifiedDependabotCommit({
-      authorName: context.commitAuthorName,
-      authorEmail: context.commitAuthorEmail,
-      subject: context.commitSubject,
-    });
-}
-
 function validateCurrentType(id, type, failures, label) {
   if (!controlledTypeSet.has(type)) {
     failures.push(`${label}: ${id} uses unsupported type ${type}`);
@@ -132,10 +121,6 @@ export function validatePullRequestContext(context) {
       failures: [`unsupported GitHub event: ${context.eventName || "(empty)"}`],
       kind: "unsupported",
     };
-  }
-
-  if (isVerifiedDependabotPullRequest(context)) {
-    return { failures, kind: "dependabot" };
   }
 
   const title = parseControlledTitle(context.title);

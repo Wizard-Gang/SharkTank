@@ -27,7 +27,8 @@ For a deliberately narrow TypeScript/Cloudflare Worker-only session, use `npm ru
 - `npm test` runs Vitest only.
 - `npm run test:php` runs the PHP parity self-test and requires PHP.
 - `npm run build` creates the Vite production build locally; it does not deploy.
-- `npm run check` is the complete credential-free repository gate. It includes the tests above, the production build, repository/change/history/provenance/settings checks, local HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own Worker on port 8792.
+- `npm run check` is the complete credential-free repository gate. It includes the tests above, the production build, repository/change/history/provenance/settings checks, local HTTP acceptance, pure dependency-advisory policy cases, and patch whitespace. The local HTTP gate starts and stops its own Worker on port 8792.
+- `npm run audit:dependencies` performs the separate live network advisory check at the moderate severity threshold; CI and release verification require it.
 - Local HTTP acceptance launches Wrangler with a temporary test-owned environment file and does not require reading, moving, deleting, or rewriting a developer's ignored `.dev.vars`.
 - `npm run verify:github-settings` is read-only live provider verification and requires an admin-capable `GH_ADMIN_TOKEN` or `GH_TOKEN` with Repository Administration read access.
 - `npm run apply:github-settings` is the explicit provider mutation path, requires Repository Administration write access, and re-verifies after applying the committed settings.
@@ -46,7 +47,7 @@ When no implementation plan exists, a `do needful` turn is planning-only: re-aud
 
 Keep a pull request focused on one auditable outcome. Explain risk, controls, evidence, rollback needs, and the commands actually run. New behavior needs tests. Changes to public assurance claims must update their evidence and must not turn a limitation into an unsupported assertion.
 
-Use the structured commit format in `AGENTS.md`. Human-controlled pull requests carry one controlled commit and land as one commit on `main`; squash merge is the accepted merge method when needed to preserve that shape. The landed commit must retain the complete structured record.
+Use the structured commit format in `AGENTS.md`. Pull requests carry one contributor-authored controlled commit and land as one commit on `main`; squash merge is the accepted merge method when needed to preserve that shape. The landed commit must retain the complete structured record. Dependency updates are reviewed and submitted under the contributor's ST identity rather than by a version-update bot.
 
 ## Security reports
 

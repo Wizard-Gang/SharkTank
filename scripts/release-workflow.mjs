@@ -97,9 +97,13 @@ export function validateReleaseWorkflow(workflow) {
   if (verify) {
     const lines = verify.split("\n").map((line) => line.trim().replace(/^- /, ""));
     const checkIndex = lines.indexOf("run: npm run check");
+    const advisoryIndex = lines.indexOf("run: npm run audit:dependencies");
     const identityIndex = lines.indexOf("run: npm run check:release-identity");
     if (checkIndex < 0) failures.push("verify must run the canonical repository gate");
+    if (advisoryIndex < 0) failures.push("verify must run the separate network advisory gate");
     if (identityIndex < 0) failures.push("verify must run exact release identity validation");
+    if (checkIndex >= 0 && advisoryIndex >= 0 && advisoryIndex <= checkIndex) failures.push("network advisory gate must follow canonical acceptance");
+    if (advisoryIndex >= 0 && identityIndex >= 0 && identityIndex <= advisoryIndex) failures.push("exact release identity validation must follow network advisories");
     if (checkIndex >= 0 && identityIndex >= 0 && identityIndex <= checkIndex) failures.push("exact release identity validation must run after the canonical repository gate");
     if (!verify.includes("SHARKTANK_RELEASE: ${{ github.ref_name }}")) failures.push("verify must bind release identity from github.ref_name");
   }

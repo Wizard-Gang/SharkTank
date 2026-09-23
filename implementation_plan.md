@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance controls
 
 ## Open tasks
 
-### ST-079 — [BUILD] Separate dependency advisories from canonical acceptance
-
-- Dependency: ST-078 merged.
-- Why: `npm run check` is documented as the complete credential-free repository gate but currently invokes live `npm audit`, mixing deterministic repository acceptance with a changing network advisory source.
-- Scope: Remove live advisory lookup from canonical `check`; retain deterministic advisory-classification behavior/tests inside the repository gate; expose a named network advisory command and run it as an explicit CI/release gate using the shared severity policy.
-- Non-goals: No ignored advisory, severity downgrade or dependency remediation unless current live evidence requires a separate controlled task.
-- Acceptance: `npm run check` is deterministic with respect to repository inputs; network advisory status remains an explicit required provider gate and cannot silently disappear.
-- Validation: Advisory classifier cases; `npm run check`; explicit network advisory command; exact-head CI; `git diff --check`.
-- Authorities: `package.json`, CI/release workflows, dependency-advisory scripts/tests, organization baseline.
-
 ### ST-080 — [REFACTOR] Make production deployment a reusable release stage
 
 - Dependency: ST-079 merged.
