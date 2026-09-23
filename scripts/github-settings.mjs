@@ -17,6 +17,12 @@ function hasAll(actual, expected) {
   return valuesOf(expected).every((value) => set.has(value));
 }
 
+function sameValues(actual, expected) {
+  const actualValues = valuesOf(actual);
+  const expectedValues = valuesOf(expected);
+  return actualValues.length === expectedValues.length && hasAll(actualValues, expectedValues);
+}
+
 function rulesByType(ruleset) {
   return new Map(valuesOf(ruleset?.rules).map((rule) => [rule.type, rule]));
 }
@@ -80,11 +86,19 @@ export function compareGithubSettings(expected, actual) {
       );
     }
 
-    const includes = actualRuleset.conditions?.ref_name?.include;
-    if (!hasAll(includes, expectedRuleset.include)) {
+    const refName = actualRuleset.conditions?.ref_name;
+    if (!sameValues(refName?.include, expectedRuleset.include)) {
       failures.push(
-        expectedRuleset.name + ": missing ref include " + expectedRuleset.include.join(", "),
+        expectedRuleset.name + ": expected ref includes " + expectedRuleset.include.join(", "),
       );
+    }
+    if (!sameValues(refName?.exclude, expectedRuleset.exclude)) {
+      failures.push(
+        expectedRuleset.name + ": expected ref excludes " + expectedRuleset.exclude.join(", "),
+      );
+    }
+    if (!sameValues(actualRuleset.bypass_actors, expectedRuleset.bypassActors)) {
+      failures.push(expectedRuleset.name + ": bypass actors do not match the committed contract");
     }
 
     const ruleMap = rulesByType(actualRuleset);
@@ -98,18 +112,42 @@ export function compareGithubSettings(expected, actual) {
       const pullRequest = ruleMap.get("pull_request");
       const allowed = valuesOf(pullRequest?.parameters?.allowed_merge_methods);
       const expectedAllowed = allowedMergeMethods(expected);
-      if (allowed.length !== expectedAllowed.length || !hasAll(allowed, expectedAllowed)) {
+      if (!sameValues(allowed, expectedAllowed)) {
         failures.push(
           expectedRuleset.name + ": expected pull request merge methods "
           + expectedAllowed.join(", ") + ", got " + allowed.join(", "),
         );
       }
-
-      const contexts = statusContexts(actualRuleset);
-      if (!hasAll(contexts, expected.requiredStatusChecks)) {
+      if (
+        expectedRuleset.requireExtraApprovalForUnattributedChanges === true
+        && pullRequest?.parameters?.require_extra_approval_for_unattributed_changes !== true
+      ) {
         failures.push(
-          expectedRuleset.name + ": missing required status check "
+          expectedRuleset.name + ": pull request rule must require extra approval for unattributed changes",
+        );
+      }
+
+      const statusRule = ruleMap.get("required_status_checks");
+      const contexts = statusContexts(actualRuleset);
+      if (!sameValues(contexts, expected.requiredStatusChecks)) {
+        failures.push(
+          expectedRuleset.name + ": required status checks do not match "
           + expected.requiredStatusChecks.join(", "),
+        );
+      }
+      if (
+        expectedRuleset.requireBranchUpToDate === true
+        && statusRule?.parameters?.strict_required_status_checks_policy !== true
+      ) {
+        failures.push(expectedRuleset.name + ": required status checks must be current with main");
+      }
+      if (
+        typeof expectedRuleset.doNotEnforceOnCreate === "boolean"
+        && statusRule?.parameters?.do_not_enforce_on_create !== expectedRuleset.doNotEnforceOnCreate
+      ) {
+        failures.push(
+          expectedRuleset.name + ": do_not_enforce_on_create must be "
+          + expectedRuleset.doNotEnforceOnCreate,
         );
       }
     }
@@ -130,6 +168,8 @@ export function rulesetPayload(expected, ruleset) {
           require_last_push_approval: false,
           required_approving_review_count: 0,
           required_review_thread_resolution: false,
+          require_extra_approval_for_unattributed_changes:
+            ruleset.requireExtraApprovalForUnattributedChanges === true,
         },
       };
     }
@@ -137,9 +177,9 @@ export function rulesetPayload(expected, ruleset) {
       return {
         type,
         parameters: {
-          do_not_enforce_on_create: true,
+          do_not_enforce_on_create: ruleset.doNotEnforceOnCreate === true,
           required_status_checks: expected.requiredStatusChecks.map((context) => ({ context })),
-          strict_required_status_checks_policy: true,
+          strict_required_status_checks_policy: ruleset.requireBranchUpToDate === true,
         },
       };
     }
@@ -150,11 +190,11 @@ export function rulesetPayload(expected, ruleset) {
     name: ruleset.name,
     target: ruleset.target,
     enforcement: ruleset.enforcement,
-    bypass_actors: [],
+    bypass_actors: ruleset.bypassActors,
     conditions: {
       ref_name: {
         include: ruleset.include,
-        exclude: [],
+        exclude: ruleset.exclude,
       },
     },
     rules,
