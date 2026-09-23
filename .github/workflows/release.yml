@@ -30,6 +30,8 @@ jobs:
           [ "$actual_npm" = "$expected_npm" ] || { echo "::error::npm $actual_npm != repository npm $expected_npm"; exit 1; }
       - run: npm ci
       - run: npm run check
+      - name: Network dependency advisories
+        run: npm run audit:dependencies
       - name: Verify exact release identity
         env:
           SHARKTANK_RELEASE: ${{ github.ref_name }}

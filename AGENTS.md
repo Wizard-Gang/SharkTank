@@ -21,7 +21,7 @@ For organization-baseline questions, read WG-ARCH-001 §27 in `SouthernGentlemen
 - Human-controlled ST work lands as one non-merge controlled commit on `main`. Keep the feature branch to one controlled commit; squash at merge when necessary. Do not use merge commits or rebase merges for controlled ST changes.
 - Use the next free sequential `ST` identifier. Branches use `st-NNN-imperative-summary`.
 - Commit and pull-request titles use `[ST-NNN] [TYPE] Imperative summary` with exactly one type from: `INIT`, `FEAT`, `FIX`, `SEC`, `API`, `A11Y`, `I18N`, `AI`, `DB`, `OPS`, `TEST`, `DOCS`, `REFACTOR`, `PERF`, `BUILD`, `REVERT`, `CHORE`.
-- Dependabot's GitHub-verified dependency-bump commits are the only automated title/body exception currently accepted by repository validation.
+- New pull requests must use the controlled ST identity and an actual contributor account; automated dependency-bump PRs are not accepted. Published history is not rewritten.
 - Include commit-body headings: `Change`, `Reason`, `Impact`, `Risk`, `Controls`, `Validation`, and `Evidence`, followed by either `Notes` or explicit `Source` and `Release` fields. Add `Rollback` for medium/high-risk operational changes.
 - Never rewrite published commits or tags.
 - Never commit credentials, `.env` files, private Cloudflare identifiers, production exports, or operator receipts containing private values.
@@ -47,7 +47,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` owns type checking, tests, PHP parity, production build validation, controlled-change policy/context validation when applicable, structured history, reconstruction provenance, local public-IA/evidence HTTP acceptance, dependency audit, and patch whitespace. The local HTTP gate starts and stops its own local-only Wrangler process; do not run a second Worker manually for repository acceptance.
+`npm run check` owns type checking, tests, PHP parity, production build validation, controlled-change policy/context validation when applicable, structured history, reconstruction provenance, local public-IA/evidence HTTP acceptance, pure dependency-advisory policy cases, and patch whitespace. Run the live `npm run audit:dependencies` network advisory gate separately; CI and release verification require it. The local HTTP gate starts and stops its own local-only Wrangler process; do not run a second Worker manually for repository acceptance.
 
 Provider-authenticated checks remain explicit and separate. GitHub repository settings are governed by `config/github-repository-settings.json`; their pure comparison tests run inside `npm run check`, while live provider verification runs with `npm run verify:github-settings` using an admin-capable token. `npm run apply:github-settings` is the explicit mutating path and must be followed by a fresh live verification. Do not invoke production deploy paths merely to validate a pull request.
 

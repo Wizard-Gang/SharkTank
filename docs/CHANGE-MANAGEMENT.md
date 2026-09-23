@@ -9,9 +9,9 @@ npm ci
 npm run check
 ```
 
-`npm run check` is the complete credential-free acceptance gate. It covers TypeScript, tests, PHP parity, the production build, controlled-change policy, sequential history, reconstruction provenance, local public information architecture and evidence HTTP acceptance, GitHub-settings comparison tests, dependency audit, and patch whitespace.
+`npm run check` is the complete credential-free acceptance gate. It covers TypeScript, tests, PHP parity, the production build, controlled-change policy, sequential history, reconstruction provenance, local public information architecture and evidence HTTP acceptance, GitHub-settings comparison tests, pure dependency-advisory policy cases, and patch whitespace. `npm run audit:dependencies` is the separate live network advisory gate required by CI and release verification.
 
-Pull-request CI supplies event metadata to that same gate and otherwise performs the locked install plus `npm run check`.
+Pull-request CI supplies event metadata to that same gate and performs the locked install, `npm run check`, and the separate network advisory gate.
 
 ## Implementation queue lifecycle
 
@@ -25,6 +25,6 @@ If the plan is absent, `do needful` enters fresh planning mode: re-read authorit
 
 ## Provider settings
 
-Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. SharkTank's repository-specific delivery policy is squash-only so each accepted ST change remains one controlled commit on `main`; merge commits and rebase merges are disabled. `npm run check:github-settings` is the read-only provider-authenticated verifier. `npm run apply:github-settings` is the explicit administrative mutation path.
+Expected GitHub merge and ruleset configuration is committed in `config/github-repository-settings.json`. SharkTank's repository-specific delivery policy is squash-only so each accepted ST change remains one controlled commit on `main`; merge commits and rebase merges are disabled. `npm run verify:github-settings` is the read-only provider-authenticated verifier. `npm run apply:github-settings` is the explicit administrative mutation path.
 
 Provider administration, release publication, and production deployment remain separate from the credential-free repository gate.

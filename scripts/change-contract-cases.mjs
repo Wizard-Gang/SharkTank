@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   CONTROLLED_TYPES,
   LEGACY_TYPE_EXCEPTIONS,
-  isVerifiedDependabotPullRequest,
   validateHistoryRecords,
   validatePullRequestContext,
 } from "./change-contract.mjs";
@@ -91,7 +90,7 @@ test("PR and head commit types must agree", () => {
   assert.match(result.failures.join("\n"), /pull request\/head commit type mismatch/);
 });
 
-test("verified Dependabot pull request remains narrowly accepted", () => {
+test("Dependabot pull requests no longer bypass controlled identity", () => {
   const context = controlledContext({
     title: "build(deps-dev): bump vitest from 4.1.11 to 5.0.1",
     branch: "dependabot/npm_and_yarn/vitest-5.0.1",
@@ -100,8 +99,7 @@ test("verified Dependabot pull request remains narrowly accepted", () => {
     commitAuthorName: "dependabot[bot]",
     commitAuthorEmail: "49699333+dependabot[bot]@users.noreply.github.com",
   });
-  assert.equal(isVerifiedDependabotPullRequest(context), true);
-  assert.deepEqual(validatePullRequestContext(context).failures, []);
+  assert.match(validatePullRequestContext(context).failures.join("\n"), /pull request title must match/);
 });
 
 test("bot-like title does not bypass validation for a human actor", () => {

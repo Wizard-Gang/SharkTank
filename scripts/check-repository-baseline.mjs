@@ -97,6 +97,7 @@ for (const required of [
   ".node-version",".npmrc","package.json","package-lock.json","tsconfig.json","wrangler.jsonc",
   ".github/workflows/ci.yml",".github/workflows/release.yml",
 ]) expect(existsSync(join(root, required)), "required repository file missing: " + required);
+expect(!existsSync(join(root, ".github/dependabot.yml")), "automated dependency-version PRs must remain disabled");
 
 function walk(dir, output = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -185,6 +186,8 @@ const ci = read(".github/workflows/ci.yml");
 requireRepositoryToolchain(ci, "CI");
 has(ci, "run: npm ci", "CI must use npm ci");
 has(ci, "run: npm run check", "CI must run the repository acceptance gate");
+has(ci, "ref: ${{ github.event.pull_request.head.sha || github.sha }}", "CI must checkout the exact PR head");
+has(ci, "run: npm run audit:dependencies", "CI must run the separate network advisory gate");
 const release = read(".github/workflows/release.yml");
 requireRepositoryToolchain(release, "release workflow");
 has(release, "tags:", "release workflow must be tag driven");
@@ -198,6 +201,9 @@ expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/r
 expect(packageJson.scripts?.["check:release-identity"] === "node scripts/release-identity.mjs", "release workflow must expose the reusable identity gate");
 expect(packageJson.scripts?.["check:implementation-plan"] === "node --test scripts/implementation-plan-cases.mjs && node scripts/check-implementation-plan.mjs", "implementation plan must have focused current/future queue coverage");
 has(release, "run: npm run check:release-identity", "release verify must run exact release identity validation");
+has(release, "run: npm run audit:dependencies", "release verify must run the separate network advisory gate");
+expect(packageJson.scripts?.["audit:dependencies"] === "node scripts/dependency-advisories.mjs", "network advisory command must use the committed policy");
+expect(packageJson.scripts?.["test:dependency-advisories"] === "node --test scripts/dependency-advisory-cases.mjs", "advisory policy must have pure cases");
 const deploy = read("scripts/deploy-prod.mjs");
 has(deploy, "SHARKTANK_RELEASE", "deployment must bind to release identity");
 has(deploy, "tagsAtHead.includes(release)", "deployment must require the release tag at HEAD");
@@ -211,8 +217,9 @@ for (const requiredCheck of [
   "npm run check:implementation-plan","npm run check:release-workflow","npm run test:release-identity",
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
-  "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
+  "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm run test:dependency-advisories","npm run check:whitespace",
 ]) has(packageJson.scripts?.check ?? "", requiredCheck, "npm run check must remain complete");
+expect(!(packageJson.scripts?.check ?? "").includes("npm audit"), "canonical check must not run the network advisory lookup");
 
 if (failures.length) {
   for (const failure of failures) console.error("FAIL " + failure);
