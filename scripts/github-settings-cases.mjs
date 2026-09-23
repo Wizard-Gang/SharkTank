@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   compareGithubSettings,
   rulesetPayload,
+  verifyLiveGithubSettings,
 } from "./github-settings.mjs";
 
 const expected = {
@@ -174,4 +176,81 @@ test("main ruleset payload encodes squash-only PR and required CI policy", () =>
 test("tag payload encodes update and deletion restrictions", () => {
   const payload = rulesetPayload(expected, expected.rulesets[1]);
   assert.deepEqual(payload.rules.map((rule) => rule.type).sort(), ["deletion", "update"]);
+});
+
+
+const packageJson = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+);
+const verifyScript = await readFile(
+  new URL("./verify-github-settings.mjs", import.meta.url),
+  "utf8",
+);
+const applyScript = await readFile(
+  new URL("./apply-github-settings.mjs", import.meta.url),
+  "utf8",
+);
+
+test("settings CLI exposes the normalized pure, verify, and apply contract", () => {
+  const scripts = packageJson.scripts ?? {};
+  assert.equal(scripts["test:github-settings"], "node --test scripts/github-settings-cases.mjs");
+  assert.equal(scripts["verify:github-settings"], "node scripts/verify-github-settings.mjs");
+  assert.equal(scripts["apply:github-settings"], "node scripts/apply-github-settings.mjs");
+  assert.equal(scripts["check:github-settings"], undefined);
+  assert.match(scripts.check, /npm run test:github-settings/);
+  assert.doesNotMatch(scripts.check, /npm run (?:verify|apply|check):github-settings/);
+});
+
+test("live GitHub settings verification performs read-only provider requests", async () => {
+  const state = actual();
+  const requests = [];
+  const fetchImpl = async (url, options = {}) => {
+    const method = options.method ?? "GET";
+    requests.push({ url, method });
+    assert.equal(method, "GET");
+
+    let value;
+    if (url.endsWith("/repos/Wizard-Gang/SharkTank")) {
+      value = state.repository;
+    } else if (url.endsWith("/rulesets")) {
+      value = state.rulesets.map((ruleset, index) => ({
+        id: index + 1,
+        name: ruleset.name,
+      }));
+    } else if (url.endsWith("/rulesets/1")) {
+      value = state.rulesets[0];
+    } else if (url.endsWith("/rulesets/2")) {
+      value = state.rulesets[1];
+    } else {
+      throw new Error("unexpected provider read: " + url);
+    }
+
+    return {
+      status: 200,
+      ok: true,
+      json: async () => structuredClone(value),
+      text: async () => JSON.stringify(value),
+    };
+  };
+
+  const { failures } = await verifyLiveGithubSettings(expected, {
+    token: "test-token",
+    fetchImpl,
+  });
+  assert.deepEqual(failures, []);
+  assert.ok(requests.length >= 4);
+});
+
+test("apply is the explicit mutation path and re-reads provider state after mutation", () => {
+  assert.match(verifyScript, /verifyLiveGithubSettings/);
+  assert.doesNotMatch(verifyScript, /method:\s*["'](?:PATCH|PUT|POST|DELETE)["']/);
+
+  const mutationIndexes = [
+    applyScript.lastIndexOf('method: "PATCH"'),
+    applyScript.lastIndexOf('method: "PUT"'),
+    applyScript.lastIndexOf('method: "POST"'),
+  ];
+  assert.ok(mutationIndexes.every((index) => index >= 0));
+  const freshReadIndex = applyScript.lastIndexOf("await fetchLiveGithubSettings");
+  assert.ok(freshReadIndex > Math.max(...mutationIndexes));
 });

@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance controls
 
 ## Open tasks
 
-### ST-077 — [BUILD] Standardize the GitHub settings CLI contract
-
-- Dependency: ST-076 merged.
-- Why: SharkTank already has pure settings tests plus read-only and apply commands, but its read-only command is named `check:github-settings` while the shared normalized command surface is test / verify / apply.
-- Scope: Expose `test:github-settings`, `verify:github-settings` and `apply:github-settings` as the canonical command contract; preserve compatibility only where useful and update current documentation/validators to use the normalized names.
-- Non-goals: Do not mutate GitHub from `npm run check`; no provider-policy change, release or deploy.
-- Acceptance: Pure settings tests remain credential-free; `verify:github-settings` is read-only; `apply:github-settings` is the only explicit mutating path and independently re-verifies after apply.
-- Validation: Settings CLI cases; `npm run check`; credential-free command paths; `git diff --check`.
-- Authorities: `package.json`, settings scripts, committed repository-settings authority.
-
 ### ST-078 — [TEST] Complete repository-ruleset drift coverage
 
 - Dependency: ST-077 merged.

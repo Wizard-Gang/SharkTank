@@ -134,6 +134,30 @@ expect(githubSettings.requiredStatusChecks?.includes("verify"), "main ruleset mu
 expect(githubSettings.rulesets?.some((r) => r.name === "main-protection" && r.rules?.includes("pull_request") && r.rules?.includes("non_fast_forward") && r.rules?.includes("deletion")), "main-protection ruleset contract is incomplete");
 expect(githubSettings.rulesets?.some((r) => r.name === "release-tag-immutability" && r.target === "tag" && r.rules?.includes("update") && r.rules?.includes("deletion")), "release tag immutability ruleset contract is incomplete");
 
+expect(packageJson.scripts?.["test:github-settings"] === "node --test scripts/github-settings-cases.mjs", "GitHub settings pure test command must use the normalized test:github-settings contract");
+expect(packageJson.scripts?.["verify:github-settings"] === "node scripts/verify-github-settings.mjs", "GitHub settings live verification must use the normalized verify:github-settings contract");
+expect(packageJson.scripts?.["apply:github-settings"] === "node scripts/apply-github-settings.mjs", "GitHub settings mutation must remain the explicit apply:github-settings command");
+expect(packageJson.scripts?.["check:github-settings"] === undefined, "legacy check:github-settings must not compete with verify:github-settings");
+has(packageJson.scripts?.check ?? "", "npm run test:github-settings", "canonical check must retain pure GitHub settings tests");
+expect(!(packageJson.scripts?.check ?? "").includes("npm run verify:github-settings"), "canonical check must not read live GitHub provider settings");
+expect(!(packageJson.scripts?.check ?? "").includes("npm run apply:github-settings"), "canonical check must not mutate live GitHub provider settings");
+expect(!existsSync(join(root, "scripts/check-github-settings.mjs")), "legacy check-github-settings script must remain retired");
+
+const githubVerify = read("scripts/verify-github-settings.mjs");
+has(githubVerify, "verifyLiveGithubSettings", "live GitHub settings verifier must use the read-only verification helper");
+expect(!/method:\s*["'](?:PATCH|PUT|POST|DELETE)["']/.test(githubVerify), "live GitHub settings verifier must remain read-only");
+
+const githubApply = read("scripts/apply-github-settings.mjs");
+for (const method of ['method: "PATCH"', 'method: "PUT"', 'method: "POST"']) {
+  has(githubApply, method, "GitHub settings apply command must own provider mutation");
+}
+const githubApplyLastMutation = Math.max(
+  githubApply.lastIndexOf('method: "PATCH"'),
+  githubApply.lastIndexOf('method: "PUT"'),
+  githubApply.lastIndexOf('method: "POST"'),
+);
+expect(githubApply.lastIndexOf("await fetchLiveGithubSettings") > githubApplyLastMutation, "GitHub settings apply command must fresh-read provider state after mutation");
+
 const occurrenceCount = (text, needle) => text.split(needle).length - 1;
 const requireRepositoryToolchain = (workflow, label) => {
   const nodeSetups = occurrenceCount(workflow, "node-version-file: .node-version");
