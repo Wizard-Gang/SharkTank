@@ -13,18 +13,25 @@ const has = (text, needle, label) => expect(text.includes(needle), label + ": mi
 const major = (spec, value) => new RegExp("^[~^]?" + value + "(?:\\.|$)").test(spec ?? "");
 
 const packageJson = json("package.json");
+const packageLock = json("package-lock.json");
 const nodeVersion = read(".node-version").trim();
 const npmAgent = process.env.npm_config_user_agent ?? "";
+const npmVersionMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(packageJson.packageManager ?? "");
+const npmVersion = npmVersionMatch?.[1] ?? "";
 
 expect(/^26\.\d+\.\d+$/.test(nodeVersion), ".node-version must pin an exact Node 26 release");
 expect(process.version === "v" + nodeVersion, "acceptance must execute on the exact .node-version Node release");
 expect(packageJson.engines?.node === "26.x", "engines.node must be 26.x");
 expect(packageJson.engines?.npm === "11.x", "engines.npm must be 11.x");
-expect(/^npm@11\.\d+\.\d+$/.test(packageJson.packageManager ?? ""), "packageManager must pin an exact npm 11 release");
-expect(/^npm\/11\./.test(npmAgent), "acceptance must execute through npm 11");
+expect(Boolean(npmVersionMatch) && npmVersion.startsWith("11."), "packageManager must pin an exact npm 11 release");
+expect(npmAgent.startsWith("npm/" + npmVersion + " "), "acceptance must execute through exact packageManager npm " + npmVersion);
 expect(read(".npmrc").trim() === "engine-strict=true", ".npmrc must enforce engine-strict=true");
 expect(packageJson.type === "module", "package.json must use ESM");
 expect(existsSync(join(root, "package-lock.json")), "package-lock.json must be committed");
+expect(packageLock.lockfileVersion === 3, "package-lock.json must use lockfileVersion 3");
+expect(packageLock.packages?.[""]?.version === packageJson.version, "package-lock root version must match package.json");
+expect(packageLock.packages?.[""]?.engines?.node === packageJson.engines?.node, "package-lock root Node engine must match package.json");
+expect(packageLock.packages?.[""]?.engines?.npm === packageJson.engines?.npm, "package-lock root npm engine must match package.json");
 expect(JSON.stringify(Object.keys(packageJson.allowScripts ?? {}).sort()) === JSON.stringify(["esbuild","fsevents","workerd"]), "allowScripts must explicitly approve only the required install scripts");
 
 for (const [name, spec, expectedMajor] of [
@@ -127,15 +134,26 @@ expect(githubSettings.requiredStatusChecks?.includes("verify"), "main ruleset mu
 expect(githubSettings.rulesets?.some((r) => r.name === "main-protection" && r.rules?.includes("pull_request") && r.rules?.includes("non_fast_forward") && r.rules?.includes("deletion")), "main-protection ruleset contract is incomplete");
 expect(githubSettings.rulesets?.some((r) => r.name === "release-tag-immutability" && r.target === "tag" && r.rules?.includes("update") && r.rules?.includes("deletion")), "release tag immutability ruleset contract is incomplete");
 
+const occurrenceCount = (text, needle) => text.split(needle).length - 1;
+const requireRepositoryToolchain = (workflow, label) => {
+  const nodeSetups = occurrenceCount(workflow, "node-version-file: .node-version");
+  const npmSetups = occurrenceCount(workflow, 'npm install --global "$package_manager"');
+  expect(nodeSetups > 0, label + " must use the pinned Node version");
+  has(workflow, "packageManager", label + " must read npm packageManager authority");
+  expect(npmSetups === nodeSetups, label + " must install repository npm for every Node setup");
+};
 const ci = read(".github/workflows/ci.yml");
-has(ci, "node-version-file: .node-version", "CI must use the pinned Node version");
+requireRepositoryToolchain(ci, "CI");
 has(ci, "run: npm ci", "CI must use npm ci");
 has(ci, "run: npm run check", "CI must run the repository acceptance gate");
 const release = read(".github/workflows/release.yml");
+requireRepositoryToolchain(release, "release workflow");
 has(release, "tags:", "release workflow must be tag driven");
 has(release, '"v[0-9]+.[0-9]+.[0-9]+"', "release workflow must target semantic version tags");
 has(release, "environment: production", "production deploy must use the protected production environment");
 has(release, "npm run deploy:wizardgangprod", "release workflow must own production deployment");
+const reusableDeployPath = join(root, ".github/workflows/deploy.yml");
+if (existsSync(reusableDeployPath)) requireRepositoryToolchain(read(".github/workflows/deploy.yml"), "reusable deploy workflow");
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
 expect(packageJson.scripts?.["check:release-identity"] === "node scripts/release-identity.mjs", "release workflow must expose the reusable identity gate");

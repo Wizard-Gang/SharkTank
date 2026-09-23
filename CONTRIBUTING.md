@@ -4,7 +4,7 @@ Thank you for helping improve SharkTank. This repository contains the complete W
 
 ## Local setup
 
-Use the Node.js release pinned in `.node-version`, npm 11, and PHP 8.2 or newer:
+Use the shared WG-ARCH-001 toolchain authority: Node.js 26.7.0 from `.node-version`, npm 11.19.0 from `packageManager`, and PHP 8.2 or newer. The Node/npm engine policy remains 26.x/11.x, while repository acceptance requires the exact pinned pair:
 
 ```sh
 npm ci

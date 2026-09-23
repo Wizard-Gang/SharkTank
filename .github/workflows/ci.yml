@@ -24,6 +24,14 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+      - name: Use repository npm
+        shell: bash
+        run: |
+          package_manager="$(node -p "require('./package.json').packageManager")"
+          expected_npm="${package_manager#npm@}"
+          npm install --global "$package_manager"
+          actual_npm="$(npm --version)"
+          [ "$actual_npm" = "$expected_npm" ] || { echo "::error::npm $actual_npm != repository npm $expected_npm"; exit 1; }
       - name: Install locked dependencies
         run: npm ci
       - name: Run complete credential-free repository gate
