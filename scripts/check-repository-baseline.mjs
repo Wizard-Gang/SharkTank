@@ -95,7 +95,7 @@ expect(builtAssets.includes("human-docs.js"), "build must emit the stable first-
 for (const required of [
   "README.md","AGENTS.md","CONTRIBUTING.md","SECURITY.md","LICENSE",".gitignore",
   ".node-version",".npmrc","package.json","package-lock.json","tsconfig.json","wrangler.jsonc",
-  ".github/workflows/ci.yml",".github/workflows/release.yml",
+  ".github/workflows/ci.yml",".github/workflows/release.yml",".github/workflows/deploy.yml",
 ]) expect(existsSync(join(root, required)), "required repository file missing: " + required);
 expect(!existsSync(join(root, ".github/dependabot.yml")), "automated dependency-version PRs must remain disabled");
 
@@ -192,10 +192,19 @@ const release = read(".github/workflows/release.yml");
 requireRepositoryToolchain(release, "release workflow");
 has(release, "tags:", "release workflow must be tag driven");
 has(release, '"v[0-9]+.[0-9]+.[0-9]+"', "release workflow must target semantic version tags");
-has(release, "environment: production", "production deploy must use the protected production environment");
-has(release, "npm run deploy:wizardgangprod", "release workflow must own production deployment");
-const reusableDeployPath = join(root, ".github/workflows/deploy.yml");
-if (existsSync(reusableDeployPath)) requireRepositoryToolchain(read(".github/workflows/deploy.yml"), "reusable deploy workflow");
+has(release, "needs: publish-release", "production deploy must remain downstream of GitHub Release publication");
+has(release, "uses: ./.github/workflows/deploy.yml", "release workflow must delegate production deployment to the reusable stage");
+has(release, "tag: ${{ github.ref_name }}", "release workflow must pass the exact event tag to reusable deployment");
+const reusableDeploy = read(".github/workflows/deploy.yml");
+requireRepositoryToolchain(reusableDeploy, "reusable deploy workflow");
+has(reusableDeploy, "workflow_call:", "production deploy must be callable only as a reusable workflow");
+expect(!reusableDeploy.includes("workflow_dispatch:"), "production deploy must not expose an arbitrary manual dispatch path");
+expect(!reusableDeploy.includes("push:"), "production deploy must not expose a branch or tag push trigger");
+has(reusableDeploy, "environment: production", "production deploy must use the protected production environment");
+has(reusableDeploy, "ref: ${{ github.ref }}", "production deploy must checkout the caller release ref");
+has(reusableDeploy, "SHARKTANK_RELEASE: ${{ inputs.tag }}", "production deploy must bind exact reusable release identity");
+has(reusableDeploy, "npm run check:release-identity", "production deploy must revalidate exact release identity");
+has(reusableDeploy, "npm run deploy:wizardgangprod", "reusable deploy workflow must own production deployment");
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
 expect(packageJson.scripts?.["check:release-identity"] === "node scripts/release-identity.mjs", "release workflow must expose the reusable identity gate");
