@@ -6,15 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance controls
 
 ## Open tasks
 
-### ST-080 — [REFACTOR] Make production deployment a reusable release stage
-
-- Dependency: ST-079 merged.
-- Why: SharkTank already enforces publication-before-production and exact release-tag deployment, but the production job is embedded directly in `release.yml` while the normalized deployable-repository shape separates release authority from a reusable deploy workflow.
-- Scope: Extract the existing production deployment behavior into a reusable `deploy.yml` called only after GitHub Release publication. Preserve `PRODUCTION_DEPLOY_ENABLED`, the protected `production` environment, Cloudflare secret boundary, exact release tag at HEAD, deployed Version ID proof, 100% traffic proof and current public-evidence limitation handling.
-- Non-goals: No production deployment during the task, no secret mutation, no domain/runtime/protocol behavior change, and no weakening of release prerequisites.
-- Acceptance: Release verification -> GitHub Release publication -> reusable production deploy is the only production path; deploy cannot run from arbitrary `main` or before publication.
-- Validation: Release/deploy dependency tests; canonical `npm run check`; workflow review; exact-head CI; `git diff --check`.
-- Authorities: `.github/workflows/release.yml`, reusable deploy workflow, deployment scripts, production environment policy.
 
 ### ST-081 — [DOCS] Complete shared process-parity acceptance
 
