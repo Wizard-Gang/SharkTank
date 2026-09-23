@@ -38,7 +38,7 @@
     "check:local-http": "node --test scripts/local-worker-acceptance-cases.mjs && node scripts/check-local-http.mjs --cleanup-proof && node scripts/check-local-http.mjs",
     "check:whitespace": "git diff --check HEAD^",
     "test:github-settings": "node --test scripts/github-settings-cases.mjs",
-    "check:github-settings": "node scripts/check-github-settings.mjs",
+    "verify:github-settings": "node scripts/verify-github-settings.mjs",
     "apply:github-settings": "node scripts/apply-github-settings.mjs",
     "check:repository-baseline": "node scripts/check-repository-baseline.mjs",
     "check:implementation-plan": "node --test scripts/implementation-plan-cases.mjs && node scripts/check-implementation-plan.mjs",
