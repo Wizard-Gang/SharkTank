@@ -115,12 +115,6 @@ for (const row of changeMap) {
   const match = /^ST-(\d{3})$/.exec(id);
   expect(Boolean(match) && Number(match[1]) <= 28, "CHANGE-MAP.csv must not contain forward ST history: " + id);
 }
-const planPath = join(root, "implementation_plan.md");
-if (existsSync(planPath)) {
-  const plan = read("implementation_plan.md");
-  expect(/^###\s+ST-\d{3,}\s+—\s+\[[A-Z]+\]/m.test(plan), "active implementation plan must contain open controlled tasks");
-  expect(!/^#{1,6}\s+(?:Done|Completed|History|Retrospective)\b/im.test(plan), "active implementation plan must not retain completed-task history");
-}
 expect(!read("SECURITY.md").includes("reconstructed releases"), "security policy must describe supported releases as current state");
 
 const githubSettings = json("config/github-repository-settings.json");
@@ -145,6 +139,7 @@ has(release, "npm run deploy:wizardgangprod", "release workflow must own product
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
 expect(packageJson.scripts?.["check:release-identity"] === "node scripts/release-identity.mjs", "release workflow must expose the reusable identity gate");
+expect(packageJson.scripts?.["check:implementation-plan"] === "node --test scripts/implementation-plan-cases.mjs && node scripts/check-implementation-plan.mjs", "implementation plan must have focused current/future queue coverage");
 has(release, "run: npm run check:release-identity", "release verify must run exact release identity validation");
 const deploy = read("scripts/deploy-prod.mjs");
 has(deploy, "SHARKTANK_RELEASE", "deployment must bind to release identity");
@@ -156,8 +151,9 @@ expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve
 expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/local-readiness-cases.mjs", "local readiness must have focused behavior coverage");
 
 for (const requiredCheck of [
+  "npm run check:implementation-plan","npm run check:release-workflow","npm run test:release-identity",
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
-  "npm run check:release-workflow","npm run test:release-identity","npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
+  "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
   "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm audit --audit-level=moderate","npm run check:whitespace",
 ]) has(packageJson.scripts?.check ?? "", requiredCheck, "npm run check must remain complete");
 
