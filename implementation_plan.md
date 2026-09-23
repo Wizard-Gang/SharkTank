@@ -6,16 +6,6 @@ Keep SharkTank's existing PHP parity, local HTTP acceptance, provenance controls
 
 ## Open tasks
 
-### ST-076 — [BUILD] Align Node and npm with the shared baseline
-
-- Dependency: ST-075 merged.
-- Why: SharkTank is pinned to Node 26.9.0 and npm 11.19.1 while the active repositories are converging on one exact organization toolchain authority.
-- Scope: Re-fetch the current organization baseline and update `.node-version`, `packageManager`, engine policy, lockfile metadata, CI/release setup and current docs together so local, PR, release and deploy jobs resolve the same exact supported pair. Do not independently invent a patch version if the shared baseline has moved.
-- Non-goals: No dependency-upgrade wave, product behavior change, release or production deployment.
-- Acceptance: `npm ci`, canonical acceptance, CI and release/deploy jobs use the same organization-standard Node/npm pair and mismatched runtimes fail clearly.
-- Validation: Toolchain-focused checks as needed; `npm ci`; `npm run check`; `git diff --check`.
-- Authorities: organization baseline, `.node-version`, `package.json`, `.npmrc`, CI and release workflows.
-
 ### ST-077 — [BUILD] Standardize the GitHub settings CLI contract
 
 - Dependency: ST-076 merged.
