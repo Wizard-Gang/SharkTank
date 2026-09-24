@@ -155,7 +155,13 @@ export function validateReleaseWorkflow(workflow, deployWorkflow) {
   }
 
   if (publish && jobValue(publish, "needs") !== "verify") failures.push("publish-release must depend on successful verify");
-  if (publish && !publish.includes('gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"')) failures.push("publish-release must verify and publish the exact release tag");
+  if (publish) {
+    if (!publish.includes("GH_TOKEN: ${{ github.token }}")) failures.push("publish-release must use the workflow-scoped GitHub token");
+    if (!publish.includes("SHARKTANK_RELEASE: ${{ github.ref_name }}")) failures.push("publish-release must bind the exact release event tag");
+    if (!publish.includes("SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}")) failures.push("publish-release must bind the exact Release workflow identity");
+    if (!publish.includes("run: node scripts/release-publication.mjs")) failures.push("publish-release must use the guarded create-or-verify publication command");
+    if (/gh release (?:create|edit|delete)/.test(publish)) failures.push("publish-release must not embed mutable gh release operations");
+  }
   if (deploy) {
     if (jobValue(deploy, "needs") !== "publish-release") failures.push("deploy-production must depend on successful publish-release");
     if (jobValue(deploy, "if") !== "vars.PRODUCTION_DEPLOY_ENABLED == 'true'") failures.push("deploy-production must retain the PRODUCTION_DEPLOY_ENABLED opt-in");

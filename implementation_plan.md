@@ -16,16 +16,6 @@ The latest published release remains `v1.3.7`, which predates the current reusab
 
 ## Open tasks
 
-### ST-086 — [BUILD] Make GitHub Release publication retry-safe
-
-- Dependency: ST-085 merged.
-- Why: The current `gh release create` step is correct for first publication but fails on a rerun after the Release already exists, preventing a safe retry of later stages.
-- Scope: Keep first publication immutable and exact-tag. When the matching GitHub Release already exists, verify that it is the expected non-draft/non-prerelease Release for the same immutable tag and continue without rewriting it. Any mismatch fails closed.
-- Non-goals: No release editing, tag movement, changelog archive or production deployment shortcut.
-- Acceptance: First run creates the Release; a valid rerun verifies existing immutable publication and can continue; mismatched existing release state cannot be overwritten or silently accepted.
-- Validation: release publication fixtures/contract cases; `npm run check`; exact-head CI; `git diff --check`.
-- Authorities: annotated tag identity, GitHub Release API/CLI semantics, release workflow.
-
 ### ST-087 — [TEST] Prove version-to-production identity end to end
 
 - Dependency: ST-086 merged.
