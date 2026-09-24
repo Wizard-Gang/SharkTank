@@ -206,10 +206,12 @@ expect(!reusableDeploy.includes("push:"), "production deploy must not expose a b
 has(reusableDeploy, "environment: production", "production deploy must use the protected production environment");
 has(reusableDeploy, "ref: ${{ github.ref }}", "production deploy must checkout the caller release ref");
 has(reusableDeploy, "SHARKTANK_RELEASE: ${{ inputs.tag }}", "production deploy must bind exact reusable release identity");
+has(reusableDeploy, "SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}", "production deploy must bind the caller Release workflow identity");
 has(reusableDeploy, "npm run check:release-identity", "production deploy must revalidate exact release identity");
 has(reusableDeploy, "npm run deploy:wizardgangprod", "reusable deploy workflow must own production deployment");
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
+expect(packageJson.scripts?.["test:deploy-prod"] === "node --test scripts/deploy-prod-cases.mjs", "production deploy guard must have focused behavior coverage");
 expect(packageJson.scripts?.["check:release-identity"] === "node scripts/release-identity.mjs", "release workflow must expose the reusable identity gate");
 expect(packageJson.scripts?.["check:implementation-plan"] === "node --test scripts/implementation-plan-cases.mjs && node scripts/check-implementation-plan.mjs", "implementation plan must have focused current/future queue coverage");
 has(release, "run: npm run check:release-identity", "release verify must run exact release identity validation");
@@ -219,6 +221,11 @@ expect(packageJson.scripts?.["test:dependency-advisories"] === "node --test scri
 const deploy = read("scripts/deploy-prod.mjs");
 has(deploy, "SHARKTANK_RELEASE", "deployment must bind to release identity");
 has(deploy, "tagsAtHead.includes(release)", "deployment must require the release tag at HEAD");
+has(deploy, "if (dryRun) loadDotEnv();", "local dotenv authority must be limited to dry-run");
+expect(!/^loadDotEnv\(\);$/m.test(deploy), "real production deploy must not load local dotenv authority");
+has(deploy, 'env.GITHUB_ACTIONS !== "true"', "real production deploy must require GitHub Actions");
+has(deploy, "SHARKTANK_RELEASE_WORKFLOW_REF", "real production deploy must require caller Release workflow identity");
+has(deploy, "validateReleaseIdentity", "real production deploy must revalidate exact annotated release identity");
 expect(packageJson.scripts?.dev === "node scripts/local.mjs", "dev must use the safe whole-stack lifecycle");
 expect(packageJson.scripts?.local === packageJson.scripts?.dev, "local and dev must share one lifecycle implementation");
 expect(packageJson.scripts?.["dev:worker"] === "wrangler dev --port 8787", "dev:worker must be the explicit Worker-only path");
@@ -226,7 +233,7 @@ expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve
 expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/local-readiness-cases.mjs", "local readiness must have focused behavior coverage");
 
 for (const requiredCheck of [
-  "npm run check:implementation-plan","npm run check:release-workflow","npm run test:release-identity",
+  "npm run check:implementation-plan","npm run check:release-workflow","npm run test:release-identity","npm run test:deploy-prod",
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
   "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm run test:dependency-advisories","npm run check:whitespace",

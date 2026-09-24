@@ -9,7 +9,7 @@ Production is the existing Cloudflare environment `wizardgangprod`, routed to `s
 - Cloudflare already contains `OPS_USERNAME` and `OPS_TOKEN` for the production environment.
 - `PRODUCTION_DEPLOY_ENABLED` is explicitly set to `true` only for an authorized production deployment.
 
-The release workflow supplies the tag as `SHARKTANK_RELEASE`. The local deployment script refuses an untagged commit, an invalid tag, a missing account identifier, or missing operator secrets. Its dry-run has the same tag and identity preconditions.
+The release workflow supplies the tag as `SHARKTANK_RELEASE` and passes its GitHub workflow identity into the reusable production job. A real deploy is workflow-only: the deployment script requires GitHub Actions, the exact `Wizard-Gang/SharkTank` semantic-tag push context, the exact Release workflow ref, the annotated tag/package identity at `HEAD`, and Cloudflare credentials from the protected `production` environment before it can invoke real Wrangler deployment. It does not load ignored local `.env` values in real mode. The explicit dry-run remains available from a workstation, may load `.env`, and still requires a semantic release tag at `HEAD` plus the account identifier.
 
 ## Verification and rollback
 

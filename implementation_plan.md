@@ -16,16 +16,6 @@ The latest published release remains `v1.3.7`, which predates the current reusab
 
 ## Open tasks
 
-### ST-084 — [OPS] Make real production deployment workflow-only
-
-- Dependency: ST-083 merged.
-- Why: `scripts/deploy-prod.mjs` loads local ignored environment state and can execute a real Wrangler production deploy from a tagged checkout outside the protected GitHub release path.
-- Scope: Keep local dry-run capability, but make the mutating production command fail closed unless it is executing in the expected GitHub Actions semantic-tag release context with the exact release identity. Do not load local `.env` authority into the real production path. Keep Cloudflare credentials supplied by the protected `production` environment and retain provider-side Version ID/100%-traffic proof.
-- Non-goals: No secret rotation, WAF change, alternate deployment provider or manual production escape hatch.
-- Acceptance: A workstation checkout, arbitrary branch, untagged commit, mismatched tag or spoofed ordinary npm invocation cannot reach the repository-owned real Wrangler deploy path; the governed release workflow still can.
-- Validation: deploy-command failure/success fixtures; dry run; release/deploy workflow contract cases; `npm run check`; `git diff --check`.
-- Authorities: `scripts/deploy-prod.mjs`, package deploy commands, `.github/workflows/deploy.yml`, protected production environment.
-
 ### ST-085 — [BUILD] Create annotated release tags from merged version changes
 
 - Dependency: ST-084 merged.

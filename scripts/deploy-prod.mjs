@@ -1,13 +1,19 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { validateReleaseIdentity } from "./release-identity.mjs";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+const productionRepository = "Wizard-Gang/SharkTank";
+const releasePattern = /^v\d+\.\d+\.\d+$/;
 
 /**
- * Load the gitignored .env into process.env, without overriding anything already set
- * in the real environment (so CI can supply its own values).
+ * Load the gitignored .env into process.env for local dry-run only, without
+ * overriding anything already set in the real environment.
  *
- * The Cloudflare account id lives here rather than in wrangler.jsonc: that file is
- * tracked, and an account identifier does not belong in a tracked file. spawnSync
- * inherits process.env, so wrangler picks it up from the mutation below.
+ * A real production deployment must never derive provider authority from a
+ * workstation file. GitHub Actions receives Cloudflare credentials from the
+ * protected production environment instead.
  */
 function loadDotEnv() {
   let text;
@@ -27,15 +33,42 @@ function loadDotEnv() {
   }
 }
 
-loadDotEnv();
+export function deploymentPreconditionFailures({
+  dryRun,
+  env,
+  release,
+  tagsAtHead,
+  releaseIdentityFailures = [],
+}) {
+  const failures = [];
+  if (!releasePattern.test(release) || !tagsAtHead.includes(release)) {
+    failures.push("SHARKTANK_RELEASE must be a semantic vX.Y.Z tag pointing at HEAD");
+  }
 
-const env = "wizardgangprod";
-const dryRun = process.argv.includes("--dry-run");
+  if (!dryRun) {
+    const expectedRef = `refs/tags/${release}`;
+    const expectedWorkflowRef = `${productionRepository}/.github/workflows/release.yml@${expectedRef}`;
+
+    if (env.GITHUB_ACTIONS !== "true") failures.push("real production deploy requires GitHub Actions");
+    if (env.GITHUB_REPOSITORY !== productionRepository) failures.push(`real production deploy requires repository ${productionRepository}`);
+    if (env.GITHUB_EVENT_NAME !== "push") failures.push("real production deploy requires the release tag-push event");
+    if (env.GITHUB_REF_TYPE !== "tag") failures.push("real production deploy requires a tag ref");
+    if (env.GITHUB_REF_NAME !== release) failures.push("real production deploy requires GITHUB_REF_NAME to match SHARKTANK_RELEASE");
+    if (env.GITHUB_REF !== expectedRef) failures.push("real production deploy requires GITHUB_REF to be the exact release tag");
+    if (env.SHARKTANK_RELEASE_WORKFLOW_REF !== expectedWorkflowRef) {
+      failures.push("real production deploy requires the exact Release workflow tag context");
+    }
+    for (const failure of releaseIdentityFailures) failures.push(`exact release identity failed: ${failure}`);
+  }
+
+  if (!env.CLOUDFLARE_ACCOUNT_ID) failures.push("CLOUDFLARE_ACCOUNT_ID is required");
+  if (!dryRun && !env.CLOUDFLARE_API_TOKEN) failures.push("CLOUDFLARE_API_TOKEN is required for real production deploy");
+  return failures;
+}
+
 function run(command, args, capture = false) {
-  const result = spawnSync(command, args, { cwd: new URL("..", import.meta.url), encoding: "utf8", stdio: capture ? "pipe" : "inherit" });
+  const result = spawnSync(command, args, { cwd: root, encoding: "utf8", stdio: capture ? "pipe" : "inherit" });
   if (result.status !== 0) {
-    // A captured command writes nowhere, so failing silently here produced a bare
-    // "exit code 1" with no cause anywhere in the log. Echo what it said before leaving.
     if (capture) {
       console.error(`Failed: ${command} ${args.join(" ")}`);
       if (result.stdout) console.error(result.stdout.trimEnd());
@@ -47,44 +80,55 @@ function run(command, args, capture = false) {
   return result.stdout ?? "";
 }
 
-const release = (process.env.SHARKTANK_RELEASE ?? "").trim();
-const releasePattern = /^v\d+\.\d+\.\d+$/;
-const tagsAtHead = run("git", ["tag", "--points-at", "HEAD"], true).split(/\s+/).filter(Boolean);
-if (!releasePattern.test(release) || !tagsAtHead.includes(release)) {
-  console.error("Refusing production deploy: SHARKTANK_RELEASE must be a semantic vX.Y.Z tag pointing at HEAD.");
-  process.exit(1);
-}
+function main() {
+  const env = "wizardgangprod";
+  const dryRun = process.argv.includes("--dry-run");
+  if (dryRun) loadDotEnv();
 
-if (!process.env.CLOUDFLARE_ACCOUNT_ID) {
-  console.error("Refusing production deploy: CLOUDFLARE_ACCOUNT_ID is not set. It lives in .env (gitignored), not in wrangler.jsonc.");
-  process.exit(1);
-}
-
-const commitCount = Number(run("git", ["rev-list", "--count", "HEAD"], true).trim());
-const commitTimes = run("git", ["log", "--reverse", "--format=%ct", "HEAD"], true).trim().split(/\s+/).filter(Boolean);
-const firstCommitSeconds = Number(commitTimes[0]);
-if (!Number.isFinite(commitCount) || commitCount < 1 || !Number.isFinite(firstCommitSeconds)) {
-  console.error("Refusing production deploy: unable to calculate repository commit metrics.");
-  process.exit(1);
-}
-const deployedAt = new Date().toISOString();
-const windowHours = Math.max(1, (Date.now() / 1000 - firstCommitSeconds) / 3600);
-const commitVelocity = commitCount / (windowHours / 24);
-const deploymentVars = [
-  `SHARKTANK_RELEASE:${release}`,
-  `SHARKTANK_COMMIT_COUNT:${commitCount}`,
-  `SHARKTANK_COMMIT_WINDOW_HOURS:${windowHours.toFixed(3)}`,
-  `SHARKTANK_COMMIT_VELOCITY:${commitVelocity.toFixed(6)}`,
-  `SHARKTANK_DEPLOYED_AT:${deployedAt}`,
-];
-
-run("npm", ["run", "build"]);
-if (!dryRun) {
-  const secrets = run("npx", ["wrangler", "secret", "list", "--env", env], true);
-  const missing = ["OPS_TOKEN", "OPS_USERNAME"].filter((name) => !secrets.includes(name));
-  if (missing.length) {
-    console.error(`Refusing production deploy: missing required secrets: ${missing.join(", ")}. Configure each with wrangler secret put <NAME> --env wizardgangprod.`);
+  const release = (process.env.SHARKTANK_RELEASE ?? "").trim();
+  const tagsAtHead = run("git", ["tag", "--points-at", "HEAD"], true).split(/\s+/).filter(Boolean);
+  const releaseIdentityFailures = dryRun ? [] : validateReleaseIdentity({ cwd: root, release });
+  const failures = deploymentPreconditionFailures({
+    dryRun,
+    env: process.env,
+    release,
+    tagsAtHead,
+    releaseIdentityFailures,
+  });
+  if (failures.length) {
+    for (const failure of failures) console.error(`Refusing production deploy: ${failure}.`);
     process.exit(1);
   }
+
+  const commitCount = Number(run("git", ["rev-list", "--count", "HEAD"], true).trim());
+  const commitTimes = run("git", ["log", "--reverse", "--format=%ct", "HEAD"], true).trim().split(/\s+/).filter(Boolean);
+  const firstCommitSeconds = Number(commitTimes[0]);
+  if (!Number.isFinite(commitCount) || commitCount < 1 || !Number.isFinite(firstCommitSeconds)) {
+    console.error("Refusing production deploy: unable to calculate repository commit metrics.");
+    process.exit(1);
+  }
+  const deployedAt = new Date().toISOString();
+  const windowHours = Math.max(1, (Date.now() / 1000 - firstCommitSeconds) / 3600);
+  const commitVelocity = commitCount / (windowHours / 24);
+  const deploymentVars = [
+    `SHARKTANK_RELEASE:${release}`,
+    `SHARKTANK_COMMIT_COUNT:${commitCount}`,
+    `SHARKTANK_COMMIT_WINDOW_HOURS:${windowHours.toFixed(3)}`,
+    `SHARKTANK_COMMIT_VELOCITY:${commitVelocity.toFixed(6)}`,
+    `SHARKTANK_DEPLOYED_AT:${deployedAt}`,
+  ];
+
+  run("npm", ["run", "build"]);
+  if (!dryRun) {
+    const secrets = run("npx", ["wrangler", "secret", "list", "--env", env], true);
+    const missing = ["OPS_TOKEN", "OPS_USERNAME"].filter((name) => !secrets.includes(name));
+    if (missing.length) {
+      console.error(`Refusing production deploy: missing required secrets: ${missing.join(", ")}. Configure them through the protected production environment/provider boundary.`);
+      process.exit(1);
+    }
+  }
+  run("npx", ["wrangler", "deploy", ...(dryRun ? ["--dry-run"] : []), "--env", env, ...deploymentVars.flatMap((value) => ["--var", value])]);
 }
-run("npx", ["wrangler", "deploy", ...(dryRun ? ["--dry-run"] : []), "--env", env, ...deploymentVars.flatMap((value) => ["--var", value])]);
+
+const invoked = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invoked) main();

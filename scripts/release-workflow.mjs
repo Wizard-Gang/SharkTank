@@ -112,6 +112,7 @@ export function validateProductionDeployWorkflow(workflow) {
   if (!deploy.includes('npm install --global "$package_manager"')) failures.push("deploy must install the repository npm authority");
   if (!deploy.includes("run: npm ci")) failures.push("deploy must install locked dependencies");
   if (!deploy.includes("SHARKTANK_RELEASE: ${{ inputs.tag }}")) failures.push("deploy must bind release identity from the workflow input");
+  if (!deploy.includes("SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}")) failures.push("deploy must bind caller release workflow identity");
   if (!deploy.includes('[ "$GITHUB_REF_TYPE" = "tag" ]')) failures.push("deploy must reject non-tag caller events");
   if (!deploy.includes('[ "$GITHUB_REF_NAME" = "$SHARKTANK_RELEASE" ]')) failures.push("deploy must require the input tag to match the event tag");
   if (!deploy.includes("npm run check:release-identity")) failures.push("deploy must revalidate exact annotated release identity");

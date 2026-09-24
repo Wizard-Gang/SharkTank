@@ -50,6 +50,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
           set -o pipefail
           npm run deploy:wizardgangprod 2>&1 | tee /tmp/deploy.log
