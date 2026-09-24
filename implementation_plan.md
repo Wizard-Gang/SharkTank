@@ -16,15 +16,6 @@ The latest published release remains `v1.3.7`, which predates the current reusab
 
 ## Open tasks
 
-### ST-088 — [OPS] Publish the first fully governed post-convergence release
-
-- Dependency: ST-087 merged and live GitHub settings match committed authority.
-- Why: SharkTank's latest published release `v1.3.7` predates the current reusable release/deploy process, so the standardized chain has not yet been exercised end to end.
-- Scope: Make one controlled patch-version release change. If no intervening product release changes SemVer requirements, advance `1.3.7` to `1.3.8`. Use only the governed path: version-bump PR -> exact-head CI -> squash merge -> automatic annotated tag -> exact tagged reproduction -> GitHub Release create/verify -> optional protected production deployment -> provider identity verification.
-- Non-goals: No unrelated product feature or refactor in the release change.
-- Acceptance: GitHub records one immutable annotated tag and matching GitHub Release for the merged version commit; if production deployment is enabled, the protected workflow proves the same release through provider deployment evidence. Failures are reported, not bypassed.
-- Validation: canonical repository checks; live settings verification; exact-head and merged-main CI; tag/Release/workflow evidence; production provider evidence when deployment runs.
-- Authorities: live GitHub provider state, committed settings authority, release/deploy workflows, Cloudflare deployment evidence.
 
 ### ST-089 — [DOCS] Complete fresh process-parity acceptance
 
