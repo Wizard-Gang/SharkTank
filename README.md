@@ -6,7 +6,7 @@ SharkTank is a realtime multiplayer game backed by authoritative Cloudflare Dura
 
 ## Command map
 
-Use the shared WG-ARCH-001 toolchain authority: Node.js 26.7.0 from `.node-version` and npm 11.19.0 from `packageManager`. The engine policy remains Node 26.x/npm 11.x, and `npm run check` fails when acceptance runs on a different exact Node/npm pair. Run `npm ci` before repository validation. PHP 8.2 or newer is required for the PHP parity test and therefore for the complete `check` gate.
+Use the shared WG-ARCH-001 toolchain authority: Node.js 26.9.0 from `.node-version` and npm 11.19.1 from `packageManager`. The engine policy remains Node 26.x/npm 11.x, and `npm run check` fails when acceptance runs on a different exact Node/npm pair. Run `npm ci` before repository validation. PHP 8.2 or newer is required for the PHP parity test and therefore for the complete `check` gate.
 
 | Command | Purpose and current side effects |
 | --- | --- |
