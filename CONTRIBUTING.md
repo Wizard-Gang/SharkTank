@@ -1,54 +1,19 @@
-# Contributing to SharkTank
+# Contributing
 
-Thank you for helping improve SharkTank. This repository contains the complete Worker host, deterministic TypeScript game runtime, browser client, and PHP parity proof.
+Read [AGENTS.md](AGENTS.md) before changing a repository. It owns the repository's product boundaries, controlled change identity, validation details, and merge rules. Read the active implementation plan when present; its filename may be `implementation_plan.md` or `IMPLEMENTATION_PLAN.md`.
 
-## Local setup
+## Work queue and plan updates
 
-Use the shared WG-ARCH-001 toolchain authority: Node.js 26.9.0 from `.node-version`, npm 11.19.1 from `packageManager`, and PHP 8.2 or newer. The Node/npm engine policy remains 26.x/11.x, while repository acceptance requires the exact pinned pair:
+The first open plan task is the default next implementation task unless the owner explicitly changes priority. Keep existing open tasks in place when appending future work. A separately requested portfolio plan maintenance change may append or clarify future tasks while another task or pull request is in progress. Once the shared policy is established, that maintenance change edits only the active plan file and does not claim to deliver a queued task. The last task deletes the plan only when no later task remains.
 
-```sh
-npm ci
-```
+Before editing or merging, fetch current `main` and inspect open pull requests. Record the base commit and the plan's current contents. Immediately before merging, fetch again and compare the current `main` commit, exact pull request head, and plan against that recorded base. Rebase and reconcile any concurrent plan change rather than overwriting it. Merge only the current, mergeable head after required checks pass.
 
-For normal development, run:
+## Toolchain and commands
 
-```sh
-npm run dev
-```
+Use the exact Node version in `.node-version` and npm version in `package.json`'s `packageManager`; install from the committed lockfile with `npm ci`. `npm run check` is the canonical local repository acceptance command. Run the focused checks named by the active task and `git diff --check` as well. `build`, `test`, `typecheck`, and `dev` follow the repository's `package.json` and AGENTS.md; use only capabilities that repository actually has. Network dependency advisories, live GitHub settings verification, releases, and production deployment are separate operations with repository-specific prerequisites.
 
-That is the standard whole-stack lifecycle. It uses `scripts/local.mjs`, stops only processes positively identified as belonging to this checkout's managed Wrangler or Workerman lifecycle, fails closed when ports 8787/8080/8081 are occupied by anything else, clears only validated disposable `dist/` and `.wrangler/` state by default, preserves `packages/php-runtime/data/`, builds, starts the PHP backend when available, starts Wrangler, waits for bounded HTTP readiness on port 8787, and only then reports/opens the application URL. For headless/cloud development, use exactly `npm run dev -- --no-open`; readiness and every other lifecycle control still run, and only browser launch is suppressed.
+Shared dependencies and versioned vendor tooling should use one supported version across public repositories when those repositories consume them. GitHub Actions workflows and common npm script names should have equivalent behavior for equivalent capabilities. A library or local-only application does not acquire a hosted deployment merely for parity.
 
-`npm run local` remains a compatibility/explicit whole-stack alias to the same implementation; its exact headless form is `npm run local -- --no-open`. To deliberately clear PHP application state, use exactly `npm run local -- --reset-php-data`; the option authorizes only this checkout's canonical PHP data directory, and containment/symlink validation happens before any reset mutation.
+## Contribution and security boundaries
 
-For a deliberately narrow TypeScript/Cloudflare Worker-only session, use `npm run dev:worker`. It starts raw Wrangler on `http://127.0.0.1:8787` without the PHP lifecycle or whole-stack reset. `npm start` preserves its prior Worker-only behavior by delegating to `dev:worker`. Local admin credentials, when needed, belong in ignored `.dev.vars`, not in tracked files.
-
-## Validation and operations commands
-
-- `npm test` runs Vitest only.
-- `npm run test:php` runs the PHP parity self-test and requires PHP.
-- `npm run build` creates the Vite production build locally; it does not deploy.
-- `npm run check` is the complete credential-free repository gate. It includes the tests above, the production build, repository/change/history/provenance/settings checks, local HTTP acceptance, pure dependency-advisory policy cases, and patch whitespace. The local HTTP gate starts and stops its own Worker on port 8792.
-- `npm run audit:dependencies` performs the separate live network advisory check at the moderate severity threshold; CI and release verification require it.
-- Local HTTP acceptance launches Wrangler with a temporary test-owned environment file and does not require reading, moving, deleting, or rewriting a developer's ignored `.dev.vars`.
-- `npm run verify:github-settings` is read-only live provider verification and requires an admin-capable `GH_ADMIN_TOKEN` or `GH_TOKEN` with Repository Administration read access.
-- `npm run apply:github-settings` is the explicit provider mutation path, requires Repository Administration write access, and re-verifies after applying the committed settings.
-- `npm run deploy:wizardgangprod:dry-run` exercises the production deployment configuration without deploying. It still requires a semantic `SHARKTANK_RELEASE` tag at `HEAD` and `CLOUDFLARE_ACCOUNT_ID`; the deployment script may load the ignored `.env`.
-- Pushing a semantic `vX.Y.Z` tag starts the Release workflow. After `npm run check` and GitHub Release publication, the tag workflow may call the reusable `.github/workflows/deploy.yml` production stage with that exact event tag. The reusable workflow has no independent branch or manual trigger and is additionally gated by `PRODUCTION_DEPLOY_ENABLED=true`, the protected `production` environment, Cloudflare credentials, and exact release identity at `HEAD`. A green CI or release verification run does not itself mean a release was published or production changed.
-
-Do not invoke production deployment paths merely to validate a pull request.
-
-## Planning queue
-
-`implementation_plan.md` exists only while SharkTank has queued current/future work. Work the first task only; if its dependency is unsatisfied, report it as blocked rather than skipping to a later task. The pull request that delivers a task removes that task from the plan, and if it was the final task, deletes the exhausted plan instead of retaining a placeholder.
-
-When no implementation plan exists, a `do needful` turn is planning-only: re-audit current repository and provider state, publish a new dependency-ordered wave of small tasks, and stop before implementing the first new task. A single turn therefore completes either one controlled delivery or one fresh planning wave.
-
-## Pull requests
-
-Keep a pull request focused on one auditable outcome. Explain risk, controls, evidence, rollback needs, and the commands actually run. New behavior needs tests. Changes to public assurance claims must update their evidence and must not turn a limitation into an unsupported assertion.
-
-Use the structured commit format in `AGENTS.md`. Pull requests carry one contributor-authored controlled commit and land as one commit on `main`; squash merge is the accepted merge method when needed to preserve that shape. The landed commit must retain the complete structured record. Dependency updates are reviewed and submitted under the contributor's ST identity rather than by a version-update bot.
-
-## Security reports
-
-Do not open a public issue for a vulnerability. Follow `SECURITY.md` instead.
+Keep changes scoped to one controlled delivery unless the owner requests portfolio plan maintenance. Record validation and provider actions truthfully. Follow the repository's AGENTS.md for branch, commit, pull request, exact-head CI, and squash-merge requirements. Use [SECURITY.md](SECURITY.md) for security reports. Ownership is defined by AGENTS.md and its linked ownership policy where present.
