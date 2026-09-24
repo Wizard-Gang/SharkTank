@@ -4,9 +4,8 @@ This is SharkTank's next current/future delivery-process convergence wave under 
 
 The current repository is already squash-only with completed-branch cleanup, protected `main`, strict required `verify`, immutable `v*` tags, the normalized GitHub settings test/verify/apply CLI, credential-free canonical `npm run check`, separate live dependency advisories, exact annotated release identity, GitHub Release publication before production deployment, and a reusable workflow-call-only production stage. Do not rebuild those controls merely for cosmetic sameness.
 
-Fresh evidence identified four remaining process gaps that this wave owns:
+Fresh evidence identified three remaining process gaps that this wave owns:
 
-- the current shared reference repositories have moved to Node 26.9.0 and npm 11.19.1 while SharkTank still pins Node 26.7.0 and npm 11.19.0;
 - `npm run deploy:wizardgangprod` can still perform a real production mutation from a local tagged checkout when local Cloudflare access exists, so the protected release workflow is not the only repository-owned production path;
 - release tagging is still a manual semantic-tag push rather than a consequence of an accepted controlled version change on `main`;
 - `gh release create` is not retry-safe after publication, so a workflow rerun can stop before an otherwise valid production retry.
@@ -14,15 +13,6 @@ Fresh evidence identified four remaining process gaps that this wave owns:
 The latest published release remains `v1.3.7`, which predates the current reusable release/deploy shape. This wave therefore ends by exercising the governed process once from a controlled version change instead of treating structural tests alone as production proof.
 
 ## Open tasks
-
-### ST-083 — [BUILD] Refresh the shared Node and npm toolchain
-
-- Why: The organization reference repositories now pin Node 26.9.0 and npm 11.19.1, while SharkTank still pins Node 26.7.0 and npm 11.19.0.
-- Scope: Update `.node-version`, `packageManager`, lockfile root metadata, exact-toolchain acceptance checks and current documentation to Node 26.9.0/npm 11.19.1. Keep `engines` at Node 26.x/npm 11.x. Preserve CI/release/deploy installation from repository authority.
-- Non-goals: No dependency-upgrade wave, runtime feature change, release, tag or production deployment.
-- Acceptance: Local/CI acceptance fails on a different exact patch pair; PR/main/release/deploy paths install the repository npm version after resolving `.node-version`.
-- Validation: focused toolchain/baseline cases; `npm ci`; `npm run check`; `npm run audit:dependencies`; exact-head CI; `git diff --check`.
-- Authorities: current WG-ARCH-001 reference repositories, `.node-version`, `package.json`, lockfile, CI/release/deploy workflows.
 
 ### ST-084 — [OPS] Make real production deployment workflow-only
 
