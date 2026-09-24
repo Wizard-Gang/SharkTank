@@ -119,9 +119,24 @@ export function validateProductionDeployWorkflow(workflow) {
   if (!deploy.includes("CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}")) failures.push("deploy must retain the Cloudflare token boundary");
   if (!deploy.includes("CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}")) failures.push("deploy must retain the Cloudflare account boundary");
   if (!deploy.includes("npm run deploy:wizardgangprod")) failures.push("deploy must use the production deployment command");
+  if (!deploy.includes("id: deploy")) failures.push("production mutation must expose the uploaded Version ID");
+  if (!deploy.includes('echo "version=$version" >> "$GITHUB_OUTPUT"')) failures.push("production mutation must publish the uploaded Version ID");
   if (!deploy.includes("npx wrangler deployments list --env wizardgangprod")) failures.push("deploy must confirm provider deployment state");
+  if (!deploy.includes("VERSION: ${{ steps.deploy.outputs.version }}")) failures.push("provider proof must bind the uploaded Version ID");
+  if (!deploy.includes('grep -q "$VERSION"')) failures.push("provider proof must require the uploaded Version ID");
   if (!deploy.includes("grep -q '(100%)'")) failures.push("deploy must prove the uploaded version serves 100% of traffic");
   if (!deploy.includes("npm run check:evidence -- https://sharktank.wizardgang.ai")) failures.push("deploy must retain public evidence validation when reachable");
+  if (!deploy.includes("cf-mitigated: *challenge")) failures.push("public edge fallback must remain limited to the documented managed challenge");
+
+  const productionIndex = deploy.indexOf("npm run deploy:wizardgangprod");
+  const providerIndex = deploy.indexOf("npx wrangler deployments list --env wizardgangprod");
+  const publicEdgeIndex = deploy.indexOf("npm run check:evidence -- https://sharktank.wizardgang.ai");
+  if (productionIndex >= 0 && providerIndex >= 0 && providerIndex <= productionIndex) {
+    failures.push("authenticated provider proof must follow the production mutation");
+  }
+  if (providerIndex >= 0 && publicEdgeIndex >= 0 && publicEdgeIndex <= providerIndex) {
+    failures.push("public edge evidence must remain a post-provider-proof fallback");
+  }
 
   return failures;
 }
@@ -175,6 +190,13 @@ export function validateReleaseWorkflow(workflow, deployWorkflow) {
   else failures.push(...validateProductionDeployWorkflow(deployWorkflow));
 
   return failures;
+}
+
+export function validateVersionToProductionChain({ tagWorkflow, releaseWorkflow, deployWorkflow }) {
+  return [
+    ...validateReleaseTagWorkflow(tagWorkflow).map((failure) => `tag stage: ${failure}`),
+    ...validateReleaseWorkflow(releaseWorkflow, deployWorkflow).map((failure) => `release/deploy stage: ${failure}`),
+  ];
 }
 
 export function validateReleaseTagWorkflow(workflow) {

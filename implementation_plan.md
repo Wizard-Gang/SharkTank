@@ -16,16 +16,6 @@ The latest published release remains `v1.3.7`, which predates the current reusab
 
 ## Open tasks
 
-### ST-087 — [TEST] Prove version-to-production identity end to end
-
-- Dependency: ST-086 merged.
-- Why: The final process should be guarded as one chain rather than as individually plausible version, tag, Release and deploy steps.
-- Scope: Extend credential-free contract coverage for controlled version change -> exact annotated tag -> tagged-state reproduction -> GitHub Release create-or-verify -> same-tag reusable production workflow -> guarded production CLI -> authenticated Cloudflare Version ID and 100%-traffic proof. Preserve the existing documented public-edge challenge fallback after provider proof.
-- Non-goals: No live production deployment in ordinary PR acceptance and no WAF weakening.
-- Acceptance: Wrong commit/tag/package identity, unpublished release state, release/deploy ordering drift, local production invocation or mismatched deploy handoff fails canonical acceptance.
-- Validation: focused release/tag/deploy cases; `npm run check`; `npm run audit:dependencies`; exact-head CI; `git diff --check`.
-- Authorities: release identity, tagging workflow, Release workflow, reusable deploy workflow, production deploy script.
-
 ### ST-088 — [OPS] Publish the first fully governed post-convergence release
 
 - Dependency: ST-087 merged and live GitHub settings match committed authority.
