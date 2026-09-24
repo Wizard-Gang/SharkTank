@@ -29,9 +29,25 @@ test("release verification and publication keep full Git and tag history", () =>
   assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /verify must checkout full Git\/tag history/);
 });
 
-test("publication verifies the exact existing tag", () => {
-  const changed = replaceRequired(workflow, 'gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"', 'gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"');
-  assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /verify and publish the exact release tag/);
+test("publication uses the guarded create-or-verify command", () => {
+  const changed = replaceRequired(workflow, "        run: node scripts/release-publication.mjs", '        run: gh release create "$GITHUB_REF_NAME"');
+  assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /guarded create-or-verify publication command/);
+  assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /must not embed mutable gh release operations/);
+});
+
+test("publication binds exact tag and Release workflow identity", () => {
+  const withoutTag = replaceRequired(
+    workflow,
+    "          GH_TOKEN: ${{ github.token }}\n          SHARKTANK_RELEASE: ${{ github.ref_name }}\n",
+    "          GH_TOKEN: ${{ github.token }}\n",
+  );
+  assert.match(validateReleaseWorkflow(withoutTag, deployWorkflow).join("\n"), /bind the exact release event tag/);
+  const withoutWorkflow = replaceRequired(
+    workflow,
+    "          SHARKTANK_RELEASE: ${{ github.ref_name }}\n          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n",
+    "          SHARKTANK_RELEASE: ${{ github.ref_name }}\n",
+  );
+  assert.match(validateReleaseWorkflow(withoutWorkflow, deployWorkflow).join("\n"), /bind the exact Release workflow identity/);
 });
 
 test("release verification cannot omit or reorder network advisories", () => {

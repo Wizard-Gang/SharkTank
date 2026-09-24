@@ -209,6 +209,18 @@ has(release, '"v[0-9]+.[0-9]+.[0-9]+"', "release workflow must target semantic v
 has(release, "needs: publish-release", "production deploy must remain downstream of GitHub Release publication");
 has(release, "uses: ./.github/workflows/deploy.yml", "release workflow must delegate production deployment to the reusable stage");
 has(release, "tag: ${{ github.ref_name }}", "release workflow must pass the exact event tag to reusable deployment");
+has(release, "run: node scripts/release-publication.mjs", "release workflow must use guarded create-or-verify publication");
+has(release, "SHARKTANK_RELEASE: ${{ github.ref_name }}", "release publication must bind exact event tag");
+has(release, "SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}", "release publication must bind Release workflow identity");
+const releasePublication = read("scripts/release-publication.mjs");
+has(releasePublication, '"api"', "release publication must inspect existing GitHub Release state before mutation");
+has(releasePublication, '"release", "create"', "release publication must retain first-publication capability");
+has(releasePublication, '"--verify-tag"', "release creation must verify the existing annotated tag");
+has(releasePublication, '"--generate-notes"', "release creation must retain generated notes");
+has(releasePublication, '"--title"', "release creation must retain the exact tag title");
+has(releasePublication, 'env.GITHUB_ACTIONS !== "true"', "release publication must be workflow-only");
+has(releasePublication, "SHARKTANK_RELEASE_WORKFLOW_REF", "release publication must bind exact Release workflow identity");
+expect(!/["']edit["']|["']delete["']/.test(releasePublication), "release publication must not edit or delete an existing Release");
 const reusableDeploy = read(".github/workflows/deploy.yml");
 requireRepositoryToolchain(reusableDeploy, "reusable deploy workflow");
 has(reusableDeploy, "workflow_call:", "production deploy must be callable only as a reusable workflow");
@@ -222,6 +234,7 @@ has(reusableDeploy, "npm run check:release-identity", "production deploy must re
 has(reusableDeploy, "npm run deploy:wizardgangprod", "reusable deploy workflow must own production deployment");
 expect(packageJson.scripts?.["tag:release"] === "node scripts/release-tag.mjs", "release tagging must expose one guarded command");
 expect(packageJson.scripts?.["test:release-tagging"] === "node --test scripts/release-tag-cases.mjs", "release tagging must have focused disposable-Git coverage");
+expect(packageJson.scripts?.["test:release-publication"] === "node --test scripts/release-publication-cases.mjs", "release publication must have focused create-or-verify coverage");
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
 expect(packageJson.scripts?.["test:deploy-prod"] === "node --test scripts/deploy-prod-cases.mjs", "production deploy guard must have focused behavior coverage");
@@ -246,7 +259,7 @@ expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve
 expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/local-readiness-cases.mjs", "local readiness must have focused behavior coverage");
 
 for (const requiredCheck of [
-  "npm run check:implementation-plan","npm run test:release-tagging","npm run check:release-workflow","npm run test:release-identity","npm run test:deploy-prod",
+  "npm run check:implementation-plan","npm run test:release-tagging","npm run test:release-publication","npm run check:release-workflow","npm run test:release-identity","npm run test:deploy-prod",
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
   "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm run test:dependency-advisories","npm run check:whitespace",
