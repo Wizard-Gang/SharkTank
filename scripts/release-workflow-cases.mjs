@@ -76,6 +76,11 @@ test("reusable production workflow revalidates the release handoff", () => {
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /input tag to match the event tag/);
 });
 
+test("reusable production workflow binds the caller release workflow identity", () => {
+  const changed = replaceRequired(deployWorkflow, "          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n", "");
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /bind caller release workflow identity/);
+});
+
 test("reusable production workflow retains the protected environment", () => {
   const changed = replaceRequired(deployWorkflow, "    environment: production", "    environment: preview");
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /protected production environment/);
