@@ -63,6 +63,7 @@ export function validateHistoryRecords(records) {
   const failures = [];
   let expectedNumber = 1;
   let controlledCount = 0;
+  const earlyMaintenance = new Set();
 
   for (const record of records) {
     if (isVerifiedDependabotCommit(record)) continue;
@@ -75,11 +76,15 @@ export function validateHistoryRecords(records) {
       continue;
     }
 
-    const expectedId = `ST-${String(expectedNumber).padStart(3, "0")}`;
-    if (parsed.id !== expectedId) {
-      failures.push(`${label}: expected ${expectedId}, found ${parsed.id}`);
+    while (earlyMaintenance.has(expectedNumber)) expectedNumber += 1;
+    const maintenance = /^Portfolio-Plan-Maintenance: true$/m.test(record.body);
+    if (maintenance && parsed.number > expectedNumber) {
+      earlyMaintenance.add(parsed.number);
+    } else {
+      const expectedId = `ST-${String(expectedNumber).padStart(3, "0")}`;
+      if (parsed.id !== expectedId) failures.push(`${label}: expected ${expectedId}, found ${parsed.id}`);
+      else expectedNumber += 1;
     }
-    expectedNumber += 1;
     controlledCount += 1;
 
     validateHistoricalType(parsed.id, parsed.type, failures, label);
@@ -101,7 +106,7 @@ export function validateHistoryRecords(records) {
     controlledCount,
     lastId: controlledCount === 0
       ? null
-      : `ST-${String(controlledCount).padStart(3, "0")}`,
+      : `ST-${String(expectedNumber - 1).padStart(3, "0")}`,
   };
 }
 
