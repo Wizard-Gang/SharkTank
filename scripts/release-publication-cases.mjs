@@ -35,6 +35,19 @@ test("workstation and wrong workflow contexts fail closed", () => {
   assert.match(failures, /GH_TOKEN is required/);
 });
 
+test("publication cannot substitute a different release tag", () => {
+  const failures = publicationContextFailures({
+    env: {
+      ...validEnv,
+      GITHUB_REF_NAME: "v1.2.4",
+      GITHUB_REF: "refs/tags/v1.2.4",
+    },
+    release,
+  }).join("\n");
+  assert.match(failures, /GITHUB_REF_NAME must match SHARKTANK_RELEASE/);
+  assert.match(failures, /GITHUB_REF must be the exact release tag/);
+});
+
 test("matching existing Release is verified without mutation", () => {
   const calls = [];
   const runGh = (args) => {

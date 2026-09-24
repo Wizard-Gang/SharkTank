@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { validateReleaseWorkflow, validateProductionDeployWorkflow, validateReleaseTagWorkflow } from "./release-workflow.mjs";
+import {
+  validateReleaseWorkflow,
+  validateProductionDeployWorkflow,
+  validateReleaseTagWorkflow,
+  validateVersionToProductionChain,
+} from "./release-workflow.mjs";
 
 const releasePath = new URL("../.github/workflows/release.yml", import.meta.url);
 const deployPath = new URL("../.github/workflows/deploy.yml", import.meta.url);
@@ -14,6 +19,14 @@ function replaceRequired(source, from, to) {
   assert.ok(source.includes(from), "fixture is missing expected text: " + from);
   return source.replace(from, to);
 }
+
+test("complete governed version-to-production chain stays closed", () => {
+  assert.deepEqual(validateVersionToProductionChain({
+    tagWorkflow,
+    releaseWorkflow: workflow,
+    deployWorkflow,
+  }), []);
+});
 
 test("release workflow orders verification, publication, then reusable production", () => {
   assert.deepEqual(validateReleaseWorkflow(workflow, deployWorkflow), []);
@@ -107,6 +120,71 @@ test("reusable production workflow retains the protected environment", () => {
 test("reusable production workflow retains provider deployment proof", () => {
   const changed = replaceRequired(deployWorkflow, "          npx wrangler deployments list --env wizardgangprod", "          npx wrangler deployments list --env preview");
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /confirm provider deployment state/);
+});
+
+test("provider proof is bound to the uploaded Version ID", () => {
+  const withoutBinding = replaceRequired(
+    deployWorkflow,
+    "          VERSION: ${{ steps.deploy.outputs.version }}\n",
+    "",
+  );
+  assert.match(validateProductionDeployWorkflow(withoutBinding).join("\n"), /bind the uploaded Version ID/);
+
+  const withoutExactVersion = replaceRequired(
+    deployWorkflow,
+    'grep -q "$VERSION"',
+    'grep -q "$SHARKTANK_RELEASE"',
+  );
+  assert.match(validateProductionDeployWorkflow(withoutExactVersion).join("\n"), /require the uploaded Version ID/);
+});
+
+test("provider proof still requires 100 percent traffic", () => {
+  const changed = replaceRequired(
+    deployWorkflow,
+    "grep -q '(100%)'",
+    "grep -q '(partial)'",
+  );
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /serves 100% of traffic/);
+});
+
+test("public edge evidence cannot run before authenticated provider proof", () => {
+  const changed = replaceRequired(
+    deployWorkflow,
+    "    steps:\n",
+    "    steps:\n      - name: Premature public edge evidence\n        run: npm run check:evidence -- https://sharktank.wizardgang.ai\n",
+  );
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /post-provider-proof fallback/);
+});
+
+test("public edge fallback remains limited to the managed challenge", () => {
+  const changed = replaceRequired(deployWorkflow, "cf-mitigated: *challenge", "server: cloudflare");
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /documented managed challenge/);
+});
+
+test("release verification cannot omit exact package and tag identity", () => {
+  const changed = replaceRequired(
+    workflow,
+    "        run: npm run check:release-identity\n",
+    "",
+  );
+  assert.match(validateVersionToProductionChain({
+    tagWorkflow,
+    releaseWorkflow: changed,
+    deployWorkflow,
+  }).join("\n"), /exact release identity validation/);
+});
+
+test("reusable production handoff cannot change the Release event tag", () => {
+  const changed = replaceRequired(
+    workflow,
+    "      tag: ${{ github.ref_name }}",
+    "      tag: v0.0.0",
+  );
+  assert.match(validateVersionToProductionChain({
+    tagWorkflow,
+    releaseWorkflow: changed,
+    deployWorkflow,
+  }).join("\n"), /pass the exact release event tag/);
 });
 
 test("release tagging observes only successful main push CI", () => {
