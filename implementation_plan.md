@@ -16,16 +16,6 @@ The latest published release remains `v1.3.7`, which predates the current reusab
 
 ## Open tasks
 
-### ST-085 — [BUILD] Create annotated release tags from merged version changes
-
-- Dependency: ST-084 merged.
-- Why: A release still depends on a separate manual tag push after the controlled version change, leaving tagging outside the normal reviewed merge path.
-- Scope: Add a post-merge release-tagging path on `main` that detects an accepted root package-version change, proves the new semantic version is intentional and unreleased, and creates exactly one annotated `vX.Y.Z` tag on that exact merged commit. Ordinary main pushes without a version change create no tag. Existing matching state is idempotent; an existing conflicting tag is a hard failure and is never moved or recreated.
-- Non-goals: No GitHub Release publication or production deployment logic moves into the tagging step.
-- Acceptance: A controlled version-bump merge can create the immutable annotated tag without a workstation tagging step; non-version changes and conflicting existing tags cannot create or rewrite release identity.
-- Validation: disposable Git/tag fixtures; workflow contract tests; `npm run check`; exact-head CI; `git diff --check`.
-- Authorities: package version authority, release identity CLI, immutable `v*` ruleset, GitHub Actions.
-
 ### ST-086 — [BUILD] Make GitHub Release publication retry-safe
 
 - Dependency: ST-085 merged.

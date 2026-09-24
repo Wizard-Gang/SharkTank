@@ -1,0 +1,38 @@
+name: Release Tag
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Use repository npm
+        shell: bash
+        run: |
+          package_manager="$(node -p "require('./package.json').packageManager")"
+          expected_npm="${package_manager#npm@}"
+          npm install --global "$package_manager"
+          actual_npm="$(npm --version)"
+          [ "$actual_npm" = "$expected_npm" ] || { echo "::error::npm $actual_npm != repository npm $expected_npm"; exit 1; }
+      - run: npm ci
+      - name: Create or verify release tag
+        env:
+          SHARKTANK_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
+          SHARKTANK_TAG_WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: npm run tag:release

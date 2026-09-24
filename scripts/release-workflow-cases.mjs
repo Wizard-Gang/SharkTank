@@ -1,12 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { validateReleaseWorkflow, validateProductionDeployWorkflow } from "./release-workflow.mjs";
+import { validateReleaseWorkflow, validateProductionDeployWorkflow, validateReleaseTagWorkflow } from "./release-workflow.mjs";
 
 const releasePath = new URL("../.github/workflows/release.yml", import.meta.url);
 const deployPath = new URL("../.github/workflows/deploy.yml", import.meta.url);
+const tagPath = new URL("../.github/workflows/tag-release.yml", import.meta.url);
 const workflow = readFileSync(releasePath, "utf8");
 const deployWorkflow = readFileSync(deployPath, "utf8");
+const tagWorkflow = readFileSync(tagPath, "utf8");
 
 function replaceRequired(source, from, to) {
   assert.ok(source.includes(from), "fixture is missing expected text: " + from);
@@ -89,4 +91,28 @@ test("reusable production workflow retains the protected environment", () => {
 test("reusable production workflow retains provider deployment proof", () => {
   const changed = replaceRequired(deployWorkflow, "          npx wrangler deployments list --env wizardgangprod", "          npx wrangler deployments list --env preview");
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /confirm provider deployment state/);
+});
+
+test("release tagging observes only successful main push CI", () => {
+  assert.deepEqual(validateReleaseTagWorkflow(tagWorkflow), []);
+});
+
+test("release tagging cannot observe a different workflow", () => {
+  const changed = replaceRequired(tagWorkflow, 'workflows: ["CI"]', 'workflows: ["Release"]');
+  assert.match(validateReleaseTagWorkflow(changed).join("\n"), /observe only CI/);
+});
+
+test("release tagging cannot run before successful main push CI", () => {
+  const changed = replaceRequired(tagWorkflow, "github.event.workflow_run.conclusion == 'success'", "always()");
+  assert.match(validateReleaseTagWorkflow(changed).join("\n"), /successful push CI on main/);
+});
+
+test("release tagging checks out the exact accepted main commit", () => {
+  const changed = replaceRequired(tagWorkflow, "ref: ${{ github.event.workflow_run.head_sha }}", "ref: main");
+  assert.match(validateReleaseTagWorkflow(changed).join("\n"), /exact accepted main SHA/);
+});
+
+test("release tagging cannot publish a GitHub Release or deploy production", () => {
+  const changed = tagWorkflow + "\n# gh release create forbidden\n";
+  assert.match(validateReleaseTagWorkflow(changed).join("\n"), /must not publish Releases or deploy production/);
 });
