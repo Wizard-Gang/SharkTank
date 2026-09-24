@@ -24,9 +24,9 @@ Use the shared WG-ARCH-001 toolchain authority: Node.js 26.7.0 from `.node-versi
 
 ## Release and production boundary
 
-Pushing a semantic `vX.Y.Z` tag triggers the Release workflow. The workflow installs locked dependencies and runs `npm run check`; after that verification, GitHub Release publication and the optional production deployment are currently separate jobs that both depend on `verify`. Production deployment runs only when `PRODUCTION_DEPLOY_ENABLED=true`, through the protected `production` environment with Cloudflare credentials, and the deploy script independently requires the release tag at `HEAD`.
+Pushing a semantic `vX.Y.Z` tag triggers the Release workflow. The workflow installs locked dependencies, runs `npm run check` plus the live dependency-advisory gate, verifies the exact annotated release identity, and publishes the GitHub Release. Only after publication succeeds may it call the reusable `.github/workflows/deploy.yml` stage with that same event tag. Production deployment remains optional behind `PRODUCTION_DEPLOY_ENABLED=true`, the protected `production` environment, Cloudflare credentials, and an independent exact-tag identity check.
 
-Because those two post-verification jobs are currently independent, production deployment does not wait for GitHub Release publication to complete. A green CI or release verification job therefore proves repository acceptance only; it does not by itself prove that a GitHub Release was published or that production changed. Do not run production deployment paths merely to validate a pull request.
+Release publication and production deployment are therefore separate evidence boundaries but ordered stages: deployment cannot start from the tag workflow before the GitHub Release exists, and the reusable deploy workflow has no independent branch or manual trigger. A green CI or release verification job proves repository acceptance only; it does not by itself prove that a GitHub Release was published or that production changed. Do not run production deployment paths merely to validate a pull request.
 
 ## Repository map
 
