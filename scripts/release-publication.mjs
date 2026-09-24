@@ -16,17 +16,15 @@ function gh(args, env = process.env) {
 export function publicationContextFailures({ env, release }) {
   const failures = [];
   const value = (release ?? "").trim();
-  const expectedRef = `refs/tags/${value}`;
-  const expectedWorkflowRef = `${repository}/.github/workflows/release.yml@${expectedRef}`;
+  const expectedWorkflowRef = `${repository}/.github/workflows/release.yml@refs/heads/main`;
 
   if (!releasePattern.test(value)) failures.push("release publication requires semantic vX.Y.Z identity");
   if (env.GITHUB_ACTIONS !== "true") failures.push("release publication requires GitHub Actions");
   if (env.GITHUB_REPOSITORY !== repository) failures.push(`release publication requires repository ${repository}`);
-  if (env.GITHUB_EVENT_NAME !== "push") failures.push("release publication requires the release tag-push event");
-  if (env.GITHUB_REF_TYPE !== "tag") failures.push("release publication requires a tag ref");
-  if (env.GITHUB_REF_NAME !== value) failures.push("GITHUB_REF_NAME must match SHARKTANK_RELEASE");
-  if (env.GITHUB_REF !== expectedRef) failures.push("GITHUB_REF must be the exact release tag");
-  if (env.SHARKTANK_RELEASE_WORKFLOW_REF !== expectedWorkflowRef) failures.push("release publication requires the exact Release workflow tag context");
+  if (env.GITHUB_EVENT_NAME !== "workflow_dispatch") failures.push("release publication requires explicit dispatch");
+  if (env.GITHUB_REF !== "refs/heads/main") failures.push("release publication requires the main workflow ref");
+  if (!/^[0-9a-f]{40}$/.test(env.SHARKTANK_EXPECTED_SHA ?? "")) failures.push("release publication requires the exact accepted main SHA");
+  if (env.SHARKTANK_RELEASE_WORKFLOW_REF !== expectedWorkflowRef) failures.push("release publication requires the exact main Release workflow context");
   if (!env.GH_TOKEN) failures.push("GH_TOKEN is required for GitHub Release publication");
   return failures;
 }

@@ -20,6 +20,7 @@ function fixture(version = "1.2.3") {
   writeFileSync(join(cwd, "package.json"), JSON.stringify({ version }) + "\n");
   git(cwd, "add", "package.json");
   git(cwd, "commit", "-qm", "fixture");
+  git(cwd, "update-ref", "refs/remotes/origin/main", "HEAD");
   return cwd;
 }
 
@@ -32,6 +33,37 @@ test("annotated semantic tag at HEAD with matching package version passes", () =
   try {
     git(cwd, "tag", "-a", "v1.2.3", "-m", "v1.2.3");
     assert.deepEqual(validateReleaseIdentity({ cwd, release: "v1.2.3" }), []);
+    assert.deepEqual(validateReleaseIdentity({ cwd, release: "v1.2.3", expectedSha: git(cwd, "rev-parse", "HEAD") }), []);
+  } finally {
+    cleanup(cwd);
+  }
+});
+
+test("a different expected accepted commit fails", () => {
+  const cwd = fixture();
+  try {
+    git(cwd, "tag", "-a", "v1.2.3", "-m", "v1.2.3");
+    assert.match(
+      validateReleaseIdentity({ cwd, release: "v1.2.3", expectedSha: "a".repeat(40) }).join("\n"),
+      /does not point at expected accepted main SHA/,
+    );
+  } finally {
+    cleanup(cwd);
+  }
+});
+
+test("tagged commit must remain on accepted main history", () => {
+  const cwd = fixture();
+  try {
+    writeFileSync(join(cwd, "next.txt"), "next\n");
+    git(cwd, "add", "next.txt");
+    git(cwd, "commit", "-qm", "next");
+    git(cwd, "tag", "-a", "v1.2.3", "-m", "v1.2.3");
+    const expectedSha = git(cwd, "rev-parse", "HEAD");
+    assert.match(
+      validateReleaseIdentity({ cwd, release: "v1.2.3", expectedSha }).join("\n"),
+      /not an ancestor of current origin\/main/,
+    );
   } finally {
     cleanup(cwd);
   }

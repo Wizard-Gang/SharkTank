@@ -6,26 +6,7 @@ This is SharkTank's next current/future delivery-process convergence wave under 
 
 The current repository is already squash-only with completed-branch cleanup, protected `main`, strict required `verify`, immutable `v*` tags, the normalized GitHub settings test/verify/apply CLI, credential-free canonical `npm run check`, separate live dependency advisories, exact annotated release identity, and a reusable workflow-call-only production stage. Do not rebuild those controls merely for cosmetic sameness.
 
-Fresh provider evidence from 2026-09-24 identifies one release handoff gap:
-
-- accepted `main` at `999e2b988667cdb02dc5812ca2952d3051b68b5a` passed CI and the Release Tag workflow created immutable annotated `v1.3.8` at that exact commit;
-- the tag push used the workflow's default `GITHUB_TOKEN`, so GitHub did not start the separate tag-push Release workflow; no published GitHub Release `v1.3.8` or governed production deploy exists, and public `/version.json` still reports `v1.3.7`;
-- the release/deploy workflow must be repaired to hand off an exact immutable tag without depending on a `GITHUB_TOKEN`-generated push event. Preserve the existing protected production environment, published-Release prerequisite, and fail-closed deployment boundary.
-
-The owner has prioritized this recovery before the final parity audit. The existing `v1.3.8` tag must not be moved, deleted, or replaced.
-
 ## Open tasks
-
-
-### ST-089 — [BUILD] Repair release handoff and recover v1.3.8
-
-- Dependency: ST-088 merged; annotated `v1.3.8` remains at exact commit `999e2b988667cdb02dc5812ca2952d3051b68b5a`.
-- Why: A tag pushed with GitHub Actions `GITHUB_TOKEN` does not trigger the separate tag-push Release workflow, leaving the new immutable tag unpublished and production on `v1.3.7`.
-- Scope: Give the Release workflow a supported explicit handoff from the successful exact-main Release Tag workflow and a deliberate recovery path for an already-created immutable tag. Verify the requested tag is semantic and annotated, matches the package version and exact accepted commit, and has passed canonical tagged-state and live advisory gates before creating or verifying its GitHub Release. Keep publication retry-safe. Only after publication may the protected `production` environment deploy that same tag when `PRODUCTION_DEPLOY_ENABLED=true`; require Cloudflare provider version/100%-traffic evidence and public release identity where the edge permits it. Update focused workflow, release-identity, and deployment-boundary tests and current-state release docs. Do not rely on a new credential solely to cause a second workflow run.
-- Non-goals: No new version bump, tag movement, arbitrary-checkout deployment, ruleset weakening, or alternate hosting platform.
-- Acceptance: GitHub records a published non-draft `v1.3.8` Release at the existing annotated tag, the governed release/deploy run proves the same exact commit and release, Cloudflare serves the resulting Worker Version ID at 100%, and public `/version.json` reports `v1.3.8` when reachable. The next version change follows the repaired path without a manual tag-push workaround.
-- Validation: `npm ci`; focused release/tag/deploy cases; `npm run check`; `npm run audit:dependencies`; `npm run verify:github-settings`; `git diff --check`; exact-head and merged-main CI; authenticated GitHub Release, protected-environment, Cloudflare deployment, and public-origin evidence.
-- Authorities: GitHub Actions `GITHUB_TOKEN` trigger semantics, immutable tag and GitHub Release state, repository release/deploy workflows and guards, Cloudflare production evidence.
 
 ### ST-091 — [DOCS] Complete fresh process-parity acceptance
 

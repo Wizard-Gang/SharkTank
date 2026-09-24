@@ -1,9 +1,16 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated semantic release tag
+        required: true
+        type: string
+      expected_sha:
+        description: Accepted main commit recorded by the tag workflow
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,7 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
+      - name: Fetch accepted main for release ancestry proof
+        run: git fetch origin refs/heads/main:refs/remotes/origin/main
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
@@ -32,10 +42,16 @@ jobs:
       - run: npm run check
       - name: Network dependency advisories
         run: npm run audit:dependencies
+      - name: Load release guard from this workflow commit
+        run: |
+          mkdir -p "$RUNNER_TEMP/sharktank-release-tools/scripts"
+          git show "$GITHUB_SHA:scripts/release-identity.mjs" > "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
       - name: Verify exact release identity
         env:
-          SHARKTANK_RELEASE: ${{ github.ref_name }}
-        run: npm run check:release-identity
+          SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
 
   publish-release:
     needs: verify
@@ -45,18 +61,34 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
+      - name: Fetch accepted main for release ancestry proof
+        run: git fetch origin refs/heads/main:refs/remotes/origin/main
+      - name: Load publication guards from this workflow commit
+        run: |
+          mkdir -p "$RUNNER_TEMP/sharktank-release-tools/scripts"
+          git show "$GITHUB_SHA:scripts/release-identity.mjs" > "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
+          git show "$GITHUB_SHA:scripts/release-publication.mjs" > "$RUNNER_TEMP/sharktank-release-tools/scripts/release-publication.mjs"
+      - name: Reverify exact release identity before publication
+        env:
+          SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
       - name: Create or verify immutable GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          SHARKTANK_RELEASE: ${{ github.ref_name }}
+          SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}
           SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
-        run: node scripts/release-publication.mjs
+        run: node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-publication.mjs"
 
   deploy-production:
     if: vars.PRODUCTION_DEPLOY_ENABLED == 'true'
     needs: publish-release
     uses: ./.github/workflows/deploy.yml
     with:
-      tag: ${{ github.ref_name }}
+      tag: ${{ inputs.tag }}
+      expected_sha: ${{ inputs.expected_sha }}
     secrets: inherit

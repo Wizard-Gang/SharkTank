@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve } from "node:path";
 import { validateReleaseIdentity } from "./release-identity.mjs";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = process.env.SHARKTANK_RELEASE_CHECKOUT
+  ? resolve(process.env.SHARKTANK_RELEASE_CHECKOUT)
+  : fileURLToPath(new URL("..", import.meta.url));
 const productionRepository = "Wizard-Gang/SharkTank";
 const releasePattern = /^v\d+\.\d+\.\d+$/;
 
@@ -46,17 +49,18 @@ export function deploymentPreconditionFailures({
   }
 
   if (!dryRun) {
-    const expectedRef = `refs/tags/${release}`;
-    const expectedWorkflowRef = `${productionRepository}/.github/workflows/release.yml@${expectedRef}`;
+    const expectedWorkflowRef = `${productionRepository}/.github/workflows/release.yml@refs/heads/main`;
 
     if (env.GITHUB_ACTIONS !== "true") failures.push("real production deploy requires GitHub Actions");
     if (env.GITHUB_REPOSITORY !== productionRepository) failures.push(`real production deploy requires repository ${productionRepository}`);
-    if (env.GITHUB_EVENT_NAME !== "push") failures.push("real production deploy requires the release tag-push event");
-    if (env.GITHUB_REF_TYPE !== "tag") failures.push("real production deploy requires a tag ref");
-    if (env.GITHUB_REF_NAME !== release) failures.push("real production deploy requires GITHUB_REF_NAME to match SHARKTANK_RELEASE");
-    if (env.GITHUB_REF !== expectedRef) failures.push("real production deploy requires GITHUB_REF to be the exact release tag");
+    if (env.GITHUB_EVENT_NAME !== "workflow_dispatch") failures.push("real production deploy requires explicit release dispatch");
+    if (env.GITHUB_REF !== "refs/heads/main") failures.push("real production deploy requires the main Release workflow ref");
+    if (!/^[0-9a-f]{40}$/.test(env.SHARKTANK_EXPECTED_SHA ?? "")) failures.push("real production deploy requires the exact accepted main SHA");
     if (env.SHARKTANK_RELEASE_WORKFLOW_REF !== expectedWorkflowRef) {
-      failures.push("real production deploy requires the exact Release workflow tag context");
+      failures.push("real production deploy requires the exact main Release workflow context");
+    }
+    if (env.SHARKTANK_RELEASE_CHECKOUT !== env.GITHUB_WORKSPACE) {
+      failures.push("real production deploy requires the exact GitHub workspace checkout");
     }
     for (const failure of releaseIdentityFailures) failures.push(`exact release identity failed: ${failure}`);
   }
@@ -87,7 +91,7 @@ function main() {
 
   const release = (process.env.SHARKTANK_RELEASE ?? "").trim();
   const tagsAtHead = run("git", ["tag", "--points-at", "HEAD"], true).split(/\s+/).filter(Boolean);
-  const releaseIdentityFailures = dryRun ? [] : validateReleaseIdentity({ cwd: root, release });
+  const releaseIdentityFailures = dryRun ? [] : validateReleaseIdentity({ cwd: root, release, expectedSha: process.env.SHARKTANK_EXPECTED_SHA });
   const failures = deploymentPreconditionFailures({
     dryRun,
     env: process.env,
