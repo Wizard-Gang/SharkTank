@@ -4,7 +4,11 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: Published release tag from the calling tag event
+        description: Published release tag from the calling Release workflow
+        required: true
+        type: string
+      expected_sha:
+        description: Exact accepted main commit of the published tag
         required: true
         type: string
 
@@ -22,8 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
+      - name: Fetch accepted main for release ancestry proof
+        run: git fetch origin refs/heads/main:refs/remotes/origin/main
+      - name: Load deployment guards from the caller workflow commit
+        run: |
+          mkdir -p "$RUNNER_TEMP/sharktank-release-tools/scripts"
+          git show "$GITHUB_SHA:scripts/release-identity.mjs" > "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
+          git show "$GITHUB_SHA:scripts/deploy-prod.mjs" > "$RUNNER_TEMP/sharktank-release-tools/scripts/deploy-prod.mjs"
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
@@ -40,20 +51,24 @@ jobs:
       - name: Verify release handoff
         env:
           SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
         run: |
-          [ "$GITHUB_REF_TYPE" = "tag" ] || { echo "::error::production deploy requires a tag event"; exit 1; }
-          [ "$GITHUB_REF_NAME" = "$SHARKTANK_RELEASE" ] || { echo "::error::release input $SHARKTANK_RELEASE != event tag $GITHUB_REF_NAME"; exit 1; }
-          npm run check:release-identity
+          [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || { echo "::error::production deploy requires a dispatched release"; exit 1; }
+          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::production deploy requires the main release workflow"; exit 1; }
+          node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"
       - name: Deploy the exact release tag
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SHARKTANK_RELEASE: ${{ inputs.tag }}
+          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}
           SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}
+          SHARKTANK_RELEASE_CHECKOUT: ${{ github.workspace }}
         run: |
           set -o pipefail
-          npm run deploy:wizardgangprod 2>&1 | tee /tmp/deploy.log
+          node "$RUNNER_TEMP/sharktank-release-tools/scripts/deploy-prod.mjs" 2>&1 | tee /tmp/deploy.log
           version=$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' /tmp/deploy.log | tail -1)
           [ -n "$version" ] || { echo "::error::could not read the deployed Version ID from wrangler output"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"

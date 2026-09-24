@@ -32,9 +32,11 @@ test("release workflow orders verification, publication, then reusable productio
   assert.deepEqual(validateReleaseWorkflow(workflow, deployWorkflow), []);
 });
 
-test("release workflow remains semantic-tag driven only", () => {
-  const changed = replaceRequired(workflow, '      - "v[0-9]+.[0-9]+.[0-9]+"', '      - "v*"');
-  assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /target only semantic vX\.Y\.Z tags/);
+test("release workflow requires explicit tag and accepted SHA inputs", () => {
+  const changed = replaceRequired(workflow, "  workflow_dispatch:", "  push:");
+  assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /only by explicit dispatch/);
+  const missingSha = replaceRequired(workflow, "      expected_sha:\n", "      other_sha:\n");
+  assert.match(validateReleaseWorkflow(missingSha, deployWorkflow).join("\n"), /require expected accepted SHA input/);
 });
 
 test("release verification and publication keep full Git and tag history", () => {
@@ -43,7 +45,7 @@ test("release verification and publication keep full Git and tag history", () =>
 });
 
 test("publication uses the guarded create-or-verify command", () => {
-  const changed = replaceRequired(workflow, "        run: node scripts/release-publication.mjs", '        run: gh release create "$GITHUB_REF_NAME"');
+  const changed = replaceRequired(workflow, '        run: node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-publication.mjs"', '        run: gh release create "$SHARKTANK_RELEASE"');
   assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /guarded create-or-verify publication command/);
   assert.match(validateReleaseWorkflow(changed, deployWorkflow).join("\n"), /must not embed mutable gh release operations/);
 });
@@ -51,14 +53,14 @@ test("publication uses the guarded create-or-verify command", () => {
 test("publication binds exact tag and Release workflow identity", () => {
   const withoutTag = replaceRequired(
     workflow,
-    "          GH_TOKEN: ${{ github.token }}\n          SHARKTANK_RELEASE: ${{ github.ref_name }}\n",
+    "          GH_TOKEN: ${{ github.token }}\n          SHARKTANK_RELEASE: ${{ inputs.tag }}\n",
     "          GH_TOKEN: ${{ github.token }}\n",
   );
-  assert.match(validateReleaseWorkflow(withoutTag, deployWorkflow).join("\n"), /bind the exact release event tag/);
+  assert.match(validateReleaseWorkflow(withoutTag, deployWorkflow).join("\n"), /bind the exact dispatched release tag/);
   const withoutWorkflow = replaceRequired(
     workflow,
-    "          SHARKTANK_RELEASE: ${{ github.ref_name }}\n          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n",
-    "          SHARKTANK_RELEASE: ${{ github.ref_name }}\n",
+    "          GH_TOKEN: ${{ github.token }}\n          SHARKTANK_RELEASE: ${{ inputs.tag }}\n          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}\n          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n",
+    "          GH_TOKEN: ${{ github.token }}\n          SHARKTANK_RELEASE: ${{ inputs.tag }}\n          SHARKTANK_EXPECTED_SHA: ${{ inputs.expected_sha }}\n",
   );
   assert.match(validateReleaseWorkflow(withoutWorkflow, deployWorkflow).join("\n"), /bind the exact Release workflow identity/);
 });
@@ -97,18 +99,18 @@ test("reusable production workflow cannot be dispatched or branch triggered", ()
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /callable only from another workflow/);
 });
 
-test("reusable production workflow stays on the caller tag ref", () => {
-  const changed = replaceRequired(deployWorkflow, "          ref: ${{ github.ref }}", "          ref: main");
-  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /checkout the caller tag event ref/);
+test("reusable production workflow checks out the exact dispatched tag", () => {
+  const changed = replaceRequired(deployWorkflow, "          ref: ${{ inputs.tag }}", "          ref: main");
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /checkout the exact input tag/);
 });
 
 test("reusable production workflow revalidates the release handoff", () => {
-  const changed = replaceRequired(deployWorkflow, '          [ "$GITHUB_REF_NAME" = "$SHARKTANK_RELEASE" ] || { echo "::error::release input $SHARKTANK_RELEASE != event tag $GITHUB_REF_NAME"; exit 1; }\n', "");
-  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /input tag to match the event tag/);
+  const changed = replaceRequired(deployWorkflow, '          [ "$GITHUB_REF" = "refs/heads/main" ] || { echo "::error::production deploy requires the main release workflow"; exit 1; }\n', "");
+  assert.match(validateProductionDeployWorkflow(changed).join("\n"), /main Release workflow ref/);
 });
 
 test("reusable production workflow binds the caller release workflow identity", () => {
-  const changed = replaceRequired(deployWorkflow, "          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n", "");
+  const changed = replaceRequired(deployWorkflow, "          SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}\n          SHARKTANK_RELEASE_CHECKOUT: ${{ github.workspace }}\n", "          SHARKTANK_RELEASE_CHECKOUT: ${{ github.workspace }}\n");
   assert.match(validateProductionDeployWorkflow(changed).join("\n"), /bind caller release workflow identity/);
 });
 
@@ -164,7 +166,7 @@ test("public edge fallback remains limited to the managed challenge", () => {
 test("release verification cannot omit exact package and tag identity", () => {
   const changed = replaceRequired(
     workflow,
-    "        run: npm run check:release-identity\n",
+    '        run: node "$RUNNER_TEMP/sharktank-release-tools/scripts/release-identity.mjs"\n',
     "",
   );
   assert.match(validateVersionToProductionChain({
@@ -174,17 +176,17 @@ test("release verification cannot omit exact package and tag identity", () => {
   }).join("\n"), /exact release identity validation/);
 });
 
-test("reusable production handoff cannot change the Release event tag", () => {
+test("reusable production handoff cannot change the dispatched tag", () => {
   const changed = replaceRequired(
     workflow,
-    "      tag: ${{ github.ref_name }}",
+    "      tag: ${{ inputs.tag }}",
     "      tag: v0.0.0",
   );
   assert.match(validateVersionToProductionChain({
     tagWorkflow,
     releaseWorkflow: changed,
     deployWorkflow,
-  }).join("\n"), /pass the exact release event tag/);
+  }).join("\n"), /pass the exact dispatched release tag/);
 });
 
 test("release tagging observes only successful main push CI", () => {

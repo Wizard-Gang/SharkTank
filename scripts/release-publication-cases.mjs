@@ -7,11 +7,10 @@ const validRecord = { tag_name: release, name: release, draft: false, prerelease
 const validEnv = {
   GITHUB_ACTIONS: "true",
   GITHUB_REPOSITORY: "Wizard-Gang/SharkTank",
-  GITHUB_EVENT_NAME: "push",
-  GITHUB_REF_TYPE: "tag",
-  GITHUB_REF_NAME: release,
-  GITHUB_REF: `refs/tags/${release}`,
-  SHARKTANK_RELEASE_WORKFLOW_REF: `Wizard-Gang/SharkTank/.github/workflows/release.yml@refs/tags/${release}`,
+  GITHUB_EVENT_NAME: "workflow_dispatch",
+  GITHUB_REF: "refs/heads/main",
+  SHARKTANK_EXPECTED_SHA: "a".repeat(40),
+  SHARKTANK_RELEASE_WORKFLOW_REF: "Wizard-Gang/SharkTank/.github/workflows/release.yml@refs/heads/main",
   GH_TOKEN: "test-token",
 };
 
@@ -31,21 +30,21 @@ test("workstation and wrong workflow contexts fail closed", () => {
   const failures = publicationContextFailures({ env: {}, release: "1.2.3" }).join("\n");
   assert.match(failures, /semantic vX\.Y\.Z/);
   assert.match(failures, /requires GitHub Actions/);
-  assert.match(failures, /exact Release workflow tag context/);
+  assert.match(failures, /exact main Release workflow context/);
   assert.match(failures, /GH_TOKEN is required/);
 });
 
-test("publication cannot substitute a different release tag", () => {
+test("publication cannot run from a different workflow ref or without accepted SHA", () => {
   const failures = publicationContextFailures({
     env: {
       ...validEnv,
-      GITHUB_REF_NAME: "v1.2.4",
-      GITHUB_REF: "refs/tags/v1.2.4",
+      GITHUB_REF: "refs/heads/feature",
+      SHARKTANK_EXPECTED_SHA: undefined,
     },
     release,
   }).join("\n");
-  assert.match(failures, /GITHUB_REF_NAME must match SHARKTANK_RELEASE/);
-  assert.match(failures, /GITHUB_REF must be the exact release tag/);
+  assert.match(failures, /main workflow ref/);
+  assert.match(failures, /exact accepted main SHA/);
 });
 
 test("matching existing Release is verified without mutation", () => {

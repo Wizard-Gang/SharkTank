@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   tag-release:
@@ -32,7 +33,15 @@ jobs:
           [ "$actual_npm" = "$expected_npm" ] || { echo "::error::npm $actual_npm != repository npm $expected_npm"; exit 1; }
       - run: npm ci
       - name: Create or verify release tag
+        id: release-tag
         env:
           SHARKTANK_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
           SHARKTANK_TAG_WORKFLOW_REF: ${{ github.workflow_ref }}
         run: npm run tag:release
+      - name: Dispatch exact release
+        if: steps.release-tag.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release-tag.outputs.tag }}
+          EXPECTED_SHA: ${{ steps.release-tag.outputs.expected_sha }}
+        run: gh workflow run release.yml --ref main -f tag="$RELEASE_TAG" -f expected_sha="$EXPECTED_SHA"

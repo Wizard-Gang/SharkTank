@@ -6,11 +6,12 @@ const release = "v1.2.3";
 const validEnv = {
   GITHUB_ACTIONS: "true",
   GITHUB_REPOSITORY: "Wizard-Gang/SharkTank",
-  GITHUB_EVENT_NAME: "push",
-  GITHUB_REF_TYPE: "tag",
-  GITHUB_REF_NAME: release,
-  GITHUB_REF: `refs/tags/${release}`,
-  SHARKTANK_RELEASE_WORKFLOW_REF: `Wizard-Gang/SharkTank/.github/workflows/release.yml@refs/tags/${release}`,
+  GITHUB_EVENT_NAME: "workflow_dispatch",
+  GITHUB_REF: "refs/heads/main",
+  SHARKTANK_EXPECTED_SHA: "a".repeat(40),
+  SHARKTANK_RELEASE_WORKFLOW_REF: "Wizard-Gang/SharkTank/.github/workflows/release.yml@refs/heads/main",
+  SHARKTANK_RELEASE_CHECKOUT: "/tmp/tagged-checkout",
+  GITHUB_WORKSPACE: "/tmp/tagged-checkout",
   CLOUDFLARE_ACCOUNT_ID: "test-account",
   CLOUDFLARE_API_TOKEN: "test-token",
 };
@@ -34,41 +35,37 @@ test("ordinary local invocation cannot reach the real deployment path", () => {
     GITHUB_ACTIONS: undefined,
     GITHUB_REPOSITORY: undefined,
     GITHUB_EVENT_NAME: undefined,
-    GITHUB_REF_TYPE: undefined,
-    GITHUB_REF_NAME: undefined,
     GITHUB_REF: undefined,
     SHARKTANK_RELEASE_WORKFLOW_REF: undefined,
   } });
   assert.match(failures.join("\n"), /requires GitHub Actions/);
-  assert.match(failures.join("\n"), /exact Release workflow tag context/);
+  assert.match(failures.join("\n"), /exact main Release workflow context/);
 });
 
-test("branch or untagged context cannot reach the real deployment path", () => {
+test("untagged checkout cannot reach the real deployment path", () => {
   const failures = real({
     env: {
-      GITHUB_REF_TYPE: "branch",
-      GITHUB_REF_NAME: "main",
-      GITHUB_REF: "refs/heads/main",
+      GITHUB_EVENT_NAME: "push",
     },
     tagsAtHead: [],
   });
   assert.match(failures.join("\n"), /semantic vX\.Y\.Z tag pointing at HEAD/);
-  assert.match(failures.join("\n"), /requires a tag ref/);
+  assert.match(failures.join("\n"), /requires explicit release dispatch/);
 });
 
-test("mismatched release tag cannot reach the real deployment path", () => {
-  const failures = real({ env: { GITHUB_REF_NAME: "v1.2.4", GITHUB_REF: "refs/tags/v1.2.4" } });
-  assert.match(failures.join("\n"), /GITHUB_REF_NAME to match SHARKTANK_RELEASE/);
-  assert.match(failures.join("\n"), /GITHUB_REF to be the exact release tag/);
+test("missing expected commit or wrong workflow ref cannot reach production", () => {
+  const failures = real({ env: { SHARKTANK_EXPECTED_SHA: undefined, GITHUB_REF: "refs/heads/feature" } });
+  assert.match(failures.join("\n"), /exact accepted main SHA/);
+  assert.match(failures.join("\n"), /main Release workflow ref/);
 });
 
 test("a different workflow context cannot reach the real deployment path", () => {
   const failures = real({
     env: {
-      SHARKTANK_RELEASE_WORKFLOW_REF: `Wizard-Gang/SharkTank/.github/workflows/deploy.yml@refs/tags/${release}`,
+      SHARKTANK_RELEASE_WORKFLOW_REF: "Wizard-Gang/SharkTank/.github/workflows/deploy.yml@refs/heads/main",
     },
   });
-  assert.match(failures.join("\n"), /exact Release workflow tag context/);
+  assert.match(failures.join("\n"), /exact main Release workflow context/);
 });
 
 test("exact release identity failures block real production deployment", () => {

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -161,6 +161,9 @@ if (invoked) {
 
   try {
     const result = applyReleaseTag({ cwd: process.cwd(), targetSha });
+    if (result.kind !== "noop" && process.env.GITHUB_OUTPUT) {
+      appendFileSync(process.env.GITHUB_OUTPUT, `tag=${result.tag}\nexpected_sha=${result.targetSha}\n`);
+    }
     if (result.kind === "noop") console.log(`Release tagging skipped: package version remains ${result.version}.`);
     else if (result.kind === "existing") console.log(`Release tag already matches accepted main commit: ${result.tag}.`);
     else console.log(`Created annotated release tag ${result.tag} at ${result.targetSha}.`);
