@@ -191,6 +191,17 @@ has(ci, "run: npm ci", "CI must use npm ci");
 has(ci, "run: npm run check", "CI must run the repository acceptance gate");
 has(ci, "ref: ${{ github.event.pull_request.head.sha || github.sha }}", "CI must checkout the exact PR head");
 has(ci, "run: npm run audit:dependencies", "CI must run the separate network advisory gate");
+const releaseTag = read(".github/workflows/tag-release.yml");
+requireRepositoryToolchain(releaseTag, "release tag workflow");
+has(releaseTag, "workflow_run:", "release tagging must be post-CI");
+has(releaseTag, 'workflows: ["CI"]', "release tagging must observe CI");
+has(releaseTag, "github.event.workflow_run.conclusion == 'success'", "release tagging must require successful CI");
+has(releaseTag, "github.event.workflow_run.head_branch == 'main'", "release tagging must require main");
+has(releaseTag, "ref: ${{ github.event.workflow_run.head_sha }}", "release tagging must checkout exact accepted main SHA");
+has(releaseTag, "SHARKTANK_TAG_WORKFLOW_REF: ${{ github.workflow_ref }}", "release tagging must bind its workflow identity");
+has(releaseTag, "run: npm run tag:release", "release tagging must use the guarded repository command");
+expect(!releaseTag.includes("gh release"), "release tagging must not publish GitHub Releases");
+expect(!releaseTag.includes("deploy:wizardgangprod"), "release tagging must not deploy production");
 const release = read(".github/workflows/release.yml");
 requireRepositoryToolchain(release, "release workflow");
 has(release, "tags:", "release workflow must be tag driven");
@@ -209,6 +220,8 @@ has(reusableDeploy, "SHARKTANK_RELEASE: ${{ inputs.tag }}", "production deploy m
 has(reusableDeploy, "SHARKTANK_RELEASE_WORKFLOW_REF: ${{ github.workflow_ref }}", "production deploy must bind the caller Release workflow identity");
 has(reusableDeploy, "npm run check:release-identity", "production deploy must revalidate exact release identity");
 has(reusableDeploy, "npm run deploy:wizardgangprod", "reusable deploy workflow must own production deployment");
+expect(packageJson.scripts?.["tag:release"] === "node scripts/release-tag.mjs", "release tagging must expose one guarded command");
+expect(packageJson.scripts?.["test:release-tagging"] === "node --test scripts/release-tag-cases.mjs", "release tagging must have focused disposable-Git coverage");
 expect(packageJson.scripts?.["check:release-workflow"] === "node --test scripts/release-workflow-cases.mjs", "release workflow must have focused behavior coverage");
 expect(packageJson.scripts?.["test:release-identity"] === "node --test scripts/release-identity-cases.mjs", "release identity must have focused behavior coverage");
 expect(packageJson.scripts?.["test:deploy-prod"] === "node --test scripts/deploy-prod-cases.mjs", "production deploy guard must have focused behavior coverage");
@@ -233,7 +246,7 @@ expect(packageJson.scripts?.start === "npm run dev:worker", "start must preserve
 expect(packageJson.scripts?.["check:local-readiness"] === "node --test scripts/local-readiness-cases.mjs", "local readiness must have focused behavior coverage");
 
 for (const requiredCheck of [
-  "npm run check:implementation-plan","npm run check:release-workflow","npm run test:release-identity","npm run test:deploy-prod",
+  "npm run check:implementation-plan","npm run test:release-tagging","npm run check:release-workflow","npm run test:release-identity","npm run test:deploy-prod",
   "npm run typecheck","npm test","npm run test:php","npm run build","npm run check:repository-baseline",
   "npm run check:change-contract","npm run test:github-settings","npm run check:history","npm run check:provenance",
   "npm run check:local-readiness","npm run check:dev-command","npm run check:local-http","npm run test:dependency-advisories","npm run check:whitespace",

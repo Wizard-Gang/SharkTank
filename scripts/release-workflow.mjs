@@ -170,3 +170,38 @@ export function validateReleaseWorkflow(workflow, deployWorkflow) {
 
   return failures;
 }
+
+export function validateReleaseTagWorkflow(workflow) {
+  const failures = [];
+  const lines = workflow.split("\n");
+  const on = blockLines(lines, "on", 0);
+  if (!on) return ["release tag workflow must define workflow_run"];
+
+  const events = on
+    .filter((line) => line.trim() && indentation(line) === 2 && /^[A-Za-z0-9_-]+:\s*$/.test(line.trim()))
+    .map((line) => line.trim().slice(0, -1));
+  if (events.length !== 1 || events[0] !== "workflow_run") failures.push("release tag workflow must be triggered only by completed CI workflow runs");
+  if (!workflow.includes('    workflows: ["CI"]')) failures.push("release tag workflow must observe only CI");
+  if (!workflow.includes("    types: [completed]")) failures.push("release tag workflow must observe only completed CI runs");
+  if (!workflow.includes("permissions:\n  contents: write")) failures.push("release tag workflow requires only contents write authority");
+
+  const tag = jobBlock(workflow, "tag-release");
+  if (!tag) {
+    failures.push("release tag workflow must define tag-release");
+    return failures;
+  }
+
+  const expectedIf = "github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'";
+  if (jobValue(tag, "if") !== expectedIf) failures.push("release tagging must require successful push CI on main");
+  if (!hasFullHistoryCheckout(tag)) failures.push("release tagging must checkout full Git/tag history");
+  if (!tag.includes("ref: ${{ github.event.workflow_run.head_sha }}")) failures.push("release tagging must checkout the exact accepted main SHA");
+  if (!tag.includes("node-version-file: .node-version")) failures.push("release tagging must use the repository Node authority");
+  if (!tag.includes('npm install --global "$package_manager"')) failures.push("release tagging must install repository npm authority");
+  if (!tag.includes("run: npm ci")) failures.push("release tagging must install locked dependencies");
+  if (!tag.includes("SHARKTANK_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}")) failures.push("release tagging must bind the exact accepted main SHA");
+  if (!tag.includes("SHARKTANK_TAG_WORKFLOW_REF: ${{ github.workflow_ref }}")) failures.push("release tagging must bind its workflow identity");
+  if (!tag.includes("run: npm run tag:release")) failures.push("release tagging must use the guarded repository tag command");
+  if (/gh release|deploy:wizardgangprod|\.\/\.github\/workflows\/deploy\.yml/.test(workflow)) failures.push("release tagging must not publish Releases or deploy production");
+
+  return failures;
+}
