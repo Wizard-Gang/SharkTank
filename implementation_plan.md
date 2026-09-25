@@ -8,16 +8,6 @@ The current repository is already squash-only with completed-branch cleanup, pro
 
 ## Open tasks
 
-### ST-091 — [DOCS] Complete fresh process-parity acceptance
-
-- Dependency: ST-089 recovered the `v1.3.8` release and production deployment.
-- Why: The wave should end from fresh evidence, not from assumptions made while planning.
-- Scope: Re-audit SharkTank against the current WG-ARCH-001 §27 authority and active reference repositories across Node/npm, canonical commands, controlled history, squash-only merge policy, provider CLI/token contract, automated immutable tagging, retry-safe GitHub Release publication, guarded production deployment and post-deploy identity. Reconcile only current-state docs where drift remains, remove this task from `implementation_plan.md`, and retain the shared normalization task.
-- Non-goals: No product feature or unrelated refactor.
-- Acceptance: Fresh repository/provider evidence shows no hidden alternative controlled merge, tag, release or production path; documentation describes current behavior; only future shared normalization remains in the active queue.
-- Validation: `npm ci`; `npm run check`; `npm run audit:dependencies`; `npm run verify:github-settings`; exact-head and merged-main CI; release/tag evidence; `git diff --check`.
-- Authorities: current repository state, live provider state, current WG-ARCH-001 §27 and current reference repositories.
-
 ### ST-092 — [OPS] Normalize shared package, workflow, and npm command contracts
 
 - Dependency: ST-091 delivered; portfolio planning policy ST-090 merged. Coordinate with the same normalization task in every public sibling repository.
