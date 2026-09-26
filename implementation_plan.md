@@ -20,13 +20,6 @@ For each task, validate with the pinned toolchain, `npm ci`, focused cases, `npm
 
 ## Open tasks
 
-### ST-094 — [SEC] Add bounded public-history secret verification
-
-- Dependency: ST-092 delivered; retain the existing tracked-source and workflow security checks.
-- Scope: Add a deterministic credential-free scan of tracked files and reachable public Git history for real credential patterns. Bound runtime and findings, exclude only documented false positives, and ensure neither fixtures nor logs contain working secrets. Keep release and production credentials in provider secret state.
-- Acceptance: Pure positive/negative cases detect a representative secret in current files and an older reachable commit, reject a documented harmless match, and prove `npm run check` invokes the scan without a token or network. Existing required CI, release controls, and published history remain intact.
-- Validation: Focused scanner cases, `npm ci`, `npm run check`, `git diff --check`, exact-head CI and merged-main CI. Delete this plan only if no later task remains.
-
 ### ST-096 — [OPS] Converge common agent instructions and permanent empty plan queue
 
 - Dependency: ST-094 delivered; preserve every existing queued task and its order. The baseline seed remains downstream of this repository convergence.
