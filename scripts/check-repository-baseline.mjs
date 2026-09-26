@@ -18,24 +18,31 @@ const nodeVersion = read(".node-version").trim();
 const npmAgent = process.env.npm_config_user_agent ?? "";
 const npmVersionMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(packageJson.packageManager ?? "");
 const npmVersion = npmVersionMatch?.[1] ?? "";
-const expectedNodeVersion = "26.9.0";
-const expectedNpmVersion = "11.19.1";
+const expectedNodeVersion = "26.10.0";
+const expectedNpmVersion = "12.1.0";
 
 expect(nodeVersion === expectedNodeVersion, ".node-version must pin exact Node " + expectedNodeVersion);
 expect(process.version === "v" + expectedNodeVersion, "acceptance must execute on exact Node " + expectedNodeVersion);
 expect(packageJson.engines?.node === "26.x", "engines.node must be 26.x");
-expect(packageJson.engines?.npm === "11.x", "engines.npm must be 11.x");
+expect(packageJson.engines?.npm === "12.x", "engines.npm must be 12.x");
 expect(packageJson.packageManager === "npm@" + expectedNpmVersion, "packageManager must pin exact npm " + expectedNpmVersion);
 expect(npmVersion === expectedNpmVersion, "packageManager npm version must resolve to " + expectedNpmVersion);
 expect(npmAgent.startsWith("npm/" + expectedNpmVersion + " "), "acceptance must execute through exact packageManager npm " + expectedNpmVersion);
-expect(read(".npmrc").trim() === "engine-strict=true", ".npmrc must enforce engine-strict=true");
+expect(read(".npmrc").includes("engine-strict=true") && read(".npmrc").includes("strict-allow-scripts=true"), ".npmrc must enforce engine-strict and strict install-script allowlisting");
 expect(packageJson.type === "module", "package.json must use ESM");
 expect(existsSync(join(root, "package-lock.json")), "package-lock.json must be committed");
 expect(packageLock.lockfileVersion === 3, "package-lock.json must use lockfileVersion 3");
 expect(packageLock.packages?.[""]?.version === packageJson.version, "package-lock root version must match package.json");
 expect(packageLock.packages?.[""]?.engines?.node === packageJson.engines?.node, "package-lock root Node engine must match package.json");
 expect(packageLock.packages?.[""]?.engines?.npm === packageJson.engines?.npm, "package-lock root npm engine must match package.json");
-expect(JSON.stringify(Object.keys(packageJson.allowScripts ?? {}).sort()) === JSON.stringify(["esbuild","fsevents","workerd"]), "allowScripts must explicitly approve only the required install scripts");
+expect(JSON.stringify(packageJson.allowScripts) === JSON.stringify({ "esbuild@0.28.1": true, "fsevents@2.3.3": false, "workerd@1.20260925.1": true }), "allowScripts must specify reviewed exact install-script packages");
+for (const [name, expected] of Object.entries({ typescript: "7.0.2", vite: "8.3.1", vitest: "5.0.2", wrangler: "4.141.0", "@types/node": "26.6.3" })) {
+  expect(packageJson.devDependencies?.[name] === expected, `${name} must match the shared cohort`);
+  expect(packageLock.packages?.[`node_modules/${name}`]?.version === expected, `${name} lockfile must match the shared cohort`);
+}
+for (const name of ["react", "react-dom"]) {
+  expect(packageJson.dependencies?.[name] === "19.2.8" && packageLock.packages?.[`node_modules/${name}`]?.version === "19.2.8", `${name} must retain the documented <19.3 fiber peer exception`);
+}
 
 for (const [name, spec, expectedMajor] of [
   ["typescript", packageJson.devDependencies?.typescript, 7],
@@ -184,6 +191,9 @@ const requireRepositoryToolchain = (workflow, label) => {
   expect(nodeSetups > 0, label + " must use the pinned Node version");
   has(workflow, "packageManager", label + " must read npm packageManager authority");
   expect(npmSetups === nodeSetups, label + " must install repository npm for every Node setup");
+  for (const match of workflow.matchAll(/uses:\s+(actions\/(?:checkout|setup-node))@([^\s#]+)/g)) {
+    expect(/^[0-9a-f]{40}$/.test(match[2]), `${label} ${match[1]} must use a reviewed full commit SHA`);
+  }
 };
 const ci = read(".github/workflows/ci.yml");
 requireRepositoryToolchain(ci, "CI");

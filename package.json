@@ -7,13 +7,13 @@
   "type": "module",
   "engines": {
     "node": "26.x",
-    "npm": "11.x"
+    "npm": "12.x"
   },
-  "packageManager": "npm@11.19.1",
+  "packageManager": "npm@12.1.0",
   "allowScripts": {
-    "esbuild": true,
-    "fsevents": true,
-    "workerd": true
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": false,
+    "workerd@1.20260925.1": true
   },
   "scripts": {
     "local": "node scripts/local.mjs",
@@ -60,20 +60,20 @@
   "dependencies": {
     "@react-three/fiber": "^9.7.0",
     "module-react3fiber": "file:vendor/ModuleReact3Fiber",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "three": "^0.169.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260811.1",
-    "@types/node": "^26.4.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@cloudflare/workers-types": "5.20260925.2",
+    "@types/node": "26.6.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "@types/three": "^0.169.0",
-    "@vitejs/plugin-react": "^6.1.1",
-    "typescript": "^7.0.2",
-    "vite": "^8.2.2",
-    "vitest": "^5.0.1",
-    "wrangler": "^4.0.0"
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.1",
+    "vitest": "5.0.2",
+    "wrangler": "4.141.0"
   }
 }

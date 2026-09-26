@@ -6,7 +6,10 @@ SharkTank is a realtime multiplayer game backed by authoritative Cloudflare Dura
 
 ## Command map
 
-Use the shared WG-ARCH-001 toolchain authority: Node.js 26.9.0 from `.node-version` and npm 11.19.1 from `packageManager`. The engine policy remains Node 26.x/npm 11.x, and `npm run check` fails when acceptance runs on a different exact Node/npm pair. Run `npm ci` before repository validation. PHP 8.2 or newer is required for the PHP parity test and therefore for the complete `check` gate.
+Use the shared WG-ARCH-001 toolchain authority: Node.js 26.10.0 from `.node-version` and npm 12.1.0 from `packageManager`. The engine policy remains Node 26.x/npm 12.x, and `npm run check` fails when acceptance runs on a different exact Node/npm pair. Run `npm ci` before repository validation.
+
+The shared TypeScript, Vite, Vitest, Wrangler and Node types versions match the portfolio cohort. SharkTank retains React and React DOM 19.2.8 because `@react-three/fiber@9.7.0` and the checked-in `module-react3fiber` source declare a React peer range below 19.3. SharkTank owns this exception; update both consumer peer contracts and test the game client before a later React convergence task. The install script policy permits only reviewed exact esbuild and workerd versions; optional fsevents is disabled.
+PHP 8.2 or newer is required for the PHP parity test and therefore for the complete `check` gate.
 
 | Command | Purpose and current side effects |
 | --- | --- |
