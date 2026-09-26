@@ -1,19 +1,15 @@
 # Contributing
 
-Read [AGENTS.md](AGENTS.md) before changing a repository. It owns the repository's product boundaries, controlled change identity, validation details, and merge rules. Read the active implementation plan when present; its filename may be `implementation_plan.md` or `IMPLEMENTATION_PLAN.md`.
+Read [AGENTS.md](AGENTS.md) for the shared controlled-delivery workflow and [README.md](README.md) for this repository's product, commands, required checks, source boundaries and release/deployment details. Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
 
-## Work queue and plan updates
+## Work queue
 
-The first open plan task is the default next implementation task unless the owner explicitly changes priority. Keep existing open tasks in place when appending future work. A separately requested portfolio plan maintenance change may append or clarify future tasks while another task or pull request is in progress. Once the shared policy is established, that maintenance change edits only the active plan file and does not claim to deliver a queued task. The last task deletes the plan only when no later task remains.
+`implementation_plan.md` is the permanent current/future queue. Implement its first open task unless the owner explicitly changes priority. Remove a delivered task in its completing change; leave an empty plan tracked when no task remains. If the queue is empty, the next instruction fills it through a controlled plan-only change before implementation begins. An owner-directed plan amendment can append future work while another PR is active; preserve existing IDs and order.
 
-Before editing or merging, fetch current `main` and inspect open pull requests. Record the base commit and the plan's current contents. Immediately before merging, fetch again and compare the current `main` commit, exact pull request head, and plan against that recorded base. Rebase and reconcile any concurrent plan change rather than overwriting it. Merge only the current, mergeable head after required checks pass.
+Fetch current `main` and open PRs before editing and again before merging. Reconcile any concurrent plan or base movement, then require the exact current PR head to pass the repository's required CI checks. Squash that validated head once into protected `main`; verify merged-main CI and branch cleanup.
 
-## Toolchain and commands
+## Commands and boundaries
 
-Use the exact Node version in `.node-version` and npm version in `package.json`'s `packageManager`; install from the committed lockfile with `npm ci`. `npm run check` is the canonical local repository acceptance command. Run the focused checks named by the active task and `git diff --check` as well. `build`, `test`, `typecheck`, and `dev` follow the repository's `package.json` and AGENTS.md; use only capabilities that repository actually has. Network dependency advisories, live GitHub settings verification, releases, and production deployment are separate operations with repository-specific prerequisites.
+Use the exact Node and npm versions committed in `.node-version` and `package.json`, then `npm ci`. `npm run check` is the canonical credential-free acceptance gate. Run task-specific focused tests, `git diff --check`, and the repository's separate advisory gate when applicable. `verify:github-settings` reads live policy; `apply:github-settings` alone performs committed settings changes with independent post-apply verification. Keep tokens in process or provider secret state.
 
-Shared dependencies and versioned vendor tooling should use one supported version across public repositories when those repositories consume them. GitHub Actions workflows and common npm script names should have equivalent behavior for equivalent capabilities. A library or local-only application does not acquire a hosted deployment merely for parity.
-
-## Contribution and security boundaries
-
-Keep changes scoped to one controlled delivery unless the owner requests portfolio plan maintenance. Record validation and provider actions truthfully. Follow the repository's AGENTS.md for branch, commit, pull request, exact-head CI, and squash-merge requirements. Use [SECURITY.md](SECURITY.md) for security reports. Ownership is defined by AGENTS.md and its linked ownership policy where present.
+Use [README.md](README.md) and its linked current authorities for repository-specific product ownership, dependency pins, release identity, deployment and no-production boundaries. A process normalization change does not create a release or deploy production.

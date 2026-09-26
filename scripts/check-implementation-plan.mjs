@@ -21,5 +21,5 @@ if (failures.length) {
   for (const failure of failures) console.error("FAIL " + failure);
   process.exit(1);
 }
-if (planExists) console.log(`Implementation plan contains current/future work ahead of ${history.lastId}.`);
-else console.log(`Implementation plan is absent after ${history.lastId}; the active queue is exhausted.`);
+const openTaskCount = [...planContent.matchAll(/^###\s+ST-\d{3}\s+(?:—|-)\s+\[/gm)].length;
+console.log(`Implementation plan is tracked with ${openTaskCount} open task(s) after ${history.lastId}.`);
