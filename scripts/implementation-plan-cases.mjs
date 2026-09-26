@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateImplementationPlan } from "./implementation-plan.mjs";
+import { readFileSync } from "node:fs";
 
 function validate(planContent, lastDeliveredId = "ST-074") {
   return validateImplementationPlan({ planExists: true, planContent, lastDeliveredId });
@@ -21,13 +22,14 @@ test("completed or history sections are not active queue substitutes", () => {
   assert.match(validate(plan).join("\n"), /must not contain completed\/history sections/);
 });
 
-test("queue exhaustion is represented by no implementation plan", () => {
-  assert.deepEqual(validateImplementationPlan({ planExists: false, planContent: "", lastDeliveredId: "ST-075" }), []);
+test("implementation plan remains tracked after queue exhaustion", () => {
+  assert.match(validateImplementationPlan({ planExists: false, planContent: "", lastDeliveredId: "ST-075" }).join("\n"), /must remain tracked/);
+  assert.deepEqual(validate(readFileSync("implementation_plan.md", "utf8")), []);
 });
 
-test("an empty or completed-task placeholder must be deleted", () => {
+test("an arbitrary empty or completed-task placeholder fails", () => {
   const plan = "# Active implementation plan\n\nAll work is complete.\n";
-  assert.match(validate(plan).join("\n"), /delete exhausted implementation_plan\.md instead/);
+  assert.match(validate(plan).join("\n"), /shared permanent queue template/);
 });
 
 test("harmless explanatory wording does not affect task semantics", () => {

@@ -39,6 +39,14 @@ Release publication and production deployment are therefore separate evidence bo
 - `packages/php-runtime/` — optional cross-language protocol-parity runtime.
 - `scripts/` — local development, verification, release, and deployment tooling.
 
+## SharkTank-specific controlled work
+
+Use the `ST-NNN` namespace and `[ST-NNN] [TYPE] Imperative summary` for branch commits and pull requests. Branches use `st-NNN-imperative-summary`. The required exact-head check is `verify`; see [change management](docs/CHANGE-MANAGEMENT.md) for the controlled title, body, and evidence contract. Automated dependency-bump pull requests are not accepted. Git history owns forward ST sequencing; reconstruction provenance ledgers record imported source lineage rather than new change history.
+
+Keep structural migrations behavior-preserving unless the task changes behavior. The realtime game is the client-application boundary; ordinary documentation and operations pages must remain complete without JavaScript. Keep presentation work out of the Worker entry point when focused modules can own it. Preserve Durable Object identities and migrations, R2 production state, protocol semantics, PHP parity, and fail-closed release and deployment behavior. Do not add D1, GraphQL, MCP, SAML, Tailwind, or another platform feature solely for baseline conformity.
+
+For organization baseline questions, consult WG-ARCH-001 §27 in the [architecture standard](https://github.com/SouthernGentlemen/wizardgang-architecture-demo/blob/main/docs/ARCHITECTURE-STANDARD.md). SharkTank requirements may extend that standard when the product needs them.
+
 ## Current-state documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
