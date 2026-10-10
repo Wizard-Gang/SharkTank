@@ -83,7 +83,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      const interactive = !!target && Boolean(target.closest("button, a, input, select, textarea, [contenteditable='true'], [role='button']"));
+      const interactive = !!target && Boolean(target.closest("button, summary, a, input, select, textarea, [contenteditable='true'], [role='button']"));
       if (e.key === "?" && settings.controls.singleKeyShortcuts && !interactive) {
         e.preventDefault();
         setHelpOpen((h) => !h);
@@ -122,7 +122,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
 
       <Hud socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />
       <EvolutionMoment socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />
-      <Leaderboard socket={socket} />
+      <Leaderboard socket={socket} touch={touch} />
       <DepthRadar socket={socket} visible={settings.graphics.showMinimap} compact={touch} />
       <QuickA11y onQuit={handleQuit} onHelp={openHelp} onSettings={openSettings} collapsed={touch} />
       <div className="ability-rail">
