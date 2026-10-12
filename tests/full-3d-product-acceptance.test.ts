@@ -80,7 +80,7 @@ describe("ST-131 full-3D product acceptance", () => {
     expect(screen).toContain("Can't reach the tank");
     expect(screen).toContain("<DeathOverlay");
     expect(screen).toContain('roundUi?.phase === "result"');
-    expect(screen).toContain("Ready for next round");
+    expect(screen).toContain("Play again");
     expect(death).toContain("Respawn");
 
     const state = createRoom({ id: "st-131-lifecycle", seed: "st-131-lifecycle" });

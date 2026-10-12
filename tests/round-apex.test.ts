@@ -253,7 +253,7 @@ describe("ST-124 authoritative round and Apex loop", () => {
     expect((actor.match(/octahedronGeometry/g) ?? [])).toHaveLength(1);
     expect(actor).toContain("reducedMotion ? 0");
     expect(board).toContain("game-leaderboard__apex");
-    expect(screen).toContain("Ready for next round");
+    expect(screen).toContain("Play again");
     expect(screen).toContain("roundUi?.phase !== \"result\"");
     const hud = read("../src/game/ui/Hud.tsx");
     expect(hud).toContain('stats.roundPhase === "apex" &&');

@@ -10,19 +10,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useAnnouncer } from "../a11y/announcer.js";
 import type { DeathInfo } from "../net/useRoomSocket.js";
+import { respawnCountdown } from "./roundPresentation.js";
 
 export function DeathOverlay({
   death,
+  tier,
   onRespawn,
   onQuit,
 }: {
   death: DeathInfo;
+  tier: string | null;
   onRespawn: () => void;
   onQuit: () => void;
 }) {
   const respawnRef = useRef<HTMLButtonElement>(null);
   const { announce } = useAnnouncer();
-  const [remaining, setRemaining] = useState(Math.ceil(death.respawnInMs / 1000));
+  const [countdown, setCountdown] = useState(() => respawnCountdown(death.at, death.respawnInMs, performance.now()));
 
   const cause = death.action === "bite"
     ? death.by ? `Bitten by ${death.by}.` : "Defeated by a bite."
@@ -35,16 +38,17 @@ export function DeathOverlay({
   }, [cause, death.score, announce]);
 
   useEffect(() => {
-    const end = death.at + death.respawnInMs;
+    const update = () => respawnCountdown(death.at, death.respawnInMs, performance.now());
+    setCountdown(update());
     const id = setInterval(() => {
-      const left = Math.max(0, Math.ceil((end - performance.now()) / 1000));
-      setRemaining(left);
-      if (left <= 0) clearInterval(id);
+      const next = update();
+      setCountdown(next);
+      if (next.remaining <= 0) clearInterval(id);
     }, 200);
     return () => clearInterval(id);
   }, [death]);
 
-  const ready = remaining <= 0;
+  const ready = countdown.remaining <= 0;
 
   // Move focus to Respawn as soon as it becomes usable, so a keyboard player can come
   // straight back with Enter without hunting for the button.
@@ -52,6 +56,20 @@ export function DeathOverlay({
     if (ready) respawnRef.current?.focus();
   }, [ready]);
 
+  return <DeathCard death={death} tier={tier} cause={cause} {...countdown} onRespawn={onRespawn} onQuit={onQuit} respawnRef={respawnRef} />;
+}
+
+export function DeathCard({ death, tier, cause, remaining, progress, onRespawn, onQuit, respawnRef }: {
+  death: DeathInfo;
+  tier: string | null;
+  cause: string;
+  remaining: number;
+  progress: number;
+  onRespawn: () => void;
+  onQuit: () => void;
+  respawnRef?: React.Ref<HTMLButtonElement>;
+}) {
+  const ready = remaining <= 0;
   return (
     <div className="scrim scrim--respawn">
       <div
@@ -60,13 +78,21 @@ export function DeathOverlay({
         aria-labelledby="death-title"
         aria-describedby="death-desc"
       >
+        <p className="round-result-kicker">BACK INTO THE BLUE</p>
         <h2 id="death-title">Shark eliminated</h2>
-        <p id="death-desc">
-          {cause} <strong>{death.score}</strong> points this life.
-        </p>
+        <p id="death-desc" className="death-cause">{cause}</p>
+        <dl className="life-summary">
+          <div><dt>Your tier</dt><dd>{tier ?? "Unavailable"}</dd></div>
+          <div><dt>Life score</dt><dd>{death.score} <span>points</span></dd></div>
+        </dl>
         <div className="stack">
-          <button ref={respawnRef} className="btn btn--primary btn--lg btn--block" onClick={onRespawn} disabled={!ready}>
-            {ready ? "Respawn" : `Respawn in ${remaining}…`}
+          <button ref={respawnRef} className="btn btn--primary btn--lg btn--block respawn-primary" onClick={onRespawn} disabled={!ready}>
+            <svg className="respawn-ring" viewBox="0 0 40 40" aria-hidden="true">
+              <circle className="respawn-ring__track" cx="20" cy="20" r="16" />
+              <circle className="respawn-ring__fill" cx="20" cy="20" r="16" pathLength="1" strokeDasharray="1" strokeDashoffset={1 - progress} transform="rotate(-90 20 20)" />
+              <text x="20" y="25" textAnchor="middle">{ready ? "✓" : remaining}</text>
+            </svg>
+            <span>{ready ? "Respawn" : `Respawn in ${remaining}…`}</span>
           </button>
           <button className="btn btn--block" onClick={onQuit}>
             Back to menu
