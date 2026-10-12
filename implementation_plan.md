@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-285 — [FEAT] Shrink name tags and fade them with distance
-
-**Goal:** 136 px name pills overlap the HUD.
-
-**Scope:** Auto-size tags (11–12 px text), cap them at five (Apex, threats, nearest), hide your own after 3 s, fade them between 30 and 55 units, and clamp them below the top bar. Keep edibility glyphs and the label setting.
-
-**Acceptance:** Selection tests pass; tags never sit behind the HUD.
-
-**Validation:** `npm test -- tests/depth-navigation.test.ts tests/full-3d-product-acceptance.test.ts`.
-
----
-
 ### ST-286 — [FEAT] Rebuild the death and round-result cards
 
 **Goal:** Make deaths quick to recover from and round ends worth celebrating.
