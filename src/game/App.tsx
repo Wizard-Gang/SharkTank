@@ -1,4 +1,4 @@
-// App shell + screen state machine: Menu → Game, with Customize and Settings
+// App shell + screen state machine: Menu → Game, with inline identity and Settings
 // reachable from the menu. Wraps everything in the Settings + Announcer providers,
 // renders the skip link and the #main landmark, keeps player data device-local, and
 // manages focus on screen transitions (moving focus to the new screen's region).
@@ -8,10 +8,9 @@ import "./ui/theme.css";
 import { SettingsProvider, useSettings } from "./settings/SettingsContext.js";
 import { AnnouncerProvider, useAnnouncer } from "./a11y/announcer.js";
 import { MainMenu } from "./ui/MainMenu.js";
-import { Customize } from "./ui/Customize.js";
 import { Settings } from "./ui/Settings.js";
 
-type Screen = "menu" | "customize" | "settings" | "game";
+type Screen = "menu" | "settings" | "game";
 const GameScreen = lazy(() => import("./ui/GameScreen.js").then((module) => ({ default: module.GameScreen })));
 const SHARKTANK_ROOM = { id: "room-1", name: "SharkTank" } as const;
 
@@ -42,14 +41,16 @@ function Shell() {
     if (screen !== "menu" && screen !== "game") regionRef.current?.focus();
     const titles: Record<Screen, string> = {
       menu: "Main menu",
-      customize: "Customize",
       settings: "Settings",
       game: "In game",
     };
     announce(titles[screen]);
   }, [screen, announce]);
 
-  const play = useCallback(() => setScreen("game"), []);
+  const play = useCallback((nextName: string, nextSkin: string) => {
+    updatePlayer({ name: nextName, skin: nextSkin });
+    setScreen("game");
+  }, [updatePlayer]);
 
   return (
     <>
@@ -64,19 +65,8 @@ function Shell() {
               skin={skin}
               best={best}
               onPlay={play}
-              onCustomize={() => setScreen("customize")}
+              onIdentityChange={updatePlayer}
               onSettings={() => setScreen("settings")}
-            />
-          )}
-          {screen === "customize" && (
-            <Customize
-              name={name}
-              skin={skin}
-              onConfirm={(n, sk) => {
-                updatePlayer({ name: n, skin: sk });
-                setScreen("menu");
-              }}
-              onExit={() => setScreen("menu")}
             />
           )}
           {screen === "settings" && <SettingsScreen onBack={() => setScreen("menu")} />}

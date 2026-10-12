@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-287 — [FEAT] Refresh the main menu with an inline name and live skin preview
-
-**Goal:** Make the first screen about the game, not a form.
-
-**Scope:** Put the name field and skin swatches beside a big Play button and a small shark preview, folding Customize into the menu. Keep the radio-group semantics and the name policy.
-
-**Acceptance:** Menu tests pass.
-
-**Validation:** `npm test -- tests/game-document.test.tsx tests/name-policy.test.ts tests/accessibility-contract.test.ts`.
-
----
-
 ### ST-288 — [FEAT] Coach the first thirty seconds with one-time hints
 
 **Goal:** Teach new players without a tutorial screen.
