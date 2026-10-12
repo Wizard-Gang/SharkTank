@@ -3,6 +3,7 @@
 // theme.css tokens react (contrast, motion, font-scale, theme). Game input and the
 // renderer read the same object, so a settings change takes effect live.
 
+import { NEW_HINT_PROGRESS, mergeHintProgress, normalizeHintProgress, type HintProgress } from "../ui/firstRunCoaching.js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DEFAULT_SKIN, SKINS } from "../../engine/index.js";
 import { sanitizeDisplayName } from "../../protocol/name-policy.js";
@@ -138,11 +139,14 @@ export interface DevicePlayer {
 
 interface DevicePlayerData extends DevicePlayer {
   settings: Settings;
+  hints: HintProgress;
 }
 
 interface SettingsApi {
   settings: Settings;
   player: DevicePlayer;
+  hints: HintProgress;
+  saveHints: (progress: HintProgress) => void;
   /** Patch a nested section, e.g. update("audio", { master: 0.5 }). */
   update: <K extends keyof Settings>(section: K, patch: Partial<Settings[K]>) => void;
   reset: () => void;
@@ -221,6 +225,7 @@ function loadData(): DevicePlayerData {
       skin: validSkin(current.skin) ? current.skin : DEFAULT_SKIN,
       best: normalizeBest(current.best),
       settings: normalizeSettings(current.settings),
+      hints: normalizeHintProgress(current.hints),
     };
   }
 
@@ -231,6 +236,7 @@ function loadData(): DevicePlayerData {
     skin: DEFAULT_SKIN,
     best: 0,
     settings: normalizeSettings(legacy),
+    hints: { ...NEW_HINT_PROGRESS },
   };
 }
 
@@ -250,6 +256,7 @@ function defaultData(): DevicePlayerData {
     name: "Player",
     skin: DEFAULT_SKIN,
     best: 0,
+    hints: { ...NEW_HINT_PROGRESS },
     settings: {
       ...DEFAULT_SETTINGS,
       graphics: { ...DEFAULT_SETTINGS.graphics },
@@ -322,6 +329,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const saveHints = useCallback((progress: HintProgress) => {
+    setData((prev) => ({ ...prev, hints: mergeHintProgress(prev.hints, progress) }));
+  }, []);
+
   const recordBest = useCallback((score: number) => {
     if (!Number.isFinite(score)) return;
     const next = normalizeBest(score);
@@ -333,8 +344,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [data.name, data.skin, data.best],
   );
   const api = useMemo(
-    () => ({ settings: data.settings, player, update, reset, updatePlayer, recordBest }),
-    [data.settings, player, update, reset, updatePlayer, recordBest],
+    () => ({ settings: data.settings, player, hints: data.hints, saveHints, update, reset, updatePlayer, recordBest }),
+    [data.settings, data.hints, saveHints, player, update, reset, updatePlayer, recordBest],
   );
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

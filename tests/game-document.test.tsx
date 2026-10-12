@@ -23,6 +23,7 @@ const mountedPresentationSource = [
   "../src/game/settings/SettingsContext.tsx",
   "../src/game/ui/Captions.tsx",
   "../src/game/ui/GameScreen.tsx",
+  "../src/game/ui/FirstRunHints.tsx",
   "../src/game/ui/DeathOverlay.tsx",
   "../src/game/ui/HelpOverlay.tsx",
   "../src/game/ui/Leaderboard.tsx",

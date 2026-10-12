@@ -481,3 +481,29 @@ describe("ST-287 menu accessibility", () => {
     expect(css).not.toMatch(/\.menu-shark[^}]*animation/);
   });
 });
+
+
+describe("ST-288 first-run coaching", () => {
+  it("keeps hints polite, skippable and outside pointer-owned gameplay with no animated arrow", () => {
+    const hints = read("../src/game/ui/FirstRunHints.tsx");
+    const css = read("../src/game/ui/theme.css");
+    const input = read("../src/game/game/useLocalInput.ts");
+    const store = read("../src/game/settings/SettingsContext.tsx");
+    expect(hints).toContain('role="status" aria-live="polite" aria-atomic="true"');
+    expect(hints).toContain("lastAnnounced.current");
+    expect(hints).toContain("Skip hints");
+    expect(hints).toContain('querySelector<HTMLElement>(".game-viewport")?.focus()');
+    expect(hints).toContain('document.visibilityState !== "hidden"');
+    expect(hints).toContain("if (finished) return");
+    expect(hints).not.toContain("requestAnimationFrame");
+    expect(css).toMatch(/\.first-run-hint\{[^}]*pointer-events:none/);
+    expect(css).toMatch(/\.first-run-hint button\{[^}]*min-height:48px[^}]*pointer-events:auto/);
+    expect(css).toMatch(/\.first-run-school-arrow\{[^}]*pointer-events:none/);
+    expect(css).not.toMatch(/\.first-run[^}]*animation/);
+    expect(css).toContain(':root[data-contrast="high"] .first-run-hint');
+    expect(input).toContain("onSteer?.()");
+    expect(store).toContain("hints: normalizeHintProgress(current.hints)");
+    expect(store).toContain("hints: mergeHintProgress(prev.hints, progress)");
+    expect(store).toContain("{ ...prev, settings: defaultData().settings }");
+  });
+});
