@@ -1,3 +1,4 @@
+import { OwnLabelLifetime, selectSharkLabels, sharkLabelBox, sharkLabelOpacity, type SharkLabel } from "../src/game/ui/sharkLabelSelection.js";
 import { Matrix4, PerspectiveCamera } from "three";
 import { buildEdgeCues, clipPoint, edgeTargets, projectEdgePoint } from "../src/game/ui/edgeNavigation.js";
 import { readFileSync } from "node:fs";
@@ -164,9 +165,9 @@ describe("ST-126 depth-aware competitive cues", () => {
     expect(screen).not.toContain("<Minimap");
     expect(settings).toContain('label="Show text depth radar"');
     expect(actor).toContain("camera.getWorldDirection(cameraForward)");
-    expect(actor).toContain("labelDistance <= 54");
-    expect(actor).toContain("labels.length = 7");
-    expect(labels).toContain('l.apex ? " · APEX" : ""');
+    expect(actor).toContain("labelDistance < 55");
+    expect(actor).toContain("selectSharkLabels(labels, ownLabelAge)");
+    expect(labels).toContain('className="shark-label__apex">APEX');
     expect(labels).toContain("relation.glyph");
     expect(actor).toContain("edibilityFor(me, shark)");
     expect(actor).toContain("EDIBILITY_PRESENTATION[relation].color");
@@ -285,5 +286,76 @@ describe("ST-284 bounded camera-relative edge cues", () => {
       expect(Math.abs(bounded[i].x - bounded[j].x) >= 76 || Math.abs(bounded[i].y - bounded[j].y) >= 32).toBe(true);
     }
     expect(bounded[0].angle).toBe(bounded[1].angle);
+  });
+});
+
+describe("ST-285 compact shark label selection", () => {
+  const label = (id: string, distance: number, options: Partial<SharkLabel> = {}): SharkLabel => ({
+    id, name: id, x: 100, y: 150, color: "#6ff0a3", me: false, apex: false, edibility: "even", distance, ...options,
+  });
+
+  it("prioritizes Apex, threats and nearest visible sharks within a five-tag cap", () => {
+    const labels = [label("near", 2), label("far", 50), label("apex", 45, { apex: true }),
+      label("threat-far", 40, { edibility: "threat" }), label("threat-near", 20, { edibility: "threat" }),
+      label("medium", 10), label("hidden", 55, { apex: true })];
+    const original = labels.slice();
+    expect(selectSharkLabels(labels, 4000).map((item) => item.id)).toEqual(["apex", "threat-near", "threat-far", "near", "medium"]);
+    expect(labels).toEqual(original);
+    expect(selectSharkLabels([...labels].reverse(), 4000)).toEqual(selectSharkLabels(labels, 4000));
+  });
+
+  it("keeps deterministic ID ordering for equal-priority/equal-distance tags", () => {
+    expect(selectSharkLabels([label("z", 15), label("a", 15), label("c", 15)], 0).map((item) => item.id)).toEqual(["a", "c", "z"]);
+    expect(selectSharkLabels([], 0)).toEqual([]);
+  });
+
+  it("fades only between 30 and 55 units and excludes invisible/nonfinite distances", () => {
+    expect(sharkLabelOpacity(0)).toBe(1); expect(sharkLabelOpacity(30)).toBe(1);
+    expect(sharkLabelOpacity(42.5)).toBe(0.5); expect(sharkLabelOpacity(54)).toBeCloseTo(0.04);
+    expect(sharkLabelOpacity(55)).toBe(0); expect(sharkLabelOpacity(100)).toBe(0);
+    expect(sharkLabelOpacity(Infinity)).toBe(0); expect(sharkLabelOpacity(NaN)).toBe(0);
+    expect(selectSharkLabels([label("far-apex", 55, { apex: true }), label("bad", NaN), label("near", 30)], 0).map((item) => item.id)).toEqual(["near"]);
+  });
+
+  it("hides the local name at exactly three seconds without hiding other names", () => {
+    const labels = [label("you", 0, { me: true }), label("other", 10)];
+    expect(selectSharkLabels(labels, 2999).map((item) => item.id)).toEqual(["you", "other"]);
+    expect(selectSharkLabels(labels, 3000).map((item) => item.id)).toEqual(["other"]);
+    expect(selectSharkLabels(labels, 9000).map((item) => item.id)).toEqual(["other"]);
+  });
+
+  it("starts a fresh three-second window for death/respawn, round, reconnect and identity changes", () => {
+    const life = new OwnLabelLifetime();
+    expect(life.sample("you", true, 1, true, 100)).toBe(0);
+    expect(life.sample("you", true, 1, true, 3100)).toBe(3000);
+    expect(life.sample("you", false, 1, true, 3200)).toBe(Infinity);
+    expect(life.sample("you", true, 1, true, 4000)).toBe(0);
+    expect(life.sample("you", true, 2, true, 8000)).toBe(0);
+    expect(life.sample("you", true, 2, false, 9000)).toBe(Infinity);
+    expect(life.sample("you", true, 2, true, 10000)).toBe(0);
+    expect(life.sample("other", true, 2, true, 11000)).toBe(0);
+    expect(life.sample(null, false, 0, false, 12000)).toBe(Infinity);
+  });
+});
+
+
+describe("ST-285 measured label geometry", () => {
+  const label: SharkLabel = { id: "name", name: "Name", x: 0, y: 0, distance: 0, color: "#fff", me: false, apex: false, edibility: null };
+  it("keeps the full tag below enlarged HUD bounds and inside every supported viewport", () => {
+    for (const [width, height] of [[375,667], [740,360], [844,390]]) {
+      for (const hudBottom of [86,106,130]) for (const x of [-50,width / 2,width + 50]) for (const y of [-50,height / 2,height + 50]) {
+        const box = sharkLabelBox({ ...label, x, y }, width, height, hudBottom);
+        expect(box.x).toBeGreaterThanOrEqual(6);
+        expect(box.x + box.width).toBeLessThanOrEqual(width - 6);
+        expect(box.y).toBeGreaterThanOrEqual(hudBottom);
+        expect(box.y + box.height).toBeLessThanOrEqual(height);
+      }
+    }
+  });
+  it("subtracts safe-area layer offsets and never puts a tag above a tall HUD", () => {
+    const box = sharkLabelBox({ ...label, x: 200, y: 200 }, 700, 340, 86, 20, 10);
+    expect(box).toEqual({ x: 90, y: 152, width: 180, height: 32 });
+    expect(sharkLabelBox(label, 160, 180, 190).y).toBe(190);
+    expect(sharkLabelBox(label, 160, 180, 86).width).toBe(148);
   });
 });

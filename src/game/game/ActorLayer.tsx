@@ -1,3 +1,4 @@
+import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
 import { REMOTE_INTERP_DELAY_MS } from "../net/snapshotTimeline.js";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -92,17 +93,7 @@ function commitInstances(meshes: readonly THREE.InstancedMesh[], count: number):
   }
 }
 
-export interface SharkLabel {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  color: string;
-  me: boolean;
-  apex: boolean;
-  edibility: Edibility | null;
-  distance: number;
-}
+export type { SharkLabel } from "../ui/sharkLabelSelection.js";
 
 export function ActorLayer({
   socket,
@@ -145,6 +136,7 @@ export function ActorLayer({
   const motionById = useMemo(() => new Map<string, { yaw: number; roll: number; yawRate: number }>(), []);
   const labelBuffer = useMemo<SharkLabel[]>(() => [], []);
   const lastLabelPassAt = useRef(-Infinity);
+  const ownLabelLifetime = useMemo(() => new OwnLabelLifetime(), []);
   const performanceProfile = resolveClientPerformanceProfile(settings.graphics.quality);
 
   useFrame(({ clock }, dt) => {
@@ -179,6 +171,8 @@ export function ActorLayer({
     if (!frame) {
       predictor.reset();
       followRef.current.active = false;
+      ownLabelLifetime.sample(null, false, 0, false, performance.now());
+      if (labelsRef) labelsRef.current = [];
       return;
     }
 
@@ -203,6 +197,7 @@ export function ActorLayer({
 
     const nowMs = performance.now();
     const authoritativeMe = socket.stateRef.current?.sharks.find((shark) => shark.id === socket.youId) ?? null;
+    const ownLabelAge = ownLabelLifetime.sample(socket.youId, Boolean(authoritativeMe?.alive), state.round.number, socket.status === "open", nowMs);
     const staleness = Math.max(0, (nowMs - socket.newestAtRef.current) / 1000);
     const predicted = inputRef
       ? predictor.step(socket.status === "open" ? authoritativeMe : null, inputRef.current, dt, staleness, {
@@ -406,10 +401,12 @@ export function ActorLayer({
 
       if (updateLabels) {
         const isApex = shark.id === apexId;
-        const labelDistance = camera.position.distanceTo(position);
+        const labelDistance = me
+          ? Math.hypot(position.x - me.position.x, position.y - me.position.y, position.z - me.position.z)
+          : camera.position.distanceTo(position);
         toLabel.copy(position).sub(camera.position);
         const inFront = toLabel.dot(cameraForward) > 0;
-        if (inFront && (isMe || isApex || labelDistance <= 54)) {
+        if (inFront && labelDistance < 55) {
           projected.copy(position);
           projected.y += 1.25 * sharkScale;
           projected.project(camera);
@@ -420,8 +417,8 @@ export function ActorLayer({
               labels.push({
                 id: shark.id,
                 name: isMe ? `${shark.name} (you)` : shark.name,
-                x: Math.max(52, Math.min(size.width - 52, x)),
-                y: Math.max(52, Math.min(size.height - 6, y)),
+                x,
+                y,
                 color: relation ? EDIBILITY_PRESENTATION[relation].color : `#${bodyColor.getHexString()}`,
                 me: isMe,
                 apex: isApex,
@@ -446,19 +443,7 @@ export function ActorLayer({
     if (pupils.instanceColor) pupils.instanceColor.needsUpdate = true;
 
     if (updateLabels && labelsRef) {
-      if (labels.length > 7) {
-        const middleX = size.width / 2;
-        const middleY = size.height / 2;
-        labels.sort((a, b) => {
-          const aPriority = a.me ? 0 : a.apex ? 1 : 2;
-          const bPriority = b.me ? 0 : b.apex ? 1 : 2;
-          if (aPriority !== bPriority) return aPriority - bPriority;
-          if (Math.abs(a.distance - b.distance) > 0.5) return a.distance - b.distance;
-          return Math.hypot(a.x - middleX, a.y - middleY) - Math.hypot(b.x - middleX, b.y - middleY);
-        });
-        labels.length = 7;
-      }
-      labelsRef.current = labels;
+      labelsRef.current = selectSharkLabels(labels, ownLabelAge);
     } else if (!wantLabels && labelsRef && labelsRef.current.length) {
       labelsRef.current = [];
     }

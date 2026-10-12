@@ -544,8 +544,17 @@ body {
 .game-depth-radar{position:absolute;bottom:calc(12px + var(--safe-b));right:calc(12px + var(--safe-r));z-index:10;width:min(244px,42vw);max-height:150px;overflow:hidden;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--overlay-scrim);color:var(--text)}
 .game-depth-radar__header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:5px}.game-depth-radar__heading{font-size:.72rem;font-weight:900;letter-spacing:.1em}.game-depth-radar__depth{color:var(--text-muted);font-size:.68rem;font-variant-numeric:tabular-nums}.game-depth-radar__list{list-style:none;margin:0;padding:0;display:grid;gap:3px}.game-depth-radar__cue{display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:5px;padding:3px 4px;border-left:3px solid currentColor;border-radius:4px;background:rgba(255,255,255,.045);font-size:.69rem;line-height:1.15}.game-depth-radar__cue--apex{border-left-style:double}.game-depth-radar__cue--rival{border-left-style:dashed}.game-depth-radar__cue--prey{border-left-style:dotted}.game-depth-radar__cue--frenzy{border-left-style:solid}.game-depth-radar__marker{font-weight:900;text-align:center}.game-depth-radar__identity{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:800}.game-depth-radar__detail{color:var(--text-muted);font-weight:600}.game-depth-radar__vector{display:grid;grid-auto-flow:column;gap:5px;align-items:center;white-space:nowrap;font-variant-numeric:tabular-nums}.game-depth-radar__vertical{font-weight:900}.game-depth-radar__range{color:var(--text-muted);font-weight:700}.game-depth-radar__empty,.game-depth-radar__self-apex{margin:0;padding:3px 4px;font-size:.69rem;font-weight:800}.game-depth-radar__self-apex{border-left:4px double currentColor}.game-depth-radar--semantic-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
-.shark-label-layer{position:absolute;inset:0;z-index:9;overflow:hidden;pointer-events:none}
-.shark-label text{fill:#0b0a14;font:600 .75rem ui-sans-serif,system-ui,sans-serif;paint-order:stroke;stroke:rgba(255,255,255,.12);stroke-width:.4px}.shark-label.is-me text{font-size:.85rem;font-weight:800}
+.shark-label-layer{position:absolute;inset:var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);z-index:9;overflow:hidden;pointer-events:none}
+.shark-label-slot{display:flex;justify-content:center}
+.shark-label{--label-color:#f3f1ff;display:inline-flex;align-items:center;gap:3px;width:max-content;max-width:100%;padding:2px 5px;border:1px solid var(--label-color);border-radius:5px;background:#06050c;color:#f3f1ff;font-size:.6875rem;font-weight:600;line-height:1.2;white-space:nowrap;pointer-events:none;animation:none;transition:none}
+.shark-label--prey{--label-color:#6ff0a3}.shark-label--even{--label-color:#ffd54a}.shark-label--threat{--label-color:#ff8f8f}
+.shark-label.is-apex{--label-color:#ffe18b}
+.shark-label.is-me{--label-color:#fff;font-size:.75rem;font-weight:800}
+.shark-label__name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.shark-label__relation,.shark-label__apex{flex-shrink:0;color:var(--label-color);font-weight:800}
+:root[data-contrast="high"] .shark-label{background:#000;color:#fff;border-color:#fff}
+:root[data-contrast="high"] .shark-label__relation,:root[data-contrast="high"] .shark-label__apex{color:#fff}
+@media (forced-colors:active){.shark-label{background:Canvas;color:CanvasText;border-color:CanvasText}.shark-label__relation,.shark-label__apex{color:CanvasText}}
 
 /* ── ST-124 authoritative round/Apex presentation ── */
 .game-leaderboard__row.is-apex{outline:1px solid #ffd54a;background:rgba(255,213,74,.11)}

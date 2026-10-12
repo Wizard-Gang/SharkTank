@@ -1,3 +1,7 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { SharkLabelReadout } from "../src/game/ui/SharkLabels.js";
+import type { SharkLabel } from "../src/game/ui/sharkLabelSelection.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -311,5 +315,46 @@ describe("ST-131 full-3D product acceptance", () => {
       "NOT RUN",
       "Do not use production credentials for local acceptance",
     ]) expect(manual).toContain(phrase);
+  });
+});
+
+
+describe("ST-285 compact projected identity tags", () => {
+  it("keeps auto-sized text, edibility glyphs, local identity and Apex marking below a measured HUD", () => {
+    const labels: SharkLabel[] = [
+      { id: "apex", name: "Long Apex name", x: 20, y: 30, distance: 42.5, color: "#ff8f8f", me: false, apex: true, edibility: "threat" },
+      { id: "you", name: "Pilot (you)", x: 300, y: 200, distance: 0, color: "#fff", me: true, apex: false, edibility: null },
+    ];
+    const html = renderToStaticMarkup(createElement(SharkLabelReadout, { labels, hudBottom: 122 }));
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain('class="shark-label__relation">▲');
+    expect(html).toContain('class="shark-label__apex">APEX');
+    expect(html).toContain("Pilot (you)");
+    expect(html).toContain('opacity="0.5"');
+    expect(html).toContain('y="122"');
+    expect(html).toContain('width="180" height="32"');
+    expect(html).not.toContain("style=");
+    expect(html).toContain("<foreignObject");
+    expect(html).not.toContain('width="136"');
+    expect(html).not.toContain("aria-live");
+  });
+
+  it("bounds tags in DOM and retains quality cadence, actual-HUD observation, motion and contrast settings", () => {
+    const source = read("../src/game/ui/SharkLabels.tsx");
+    const css = read("../src/game/ui/theme.css");
+    expect(source).toContain("slice(0, 5)");
+    expect(source).toContain("resolveClientPerformanceProfile(quality).labelUpdateMs");
+    expect(source).toContain("useLayoutEffect");
+    expect(source).toContain('querySelector(".game-hud")');
+    expect(source).toContain("new ResizeObserver(measure)");
+    expect(source).toContain("observer.disconnect()");
+    expect(css).toContain("width:max-content;max-width:100%");
+    expect(css).toContain("inset:var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l)");
+    expect(css).toContain("font-size:.6875rem");
+    expect(css).toMatch(/\.shark-label\.is-me\{[^}]*font-size:\.75rem/);
+    expect(css).toContain(".shark-label__name{min-width:0;overflow:hidden;text-overflow:ellipsis}");
+    expect(css).toContain("pointer-events:none;animation:none;transition:none");
+    expect(css).toContain(':root[data-contrast="high"] .shark-label{background:#000;color:#fff;border-color:#fff}');
+    expect(read("../src/game/ui/GameScreen.tsx")).toContain("settings.a11y.colorblindLabels && <SharkLabels");
   });
 });
