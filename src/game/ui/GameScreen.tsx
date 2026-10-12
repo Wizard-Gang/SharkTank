@@ -6,6 +6,7 @@
 // flight/look clusters and optional mouse look. The `game-screen--touch` class reflects
 // that ownership rather than a media query alone.
 
+import { FirstRunHints, useFirstRunHints } from "./FirstRunHints.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TICKS_PER_SECOND, roundTicksLeft } from "../../engine/index.js";
 import { BiteBuffer } from "../game/biteBuffer.js";
@@ -113,6 +114,8 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
   const inputEnabled = !dialogOpen && !socket.death && socket.status === "open";
   const gameplayEnabled = inputEnabled && roundUi?.phase !== "result";
 
+  const coaching = useFirstRunHints(socket, gameplayEnabled);
+
   return (
     <main
       id="main"
@@ -120,7 +123,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
         ? `game-screen game-screen--touch game-screen--flight-${touchLayout.flight} game-screen--actions-${touchLayout.actions} game-screen--scheme-${settings.controls.touchScheme}${portrait ? " game-screen--portrait" : ""}`
         : "game-screen"}
     >
-      <GameViewport socket={socket} settings={settings} inputEnabled={gameplayEnabled} labelsRef={labelsRef} cuesRef={cuesRef} touchInputRef={touchInputRef} touchControls={touch} />
+      <GameViewport socket={socket} settings={settings} inputEnabled={gameplayEnabled} labelsRef={labelsRef} cuesRef={cuesRef} touchInputRef={touchInputRef} touchControls={touch} onSteer={coaching.onSteer} schoolCueRef={coaching.schoolCueRef} />
 
       {settings.a11y.colorblindLabels && <SharkLabels labelsRef={labelsRef} quality={settings.graphics.quality} />}
 
@@ -128,6 +131,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
       <EvolutionMoment socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />
       <Leaderboard socket={socket} touch={touch} />
       <EdgeCues cuesRef={cuesRef} />
+      <FirstRunHints step={coaching.step} touch={touch} binds={settings.controls.keybinds} cue={coaching.cue} onSkip={coaching.skip} />
       <DepthRadar socket={socket} visible={settings.graphics.showMinimap} compact={touch} />
       <QuickA11y onQuit={handleQuit} onHelp={openHelp} onSettings={openSettings} collapsed={touch} />
       <div className="ability-rail">

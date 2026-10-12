@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-288 — [FEAT] Coach the first thirty seconds with one-time hints
-
-**Goal:** Teach new players without a tutorial screen.
-
-**Scope:** First-run hints stored on the device: "Drag to swim", "Eat fish to grow" with an arrow to the nearest school, and "Bite smaller sharks ▼". Each clears on success, is announced politely and can be skipped.
-
-**Acceptance:** State-machine tests pass; hints never return.
-
-**Validation:** `npm test -- tests/accessibility-contract.test.ts` plus the helper test.
-
----
-
 ### ST-289 — [FEAT] Light and countershade the sharks
 
 **Goal:** Unlit sharks read as flat blobs.

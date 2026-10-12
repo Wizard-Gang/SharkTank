@@ -52,6 +52,7 @@ export function useLocalInput(
   surfaceRef?: React.RefObject<HTMLElement | null>,
   touchInputRef?: React.MutableRefObject<TwinStickState>,
   touchControls = false,
+  onSteer?: () => void,
 ): void {
   const { stateRef, youId, setOrientation, setBoost, bite } = socket;
   const yawRef = useRef(0);
@@ -66,6 +67,7 @@ export function useLocalInput(
   settingsRef.current = settings;
 
   useEffect(() => {
+    let reportedSteering = false;
     const syncInput = () => {
       if (!inputRef) return;
       inputRef.current = {
@@ -77,6 +79,7 @@ export function useLocalInput(
       };
     };
     const releaseActiveInput = () => {
+      reportedSteering = false;
       pressed.current.clear();
       keyboardSteering.current = { yaw: 0, pitch: 0 };
       pointerLook.current = null;
@@ -182,6 +185,10 @@ export function useLocalInput(
       const touch = touchControls && touchInputRef
         ? touchAxesForState(touchInputRef.current, controls.turnAssist, controls.invertSteer, controls.touchScheme)
         : { yaw: 0, pitch: 0, lookYaw: 0, lookPitch: 0 };
+      if (!reportedSteering && Math.abs(desktop.yaw) + Math.abs(desktop.pitch) + Math.abs(touch.yaw) + Math.abs(touch.pitch) > 0.1) {
+        reportedSteering = true;
+        onSteer?.();
+      }
       keyboardSteering.current = advanceKeyboardSteering(keyboardSteering.current, desktop, dt);
       const axes = {
         yaw: clampAxis(keyboardSteering.current.yaw + touch.yaw),
@@ -242,7 +249,7 @@ export function useLocalInput(
       surface?.removeEventListener("lostpointercapture", clearPointerLook);
       releaseActiveInput();
     };
-  }, [enabled, stateRef, youId, setOrientation, setBoost, bite, surfaceRef, inputRef, touchInputRef, touchControls]);
+  }, [enabled, stateRef, youId, setOrientation, setBoost, bite, surfaceRef, inputRef, touchInputRef, touchControls, onSteer]);
 }
 
 function clampAxis(value: number): number {

@@ -1,3 +1,4 @@
+import type { SchoolCue } from "../ui/firstRunCoaching.js";
 import type { EdgeCue } from "../ui/edgeNavigation.js";
 import { AdaptiveResolution } from "./AdaptiveResolution.js";
 import { Canvas } from "@react-three/fiber";
@@ -18,6 +19,8 @@ export interface GameViewportProps {
   cuesRef?: React.MutableRefObject<EdgeCue[]>;
   touchInputRef?: React.MutableRefObject<TwinStickState>;
   touchControls?: boolean;
+  onSteer?: () => void;
+  schoolCueRef?: React.MutableRefObject<SchoolCue | null>;
 }
 
 /**
@@ -35,6 +38,8 @@ export function GameViewport({
   cuesRef,
   touchInputRef,
   touchControls = false,
+  onSteer,
+  schoolCueRef,
 }: GameViewportProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<LocalInput>({
@@ -64,7 +69,7 @@ export function GameViewport({
   }, []);
   const renderDpr = resolveRenderDpr(settings.graphics.quality, touchControls, deviceDpr);
 
-  useLocalInput(socket, settings, inputEnabled, inputRef, surfaceRef, touchInputRef, touchControls);
+  useLocalInput(socket, settings, inputEnabled, inputRef, surfaceRef, touchInputRef, touchControls, onSteer);
 
   const k = settings.controls.keybinds;
   const label = touchControls
@@ -93,7 +98,7 @@ export function GameViewport({
         gl={{ alpha: false, antialias: quality.antialias }}
       >
         <AdaptiveResolution cap={renderDpr} />
-        <Scene socket={socket} settings={settings} labelsRef={labelsRef} cuesRef={cuesRef} inputRef={inputRef} />
+        <Scene socket={socket} settings={settings} labelsRef={labelsRef} cuesRef={cuesRef} schoolCueRef={schoolCueRef} inputRef={inputRef} />
       </Canvas>
     </div>
   );
