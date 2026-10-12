@@ -1,4 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MainMenu } from "../src/game/ui/MainMenu.js";
+import { SKINS } from "../src/engine/index.js";
+import { menuName } from "../src/game/ui/menuIdentity.js";
 import { describe, expect, it } from "vitest";
 import { renderGameDocument } from "../src/client/game-document.js";
 
@@ -18,7 +22,6 @@ const mountedPresentationSource = [
   "../src/game/game/Scene.tsx",
   "../src/game/settings/SettingsContext.tsx",
   "../src/game/ui/Captions.tsx",
-  "../src/game/ui/Customize.tsx",
   "../src/game/ui/GameScreen.tsx",
   "../src/game/ui/DeathOverlay.tsx",
   "../src/game/ui/HelpOverlay.tsx",
@@ -87,7 +90,7 @@ describe("React game document", () => {
     expect(settingsSource).toContain("recordBest");
     expect(appSource).not.toContain("fetch(");
     expect(appSource).not.toContain("logUserAction");
-    expect(menuSource).toContain("· skin {skin} · best {best}");
+    expect(menuSource).toContain("Personal best {best}");
   });
 
   it("makes the game document explicit instead of using a repository-wide SPA fallback", () => {
@@ -103,4 +106,57 @@ describe("React game document", () => {
     expect(source).not.toMatch(/BrowserRouter|createBrowserRouter|hydrateRoot/);
     expect(workerSource).toContain('if (path === "/" || path === "/play") return movedTo(url, "/play/");');
   });
+});
+
+
+describe("ST-287 inline menu identity", () => {
+  const renderMenu = (playerName = "Pilot", skin = "cyan") => renderToStaticMarkup(
+    <MainMenu playerName={playerName} skin={skin} best={42} onPlay={() => {}}
+      onIdentityChange={() => {}} onSettings={() => {}} />,
+  );
+
+  it("puts Play, name, swatches and the selected shark on one menu", () => {
+    const html = renderMenu();
+    expect(html).toContain('type="submit"');
+    expect(html).toContain('autofocus=""');
+    expect(html).toContain('for="menu-name"');
+    expect(html).toContain('value="Pilot"');
+    expect(html).toContain("Personal best 42");
+    expect(html).toContain('role="radiogroup" aria-label="Shark skin"');
+    expect(html.match(/type="radio"/g)).toHaveLength(SKINS.length);
+    expect(html.match(/checked=""/g)).toHaveLength(1);
+    expect(html).not.toMatch(/Customize|Confirm|Exit/);
+    expect(existsSync(new URL("../src/game/ui/Customize.tsx", import.meta.url))).toBe(false);
+    expect(appSource).toContain("onIdentityChange={updatePlayer}");
+  });
+
+  it.each(SKINS)("renders the $name choice and matching preview palette", (skin) => {
+    const html = renderMenu("Pilot", skin.id);
+    expect(html).toContain(`aria-label="${skin.name} shark preview"`);
+    expect(html).toContain(`<figcaption>${skin.name} shark</figcaption>`);
+    expect(html).toContain(`checked="" value="${skin.id}"`);
+    const preview = html.slice(html.indexOf('<figure'), html.indexOf('</figure>'));
+    expect(preview).toContain(`fill="${skin.color}"`);
+    expect(preview).toContain(`fill="${skin.accent}"`);
+    expect(preview).not.toMatch(/canvas|style=|animation/);
+  });
+
+  it.each(["f.u.c.k", "$h1t", "\u200b\u2066"])("rejects %j with an associated error and disabled Play", (name) => {
+    const html = renderMenu(name);
+    expect(html).toContain('aria-invalid="true" aria-describedby="menu-name-error"');
+    expect(html).toContain('id="menu-name-error" role="alert"');
+    expect(html).toContain('disabled=""');
+    expect(menuName(name).validName).toBe(false);
+  });
+
+  it.each(["", "   ", "Player", "龍王小明", "Владимир", "A\u202eB\u200bC", "🦈".repeat(17)])(
+    "keeps the existing canonical name policy for %j", (name) => {
+      const identity = menuName(name);
+      expect(identity.validName).toBe(true);
+      expect(renderMenu(name)).not.toContain('disabled=""');
+      expect(identity.storedName).toBe(name.trim() === "" ? "Player"
+        : name === "A\u202eB\u200bC" ? "ABC"
+        : [...name].slice(0, 16).join(""));
+    },
+  );
 });

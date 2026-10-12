@@ -1,4 +1,4 @@
-// Focus trap for modal dialogs (pause / settings / customize overlays).
+// Focus trap for modal dialogs (pause / settings / help overlays).
 // Traps Tab within the container, moves initial focus in, restores focus to the
 // previously-focused element on unmount, and calls onEscape for Esc. Satisfies
 // 2.1.2 (no keyboard trap escape) + 2.4.3 (focus order) for dialogs.

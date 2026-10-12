@@ -461,3 +461,23 @@ describe("ST-284 edge cue accessibility", () => {
     expect(consumer).toContain("clearInterval(timer)");
   });
 });
+
+
+describe("ST-287 menu accessibility", () => {
+  it("retains native named radios, visible focus, reflow and non-animated preview", () => {
+    const menu = read("../src/game/ui/MainMenu.tsx");
+    const css = read("../src/game/ui/theme.css");
+    expect(menu).toContain('<fieldset className="skin-fieldset">');
+    expect(menu).toContain('<legend className="skin-legend">Skin</legend>');
+    expect(menu).toContain('type="radio" name="skin"');
+    expect(menu).toContain('<span>{option.name}</span>');
+    expect(menu).toContain('role="img" aria-label={`${selectedSkin.name} shark preview`}');
+    expect(menu).not.toContain('aria-live');
+    expect(css).toContain('.skin-option:focus-within{outline:3px solid var(--focus-ring);outline-offset:4px}');
+    expect(css).toContain('@media(max-width:560px){.shark-menu__identity{grid-template-columns:minmax(0,1fr)');
+    expect(css).toContain(':root[data-contrast="high"] .skin-option{background:#000;color:#fff;border:1px solid #fff}');
+    expect(css).toContain('.skin-option>span{max-width:100%;overflow-wrap:anywhere}');
+    expect(css).toContain('--accent-contrast:#000');
+    expect(css).not.toMatch(/\.menu-shark[^}]*animation/);
+  });
+});

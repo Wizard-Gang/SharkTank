@@ -68,7 +68,7 @@ describe("ST-131 full-3D product acceptance", () => {
     const screen = read("../src/game/ui/GameScreen.tsx");
     const death = read("../src/game/ui/DeathOverlay.tsx");
 
-    expect(app).toContain('type Screen = "menu" | "customize" | "settings" | "game"');
+    expect(app).toContain('type Screen = "menu" | "settings" | "game"');
     expect(app).toContain('const SHARKTANK_ROOM = { id: "room-1", name: "SharkTank" } as const;');
     expect(app).toContain("onPlay={play}");
     expect(app).not.toContain("<Lobby");
@@ -148,7 +148,7 @@ describe("ST-131 full-3D product acceptance", () => {
     expect(app).not.toContain("fetch(");
     expect(app).not.toContain("logUserAction");
     expect(app).toContain("onAuthoritativeResult={recordBest}");
-    expect(menu).toContain("· skin {skin} · best {best}");
+    expect(menu).toContain("Personal best {best}");
     for (const retired of ["/api/profile", "/api/audit", "wg_player", "x-profile-id", "profile-result"]) {
       expect(worker).not.toContain(retired);
       expect(room).not.toContain(retired);
