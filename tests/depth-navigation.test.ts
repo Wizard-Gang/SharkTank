@@ -1,3 +1,5 @@
+import { Matrix4, PerspectiveCamera } from "three";
+import { buildEdgeCues, clipPoint, edgeTargets, projectEdgePoint } from "../src/game/ui/edgeNavigation.js";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { NetPrey } from "../src/protocol/index.js";
@@ -160,7 +162,7 @@ describe("ST-126 depth-aware competitive cues", () => {
 
     expect(screen).toContain("<DepthRadar");
     expect(screen).not.toContain("<Minimap");
-    expect(settings).toContain('label="Show depth radar"');
+    expect(settings).toContain('label="Show text depth radar"');
     expect(actor).toContain("camera.getWorldDirection(cameraForward)");
     expect(actor).toContain("labelDistance <= 54");
     expect(actor).toContain("labels.length = 7");
@@ -182,5 +184,106 @@ describe("ST-126 depth-aware competitive cues", () => {
     expect(protocol).not.toContain("schemaVersion:");
     expect(engineTypes).not.toContain("schemaVersion: 11");
     expect(pkg.version).toBe("2.5.0");
+  });
+});
+
+describe("ST-284 bounded camera-relative edge cues", () => {
+  const viewport = { width: 740, height: 360 };
+  const matrixFor = (look = { x: 0, y: 0, z: -1 }, width = 740, height = 360) => {
+    const camera = new PerspectiveCamera(60, width / height, 0.1, 500);
+    camera.lookAt(look.x, look.y, look.z);
+    camera.updateMatrixWorld();
+    return new Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).elements;
+  };
+  const project = (x: number, y: number, z: number) => projectEdgePoint(clipPoint({ x, y, z }, matrixFor()), viewport);
+
+  it("hides on-screen points and clamps side, vertical and diagonal directions to the inset ellipse", () => {
+    expect(project(0, 0, -10)).toBeNull();
+    expect(project(1, 1, -10)).toBeNull();
+    expect(project(50, 0, -10)).toMatchObject({ x: 704, y: 180, angle: 0, behind: false });
+    expect(project(-50, 0, -10)).toMatchObject({ x: 36, y: 180, behind: false });
+    expect(project(0, 50, -10)).toMatchObject({ x: 370, y: 96, angle: -90 });
+    expect(project(0, -50, -10)).toMatchObject({ x: 370, y: 264, angle: 90 });
+    const diagonal = project(50, 50, -10)!;
+    expect(diagonal.x).toBeGreaterThan(370);
+    expect(diagonal.y).toBeLessThan(180);
+    expect(((diagonal.x - 370) / 334) ** 2 + ((diagonal.y - 180) / 84) ** 2).toBeCloseTo(1);
+  });
+
+  it("does not mirror behind-camera left/right or above/below, including the exact rear axis and camera plane", () => {
+    expect(project(50, 0, 10)).toMatchObject({ x: 704, y: 180, behind: true });
+    expect(project(-50, 0, 10)).toMatchObject({ x: 36, y: 180, behind: true });
+    expect(project(0, 50, 10)).toMatchObject({ x: 370, y: 96, behind: true });
+    expect(project(0, -50, 10)).toMatchObject({ x: 370, y: 264, behind: true });
+    expect(project(0, 0, 10)).toMatchObject({ x: 370, y: 264, angle: 90, behind: true });
+    expect(project(50, 0, 0)).toMatchObject({ x: 704, y: 180 });
+  });
+
+  it("uses the actual yaw/pitch camera projection and remains finite across aspect ratios and invalid samples", () => {
+    for (const [width, height] of [[375,667], [740,360], [844,390]]) {
+      const matrix = matrixFor({ x: 1, y: 0.4, z: 0 }, width, height);
+      expect(projectEdgePoint(clipPoint({ x: 10, y: 4, z: 0 }, matrix), { width, height })).toBeNull();
+      const edge = projectEdgePoint(clipPoint({ x: -10, y: -4, z: 10 }, matrix), { width, height })!;
+      expect(edge.behind).toBe(true);
+      expect(edge.x).toBeGreaterThanOrEqual(36);
+      expect(edge.x).toBeLessThanOrEqual(width - 36);
+      expect(edge.y).toBeGreaterThanOrEqual(96);
+      expect(edge.y).toBeLessThanOrEqual(height - 96);
+      expect(((edge.x - width / 2) / (width / 2 - 36)) ** 2 + ((edge.y - height / 2) / (height / 2 - 96)) ** 2).toBeCloseTo(1);
+    }
+    const moved = new PerspectiveCamera(60, 740 / 360, 0.1, 500);
+    moved.position.set(10, 5, 20); moved.lookAt(10, 5, 0); moved.updateMatrixWorld();
+    const translated = new Matrix4().multiplyMatrices(moved.projectionMatrix, moved.matrixWorldInverse).elements;
+    expect(projectEdgePoint(clipPoint({ x: 10, y: 5, z: 0 }, translated), viewport)).toBeNull();
+    expect(projectEdgePoint(clipPoint({ x: 60, y: 5, z: 10 }, translated), viewport)).toMatchObject({ x: 704, y: 180 });
+    expect(projectEdgePoint({ x: NaN, y: 0, z: 1, w: 1 }, viewport)).toBeNull();
+    expect(projectEdgePoint({ x: 2, y: 0, z: 1, w: 1 }, { width: 50, height: 100 })).toBeNull();
+  });
+
+  it("selects exact devour and full-XYZ 40-unit boundaries, excludes dead/self and deduplicates Apex", () => {
+    const snapshot = state();
+    snapshot.sharks.push(
+      shark("boundary", 40, -8, 0, { length: 15 }),
+      shark("too-far", 40, -7, 0, { length: 15 }),
+      shark("too-small", 10, -8, 0, { length: 14.99 }),
+      shark("dead", 10, -8, 0, { length: 20, alive: false }),
+      shark("apex", -70, -8, 0, { length: 20 }),
+    );
+    snapshot.round.phase = "apex"; snapshot.round.apexId = "apex";
+    expect(edgeTargets(snapshot, "you").map((t) => [t.id, t.kind])).toEqual([["boundary", "threat"], ["apex", "apex"]]);
+    snapshot.round.apexId = "you";
+    expect(edgeTargets(snapshot, "you").some((t) => t.kind === "apex")).toBe(false);
+    expect(edgeTargets(null, "you")).toEqual([]);
+    expect(edgeTargets(snapshot, null)).toEqual([]);
+    snapshot.sharks[0].alive = false;
+    expect(edgeTargets(snapshot, "you")).toEqual([]);
+    snapshot.sharks[0].alive = true; snapshot.round.phase = "result";
+    expect(edgeTargets(snapshot, "you")).toEqual([]);
+  });
+
+  it("reserves four off-screen kind slots, preserves objectives amid threats and ignores on-screen slots", () => {
+    const snapshot = state();
+    snapshot.sharks[0].position = { x: 0, y: 0, z: 0 };
+    snapshot.sharks.push(
+      shark("z", 10, 0, 10, { length: 20 }), shark("a", 10, 0, 10, { length: 20 }),
+      shark("on-screen", 0, 0, -2, { length: 20 }), shark("apex", -60, 0, 0),
+    );
+    snapshot.round.phase = "apex"; snapshot.round.apexId = "apex";
+    snapshot.frenzyUntilTick = 200;
+    snapshot.food.push(prey("gold", 0, 8, 10, "golden"), prey("ordinary", 0, 0, 10));
+    const cues = buildEdgeCues(edgeTargets(snapshot, "you"), matrixFor(), viewport);
+    expect(cues.map((t) => [t.id, t.kind])).toEqual([["a", "threat"], ["apex", "apex"], ["frenzy-center", "frenzy"], ["golden:gold", "golden"]]);
+    snapshot.sharks.reverse(); snapshot.food.reverse();
+    expect(buildEdgeCues(edgeTargets(snapshot, "you"), matrixFor(), viewport)).toEqual(cues);
+    snapshot.frenzyUntilTick = snapshot.tick; snapshot.food = []; snapshot.round.apexId = null;
+    expect(buildEdgeCues(edgeTargets(snapshot, "you"), matrixFor(), viewport).map((t) => t.id)).toEqual(["a", "z"]);
+    for (let i = 0; i < 8; i++) snapshot.sharks.push(shark(`extra-${i}`, 20 + i, 0, 10, { length: 20 }));
+    const bounded = buildEdgeCues(edgeTargets(snapshot, "you"), matrixFor(), viewport);
+    expect(bounded).toHaveLength(4);
+    expect(bounded.map((cue) => cue.id)).toEqual(["a", "z", "extra-0", "extra-1"]);
+    for (let i = 0; i < bounded.length; i++) for (let j = i + 1; j < bounded.length; j++) {
+      expect(Math.abs(bounded[i].x - bounded[j].x) >= 76 || Math.abs(bounded[i].y - bounded[j].y) >= 32).toBe(true);
+    }
+    expect(bounded[0].angle).toBe(bounded[1].angle);
   });
 });

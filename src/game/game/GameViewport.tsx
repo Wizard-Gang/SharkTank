@@ -1,3 +1,4 @@
+import type { EdgeCue } from "../ui/edgeNavigation.js";
 import { AdaptiveResolution } from "./AdaptiveResolution.js";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +15,7 @@ export interface GameViewportProps {
   settings: Settings;
   inputEnabled: boolean;
   labelsRef?: React.MutableRefObject<SharkLabel[]>;
+  cuesRef?: React.MutableRefObject<EdgeCue[]>;
   touchInputRef?: React.MutableRefObject<TwinStickState>;
   touchControls?: boolean;
 }
@@ -30,6 +32,7 @@ export function GameViewport({
   settings,
   inputEnabled,
   labelsRef,
+  cuesRef,
   touchInputRef,
   touchControls = false,
 }: GameViewportProps) {
@@ -90,7 +93,7 @@ export function GameViewport({
         gl={{ alpha: false, antialias: quality.antialias }}
       >
         <AdaptiveResolution cap={renderDpr} />
-        <Scene socket={socket} settings={settings} labelsRef={labelsRef} inputRef={inputRef} />
+        <Scene socket={socket} settings={settings} labelsRef={labelsRef} cuesRef={cuesRef} inputRef={inputRef} />
       </Canvas>
     </div>
   );

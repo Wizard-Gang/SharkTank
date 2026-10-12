@@ -610,3 +610,13 @@ body {
 :root[data-contrast="high"] .hud-eat-streak,:root[data-contrast="high"] .hud-score-float{color:#fff}
 :root[data-motion="reduced"] .hud-score-float{display:none}
 @media (prefers-reduced-motion:reduce){.hud-score-float{display:none}}
+
+/* Camera-relative competitive directions: bounded DOM, no flashing or easing. */
+.edge-cue-layer{position:absolute;inset:0;margin:0;padding:0;list-style:none;pointer-events:none;z-index:9}
+.edge-cue{position:absolute;display:flex;align-items:center;gap:3px;transform:translate(-50%,-50%);padding:3px 5px;border:1px solid currentColor;border-radius:6px;background:#06050c;color:#f3f1ff;font-size:.65rem;font-weight:800;white-space:nowrap;pointer-events:none;animation:none;transition:none}
+.edge-cue__arrow{display:inline-block;font-size:.9rem;line-height:1}
+.edge-cue--threat{color:#ffb4ad}.edge-cue--apex,.edge-cue--golden{color:#ffe18b}.edge-cue--frenzy{color:#b6f4ed}
+:root[data-contrast="high"] .edge-cue{background:#000;color:#fff;border-width:2px}
+:root[data-motion="reduced"] .edge-cue{animation:none;transition:none}
+@media (prefers-reduced-motion:reduce){.edge-cue{animation:none;transition:none}}
+@media (forced-colors:active){.edge-cue{background:Canvas;color:CanvasText;border-color:CanvasText}}

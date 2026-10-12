@@ -25,6 +25,8 @@ import { useGameAudio } from "../audio/useGameAudio.js";
 import { EvolutionMoment } from "./EvolutionMoment.js";
 import { Hud } from "./Hud.js";
 import { Leaderboard } from "./Leaderboard.js";
+import { EdgeCues } from "./EdgeCues.js";
+import type { EdgeCue } from "./edgeNavigation.js";
 import { DepthRadar } from "./DepthRadar.js";
 import { DeathOverlay } from "./DeathOverlay.js";
 import { Settings } from "./Settings.js";
@@ -48,6 +50,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
   const socket = useRoomSocket(room.id, identity, room.name);
   const caption = useGameAudio(socket, settings);
   const labelsRef = useRef<SharkLabel[]>([]);
+  const cuesRef = useRef<EdgeCue[]>([]);
   const touchInputRef = useRef<TwinStickState>(makeTwinStickState());
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -116,13 +119,14 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
         ? `game-screen game-screen--touch game-screen--flight-${touchLayout.flight} game-screen--actions-${touchLayout.actions} game-screen--scheme-${settings.controls.touchScheme}${portrait ? " game-screen--portrait" : ""}`
         : "game-screen"}
     >
-      <GameViewport socket={socket} settings={settings} inputEnabled={gameplayEnabled} labelsRef={labelsRef} touchInputRef={touchInputRef} touchControls={touch} />
+      <GameViewport socket={socket} settings={settings} inputEnabled={gameplayEnabled} labelsRef={labelsRef} cuesRef={cuesRef} touchInputRef={touchInputRef} touchControls={touch} />
 
       {settings.a11y.colorblindLabels && <SharkLabels labelsRef={labelsRef} quality={settings.graphics.quality} />}
 
       <Hud socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />
       <EvolutionMoment socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />
       <Leaderboard socket={socket} touch={touch} />
+      <EdgeCues cuesRef={cuesRef} />
       <DepthRadar socket={socket} visible={settings.graphics.showMinimap} compact={touch} />
       <QuickA11y onQuit={handleQuit} onHelp={openHelp} onSettings={openSettings} collapsed={touch} />
       <div className="ability-rail">

@@ -110,7 +110,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  graphics: { quality: "auto", showMinimap: true, showGrid: true, cameraShake: true },
+  graphics: { quality: "auto", showMinimap: false, showGrid: true, cameraShake: true },
   // Music defaults to 35% after browser activation; saved device-local mute still wins.
   audio: { master: 0.8, sfx: 0.9, music: 0.35, captions: false },
   controls: {
