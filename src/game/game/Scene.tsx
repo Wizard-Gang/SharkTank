@@ -1,6 +1,8 @@
 // Browser-only React Three Fiber composition for the production full-3D game world.
 // It presents authoritative volumetric state without moving gameplay authority into Three.js.
 
+import { EdgeNavigation } from "./EdgeNavigation.js";
+import type { EdgeCue } from "../ui/edgeNavigation.js";
 import { useRef } from "react";
 import type { RoomSocket } from "../net/useRoomSocket.js";
 import type { Settings } from "../settings/SettingsContext.js";
@@ -17,11 +19,13 @@ export function Scene({
   socket,
   settings,
   labelsRef,
+  cuesRef,
   inputRef,
 }: {
   socket: RoomSocket;
   settings: Settings;
   labelsRef?: React.MutableRefObject<SharkLabel[]>;
+  cuesRef?: React.MutableRefObject<EdgeCue[]>;
   inputRef?: React.MutableRefObject<LocalInput>;
 }) {
   const followRef = useRef(makeCameraFollowTarget());
@@ -39,6 +43,7 @@ export function Scene({
       <PreyLayer socket={socket} settings={settings} />
       <FxLayer socket={socket} settings={settings} />
       <CameraRig followRef={followRef} reducedMotion={settings.a11y.motion === "reduced"} inputRef={inputRef} />
+      <EdgeNavigation socket={socket} cuesRef={cuesRef} />
     </>
   );
 }

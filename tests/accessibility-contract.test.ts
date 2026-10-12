@@ -1,3 +1,5 @@
+import { EdgeCueReadout } from "../src/game/ui/EdgeCues.js";
+import { DEFAULT_SETTINGS } from "../src/game/settings/SettingsContext.js";
 import { Leaderboard, LeaderboardReadout, rankedScores } from "../src/game/ui/Leaderboard.js";
 import type { RoomSocket } from "../src/game/net/useRoomSocket.js";
 import type { ScoreEntry } from "../src/protocol/index.js";
@@ -413,5 +415,49 @@ describe("ST-283 compact scores and native touch disclosure", () => {
     expect(theme).toContain(".game-leaderboard__identity{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}");
     expect(theme).toContain(".game-leaderboard, .game-depth-radar, .conn-banner { pointer-events:none; }");
     expect(gameScreen).toContain('<Leaderboard socket={socket} touch={touch} />');
+  });
+});
+
+
+describe("ST-284 edge cue accessibility", () => {
+  it("renders named non-colour glyphs and distance without a live announcement stream", () => {
+    const html = renderToStaticMarkup(createElement(EdgeCueReadout, { cues: [
+      { id: "danger", kind: "threat", label: "Danger: Hunter", position: { x: 0, y: 0, z: 10 }, distance: 12.4, x: 36, y: 180, angle: 180, behind: true },
+      { id: "gold", kind: "golden", label: "Golden fish", position: { x: 0, y: 0, z: 10 }, distance: 20, x: 704, y: 180, angle: 0, behind: false },
+    ] }));
+    expect(html).toContain('role="list"');
+    expect(html).toContain('aria-label="Off-screen threats and objectives"');
+    expect(html).toContain('aria-label="Danger: Hunter, 12 meters, left, behind the camera"');
+    expect(html).toContain("▲ 12m"); expect(html).toContain("✦ 20m");
+    expect(html).not.toContain("aria-live");
+    expect(html).not.toContain("tabindex");
+    expect(html).toContain("var(--safe-l)"); expect(html).toContain("var(--safe-b)");
+  });
+
+  it("keeps arrows pointer-transparent and static in Reduced motion and High contrast", () => {
+    expect(theme).toContain(".edge-cue-layer{position:absolute");
+    expect(theme).toContain("pointer-events:none;animation:none;transition:none");
+    expect(theme).toContain(':root[data-contrast="high"] .edge-cue{background:#000;color:#fff;border-width:2px}');
+    expect(theme).toContain('@media (forced-colors:active){.edge-cue{background:Canvas;color:CanvasText;border-color:CanvasText}}');
+    expect(theme).toContain(':root[data-motion="reduced"] .edge-cue{animation:none;transition:none}');
+    expect(theme).toContain("background:#06050c;color:#f3f1ff");
+    const luminance = (hex: string) => {
+      const channels = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
+        .map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    for (const color of ["#f3f1ff", "#ffb4ad", "#ffe18b", "#b6f4ed"]) {
+      expect(theme).toContain(color);
+      expect((luminance(color) + 0.05) / (luminance("#06050c") + 0.05)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(DEFAULT_SETTINGS.graphics.showMinimap).toBe(false);
+    expect(gameScreen).toContain("<EdgeCues cuesRef={cuesRef}");
+    expect(depthRadar).toContain("game-depth-radar--semantic-only");
+    const producer = read("../src/game/game/EdgeNavigation.tsx");
+    const consumer = read("../src/game/ui/EdgeCues.tsx");
+    expect(producer).toContain("clock.elapsedTime - lastAt.current < 0.1");
+    expect(producer).not.toContain("setState");
+    expect(consumer).toContain("setInterval(update, 100)");
+    expect(consumer).toContain("clearInterval(timer)");
   });
 });

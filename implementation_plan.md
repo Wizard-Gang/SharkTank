@@ -108,25 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-284 — [FEAT] Point to off-screen threats, Apex, Frenzy and golden fish from the screen edge
-
-**Goal:** In a bigger ocean, players need direction at a glance rather than in a text list.
-
-**Scope**
-- A pure helper projects targets and clamps off-screen ones to an inset ellipse, showing at most four:
-  - sharks that can devour you within 40 units;
-  - the Apex;
-  - the Frenzy centre;
-  - the golden fish.
-- They render as small DOM arrows with glyphs and distance.
-- The text radar becomes screen-reader-only by default.
-
-**Acceptance:** Projection tests pass, including behind-camera cases; reduced motion and high contrast are respected.
-
-**Validation:** `npm test -- tests/depth-navigation.test.ts tests/accessibility-contract.test.ts`.
-
----
-
 ### ST-285 — [FEAT] Shrink name tags and fade them with distance
 
 **Goal:** 136 px name pills overlap the HUD.
