@@ -25,6 +25,7 @@ import { useGameAudio } from "../audio/useGameAudio.js";
 import { EvolutionMoment } from "./EvolutionMoment.js";
 import { Hud } from "./Hud.js";
 import { Leaderboard } from "./Leaderboard.js";
+import { RoundStandingsTracker, type RoundUiState } from "./roundPresentation.js";
 import { EdgeCues } from "./EdgeCues.js";
 import type { EdgeCue } from "./edgeNavigation.js";
 import { DepthRadar } from "./DepthRadar.js";
@@ -160,7 +161,7 @@ export function GameScreen({ room, identity, onAuthoritativeResult, onQuit }: Ga
       )}
 
       {socket.death && roundUi?.phase !== "result" && !connectionBlocked && (
-        <DeathOverlay death={socket.death} onRespawn={socket.respawn} onQuit={handleQuit} />
+        <DeathOverlay death={socket.death} tier={roundUi?.localTier ?? null} onRespawn={socket.respawn} onQuit={handleQuit} />
       )}
 
       {paused && !settingsOpen && !helpOpen && !connectionBlocked && (
@@ -220,16 +221,6 @@ function ConnectionGate({ status, onRetry, onBack }: {
   );
 }
 
-interface RoundUiState {
-  number: number;
-  phase: "active" | "apex" | "result";
-  secondsLeft: number;
-  apexName: string | null;
-  winnerName: string | null;
-  winnerScore: number | null;
-  localScore: number;
-}
-
 function useRoundPresentation(
   socket: ReturnType<typeof useRoomSocket>,
   onAuthoritativeResult?: (score: number) => void,
@@ -240,6 +231,7 @@ function useRoundPresentation(
   const reportedRound = useRef(0);
 
   useEffect(() => {
+    const standingsTracker = new RoundStandingsTracker();
     const update = () => {
       const state = socket.stateRef.current;
       if (!state) return;
@@ -247,7 +239,7 @@ function useRoundPresentation(
         ? state.sharks.find((shark) => shark.id === state.round.apexId)
         : null;
       const winner = state.round.result?.winner ?? null;
-      const local = state.sharks.find((shark) => shark.id === socket.youId);
+      const standings = standingsTracker.sample(state, socket.youId);
       setRound({
         number: state.round.number,
         phase: state.round.phase,
@@ -255,7 +247,7 @@ function useRoundPresentation(
         apexName: apex?.name ?? null,
         winnerName: winner?.name ?? null,
         winnerScore: winner?.score ?? null,
-        localScore: local?.score ?? 0,
+        ...standings,
       });
     };
     update();
@@ -291,7 +283,7 @@ function useRoundPresentation(
   return round;
 }
 
-function RoundResult({
+export function RoundResult({
   round,
   onContinue,
 }: {
@@ -316,13 +308,18 @@ function RoundResult({
           {round.winnerName ? `${round.winnerName} wins` : "Round complete"}
         </h2>
         <p id="round-result-summary">
-          {round.winnerName
-            ? `${round.winnerScore ?? 0} points. Your final score: ${round.localScore}.`
-            : `Your final score: ${round.localScore}.`}
+          Your rank: {round.localRank ?? "Not ranked"}. Your final score: {round.localScore} points.
         </p>
+        {round.podium.length > 0 && <ol className="round-podium" aria-label="Top three sharks">
+          {round.podium.map((entry, index) => <li key={entry.id} className={`round-podium__place round-podium__place--${index + 1}`}>
+            <span className="round-podium__rank">{index + 1}<span className="sr-only"> place</span></span>
+            <strong className="round-podium__name">{entry.name}</strong>
+            <span className="round-podium__score">{entry.score} points</span>
+          </li>)}
+        </ol>}
         <p id="round-result-next" className="round-result-next">Next round starts in {round.secondsLeft}s.</p>
         <button type="button" className="btn btn--primary btn--lg" onClick={onContinue}>
-          Ready for next round
+          Play again
         </button>
       </section>
     </div>

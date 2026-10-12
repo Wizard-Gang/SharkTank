@@ -396,15 +396,26 @@ body {
 .bite-button{background:var(--ability-bite)}.dash-button{background:var(--ability-dash)}
 
 /* ── Respawn card (non-modal on purpose — see DeathOverlay.tsx) ── */
-.scrim--respawn{z-index:100;pointer-events:none;background:rgba(6,5,12,.5);padding:16px}
-.respawn-card{pointer-events:auto;width:min(380px,100%);max-height:calc(100dvh - 32px);overflow:auto;text-align:center}
+.scrim--respawn{z-index:100;pointer-events:none;background:rgba(6,5,12,.5);padding:calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l))}
+.respawn-card{pointer-events:auto;width:min(380px,100%);max-height:calc(100dvh - 32px - var(--safe-t) - var(--safe-b));overflow:auto;text-align:center}
 .respawn-card h2{margin:0;font-size:clamp(1.3rem,4.5vw,1.75rem)}
 .respawn-card p{margin:0;color:var(--text-muted)}
 .respawn-card p strong{color:var(--text);font-size:1.15rem}
 .respawn-note{font-size:.76rem;color:var(--text-faint)}
+.death-cause{overflow-wrap:anywhere}
+.life-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.life-summary>div{min-width:0;padding:10px 6px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2)}
+.life-summary dt{font-size:.72rem;color:var(--text-muted)}
+.life-summary dd{margin:4px 0 0;font-size:1.05rem;font-weight:800;overflow-wrap:anywhere}
+.life-summary dd span{font-size:.72rem;font-weight:600}
+.respawn-primary{display:flex;align-items:center;justify-content:center;gap:12px;min-height:64px}
+.respawn-ring{width:40px;height:40px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:3}
+.respawn-ring__track{opacity:.25}.respawn-ring text{fill:currentColor;stroke:none;font-size:14px;font-weight:900}
+.respawn-ring__fill{transition:none;animation:none}
+:root[data-contrast="high"] .life-summary>div,:root[data-contrast="high"] .round-podium__place{background:#000;color:#fff;border-color:#fff}
 /* On a short screen a centred card lands on the tools trigger, which is exactly the
    control this card is meant to leave reachable. Pin it to the top instead. */
-@media (max-height:560px){.scrim--respawn{align-items:start}.respawn-card{padding:14px}.respawn-card .btn--lg{min-height:48px;font-size:1rem}.respawn-note{display:none}}
+@media (max-height:560px){.scrim--respawn{align-items:start}.respawn-card{padding:14px;gap:8px;max-height:calc(100dvh - 100px - var(--safe-t) - var(--safe-b))}.respawn-card .btn--lg{min-height:56px;font-size:1rem}.life-summary>div{padding:6px}.respawn-note{display:none}}
 
 /* ── Twin virtual sticks ── */
 .touch-control-surface{position:absolute;inset:0;z-index:6;pointer-events:none}
@@ -560,10 +571,17 @@ body {
 .game-leaderboard__row.is-apex{outline:1px solid #ffd54a;background:rgba(255,213,74,.11)}
 .game-leaderboard__apex{display:inline-block;flex-shrink:0;margin-left:6px;padding:1px 4px;border:1px solid #ffd54a;border-radius:4px;color:#ffd54a;font-size:.56rem;font-weight:900;letter-spacing:.08em;vertical-align:middle}
 .round-result-layer{position:absolute;inset:0;z-index:200;display:grid;place-items:center;padding:calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l));background:rgba(6,5,12,.58);pointer-events:auto}
-.round-result-card{pointer-events:auto;width:min(440px,100%);display:grid;gap:10px;padding:24px;text-align:center}
-.round-result-card h2,.round-result-card p{margin:0}
-.round-result-kicker{color:#ffd54a;font-size:.76rem;font-weight:900;letter-spacing:.14em}
+.round-result-card{pointer-events:auto;width:min(480px,100%);max-height:calc(100dvh - 32px - var(--safe-t) - var(--safe-b));overflow:auto;display:grid;gap:12px;padding:24px;text-align:center}
+.round-result-card h2,.round-result-card p{margin:0;overflow-wrap:anywhere}
+.round-result-kicker{color:var(--accent);font-size:.76rem;font-weight:900;letter-spacing:.14em}
 .round-result-next{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.round-podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:8px;margin:0;padding:0;list-style:none}
+.round-podium__place{min-width:0;display:grid;gap:6px;padding:14px 6px 10px;border:1px solid var(--border-strong);border-radius:12px;background:var(--surface-2)}
+.round-podium__place--1{grid-column:2;grid-row:1;padding-top:26px;border-color:#ffd54a}
+.round-podium__place--2{grid-column:1;grid-row:1}.round-podium__place--3{grid-column:3;grid-row:1}
+.round-podium__rank{font-size:1.4rem;font-weight:900}.round-podium__name{overflow-wrap:anywhere;line-height:1.15;font-size:.9rem}.round-podium__score{font-size:.76rem;font-variant-numeric:tabular-nums}
+@media (max-height:560px){.round-result-card{padding:14px;gap:8px}.round-result-card h2{font-size:1.25rem}.round-podium__place{padding:6px;gap:3px}.round-podium__place--1{padding-top:14px}.round-podium__rank{font-size:1.1rem}}
+@media (forced-colors:active){.life-summary>div,.round-podium__place{background:Canvas;color:CanvasText;border-color:CanvasText}}
 @media (max-width:560px){
   .game-leaderboard__apex{margin-left:3px;padding:0 3px;font-size:.48rem}
   .round-result-card{padding:18px}

@@ -108,21 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-286 — [FEAT] Rebuild the death and round-result cards
-
-**Goal:** Make deaths quick to recover from and round ends worth celebrating.
-
-**Scope**
-- Death card: who got you, your tier and score, and a large Respawn button with a countdown ring.
-- Result card: a top-three podium, your rank and score, and a primary "Play again".
-- Keep the focus behavior and Escape.
-
-**Acceptance:** DeathOverlay and round-result tests pass.
-
-**Validation:** `npm test -- tests/accessibility-contract.test.ts tests/round-apex.test.ts tests/full-3d-product-acceptance.test.ts`.
-
----
-
 ### ST-287 — [FEAT] Refresh the main menu with an inline name and live skin preview
 
 **Goal:** Make the first screen about the game, not a form.
