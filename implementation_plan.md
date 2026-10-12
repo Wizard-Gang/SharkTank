@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-283 — [FEAT] Collapse the leaderboard to the top three plus you
-
-**Goal:** A ten-row board is too much for a phone.
-
-**Scope:** Show the top three plus your row. On touch it starts collapsed and expands on tap. Keep `aria-current` and Apex marking.
-
-**Acceptance:** Component tests pass; no overlap with the HUD or ability arc.
-
-**Validation:** `npm test -- tests/accessibility-contract.test.ts tests/round-apex.test.ts`.
-
----
-
 ### ST-284 — [FEAT] Point to off-screen threats, Apex, Frenzy and golden fish from the screen edge
 
 **Goal:** In a bigger ocean, players need direction at a glance rather than in a text list.

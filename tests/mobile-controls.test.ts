@@ -239,20 +239,25 @@ describe("bite intent buffer", () => {
     buffer.clear();
     expect(buffer.consume(500, 0)).toBe(false);
   });
-  it("keeps the arc below the HUD and board at the acceptance sizes", () => {
+  it("keeps the arc below the HUD and opposite compact scores at the acceptance sizes", () => {
     const css = read("../src/game/ui/theme.css");
     expect(css).toContain("bottom:calc(144px + var(--safe-b))");
-    expect(css).toContain("max-height:calc(100dvh - 244px)");
+    expect(css).toContain("max-height:calc(100dvh - 100px - var(--safe-t) - var(--safe-b))");
+    expect(css).toContain("width:min(152px,calc(100% - 228px - var(--safe-l) - var(--safe-r)),calc(50% - 72px))");
     expect(css).toContain("width:88px;height:88px;min-height:88px");
-    for (const [width, height] of [[740,360],[844,390]]) {
-      // Advanced is the highest arc. Its upper Dash is inward of the HUD;
-      // the outer Bite starts below the HUD. Dash is inward of the board.
-      const arcTop = height - 144 - 172;
-      const dashInnerEdge = width - 12 - 204;
+    for (const [width, height] of [[375,667],[740,360],[844,390]]) {
+      // Portrait lowers Advanced's arc; landscape retains its look-pad clearance.
+      const arcTop = height - (width < height ? 12 : 144) - 172;
       expect(arcTop + 84).toBeGreaterThan(96);
-      expect(height - 244 + 6).toBeLessThan(arcTop + 84);
-      expect(dashInnerEdge + 72).toBeLessThan(width - 12 - 124);
-      expect(dashInnerEdge).toBeGreaterThan(width * .56);
+      const boardWidth = Math.min(152, width - 228, width / 2 - 72);
+      const inset = width <= 560 ? 6 : 12;
+      for (const flightSide of ["left", "right"]) {
+        const boardLeft = flightSide === "left" ? 6 : width - 6 - boardWidth;
+        const arcLeft = flightSide === "left" ? width - inset - 204 : inset;
+        expect(boardLeft + boardWidth + 6 <= arcLeft || arcLeft + 204 + 6 <= boardLeft).toBe(true);
+        // The existing centred two-button tools rail is at most 116px wide.
+        expect(boardLeft + boardWidth + 6 <= width / 2 - 58 || width / 2 + 58 + 6 <= boardLeft).toBe(true);
+      }
     }
   });
 });

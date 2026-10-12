@@ -40,7 +40,7 @@ function eventCode(e: KeyboardEvent): string {
 
 function interactive(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && Boolean(
-    target.closest("button, a, input, select, textarea, [contenteditable='true'], [role='button'], [role='dialog']"),
+    target.closest("button, summary, a, input, select, textarea, [contenteditable='true'], [role='button'], [role='dialog']"),
   );
 }
 

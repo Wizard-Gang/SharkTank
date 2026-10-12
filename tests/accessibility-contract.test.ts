@@ -1,3 +1,6 @@
+import { Leaderboard, LeaderboardReadout, rankedScores } from "../src/game/ui/Leaderboard.js";
+import type { RoomSocket } from "../src/game/net/useRoomSocket.js";
+import type { ScoreEntry } from "../src/protocol/index.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HudReadout, type HudStats } from "../src/game/ui/Hud.js";
@@ -330,5 +333,85 @@ describe("ST-282 compact semantic HUD", () => {
     expect(theme).toContain("top:calc(86px + var(--safe-t))");
     expect(theme).toContain(':root[data-contrast="high"] .hud-status-chip { background:#000; border-color:#fff; color:#fff; }');
     expect(theme).toContain(':root[data-motion="reduced"] .hud-score-float{display:none}');
+  });
+});
+
+
+describe("ST-283 compact scores and native touch disclosure", () => {
+  const entries: ScoreEntry[] = Array.from({ length: 12 }, (_, index) => ({
+    id: `shark-${String(index + 1).padStart(2, "0")}`, name: `Shark ${index + 1}`,
+    skin: "reef", score: 120 - index * 5, alive: true,
+  }));
+  const render = (youId: string | null, touch = false, scores = entries, apexId: string | null = "shark-01") =>
+    renderToStaticMarkup(createElement(LeaderboardReadout, { entries: scores, youId, touch, apexId }));
+
+  it("shows the top three plus your original rank, with no duplicate local row", () => {
+    const html = render("shark-12");
+    expect(html.match(/class="game-leaderboard__row/g)).toHaveLength(4);
+    expect(html).toContain('value="12" class="game-leaderboard__row is-me" aria-current="true"');
+    expect(html).toContain("Shark 12");
+    expect(html).not.toContain("Shark 4<");
+    expect(html).toContain("Apex target");
+    expect(html).toContain('class="game-leaderboard__list" role="list"');
+    expect(html.match(/aria-current="true"/g)).toHaveLength(1);
+    for (const youId of ["shark-01", "shark-02", "shark-03", null, "absent"]) {
+      expect(render(youId).match(/class="game-leaderboard__row/g)).toHaveLength(3);
+    }
+  });
+
+  it("derives your row below tenth from existing snapshot actors, not the truncated wire board", () => {
+    const socket = {
+      youId: "shark-12", leaderboard: entries.slice(0, 10),
+      stateRef: { current: { sharks: entries, round: { phase: "apex", apexId: "shark-12" } } },
+    } as unknown as RoomSocket;
+    const html = renderToStaticMarkup(createElement(Leaderboard, { socket, touch: false }));
+    expect(html).toContain('value="12"');
+    expect(html).toContain('class="game-leaderboard__row is-me is-apex"');
+    expect(html).toContain("Apex target");
+    expect(html).toContain(" (you)");
+  });
+
+  it("matches deterministic Room tie ordering without filtering dead scores or mutating inputs", () => {
+    const scores = [
+      { ...entries[0], id: "z", score: 10, alive: false },
+      { ...entries[1], id: "a", score: 10 },
+      { ...entries[2], id: "m", score: 10 },
+      { ...entries[3], id: "local", score: 2, alive: false },
+    ];
+    const original = [...scores];
+    expect(rankedScores(scores).map((entry) => entry.id)).toEqual(["a", "m", "z", "local"]);
+    expect(scores).toEqual(original);
+    expect(render("local", false, scores, "local")).toContain('value="4" class="game-leaderboard__row is-me is-apex"');
+    const respawned = scores.map((entry) => entry.id === "local" ? { ...entry, score: 20, alive: true } : entry);
+    expect(render("local", false, respawned)).toContain('value="1" class="game-leaderboard__row is-me"');
+  });
+
+  it("starts touch collapsed with native tap/keyboard activation and leaves desktop scores expanded", () => {
+    const html = render("shark-12", true);
+    expect(html).toContain('<details class="game-leaderboard__disclosure">');
+    expect(html).toContain('<summary class="game-leaderboard__toggle">');
+    expect(html).toContain('aria-label="Your rank 12">#12');
+    expect(html).not.toMatch(/<details[^>]*\bopen(?:=|\s|>)/);
+    expect(html).not.toContain('aria-live=');
+    expect(render("shark-12")).not.toContain("<details");
+    expect(render(null, true, [])).toContain("Waiting for scores…");
+    expect(render(null, true, [])).toContain('aria-label="Not ranked"');
+    // React never writes an open prop or key: native expansion survives broadcasts.
+    expect(leaderboard).toContain('<details className="game-leaderboard__disclosure">');
+    expect(input).toContain("button, summary, a, input");
+    expect(gameScreen).toContain("button, summary, a, input");
+    expect(theme).toContain(".game-leaderboard__toggle:focus-visible");
+  });
+
+  it("keeps all four rows clear of the HUD and either ability arc, including short landscape", () => {
+    expect(theme).toContain("top:calc(86px + var(--safe-t))");
+    expect(theme).toContain("width:min(152px,calc(100% - 228px - var(--safe-l) - var(--safe-r)),calc(50% - 72px))");
+    expect(theme).toContain(".game-screen--touch.game-screen--flight-right .game-leaderboard{left:auto;right:calc(6px + var(--safe-r))}");
+    expect(theme).toContain(".game-leaderboard__toggle{min-height:48px;cursor:pointer;pointer-events:auto;touch-action:manipulation");
+    expect(theme).not.toMatch(/\.game-leaderboard li:nth-child/);
+    expect(theme).toContain(".game-leaderboard__apex{display:inline-block;flex-shrink:0;");
+    expect(theme).toContain(".game-leaderboard__identity{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}");
+    expect(theme).toContain(".game-leaderboard, .game-depth-radar, .conn-banner { pointer-events:none; }");
+    expect(gameScreen).toContain('<Leaderboard socket={socket} touch={touch} />');
   });
 });
