@@ -138,7 +138,7 @@ describe("ST-127 3D client performance contracts", () => {
     expect(fx).toContain("burstCount < quality.burstParticleBudget");
     expect(fx).toContain("bursts.setMatrixAt(index, dummy.matrix)");
     expect(world).toContain("frenzyVolumeRef");
-    expect(world).toContain("boundaryMarkerRef");
+    expect(world).toContain("currentCurtainRef");
     expect(world).toContain("reefBaseRef");
     expect(world).toContain("lightShaftRef");
     expect(world).not.toContain("castShadow");
@@ -148,6 +148,20 @@ describe("ST-127 3D client performance contracts", () => {
     expect(prey).toContain("commitInstances([rayWings], rayCount * 2)");
     expect(prey).toContain("commitInstances([squidTentacles], squidCount * 4)");
     expect(prey).toContain("commitInstances([goldHalo, goldSparkle], goldCount)");
+  });
+
+  it("ST-295 replaces four boundary batches with one quality-bounded curtain draw", () => {
+    const world = read("../src/game/game/WorldEnvironment.tsx");
+    const curtain = read("../src/game/game/currentCurtain.ts");
+    expect(world.match(/<mesh ref={currentCurtainRef}/g)).toHaveLength(1);
+    expect(world).toContain("environmentQuality.curtainSegments, 1, true");
+    expect(world).toContain("environmentQuality.curtainFlowLines");
+    for (const removed of ["lowerBoundaryRef", "middleBoundaryRef", "upperBoundaryRef", "boundaryMarkerRef", "BOUNDARY_MARKER_COUNT"]) {
+      expect(world).not.toContain(removed);
+    }
+    expect(curtain).toContain("forceSinglePass: true");
+    expect(world).toContain("curtain.material.dispose()");
+    expect(world).not.toContain("useState");
   });
 
   it("keeps full authoritative actor counts while measuring snapshot bytes and message rate", () => {

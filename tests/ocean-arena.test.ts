@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
+import { createCurrentCurtain, currentCurtainProximity } from "../src/game/game/currentCurtain.js";
 import {
   ENVIRONMENT_LANDMARKS,
   makeEnvironmentSeeds,
@@ -25,7 +27,8 @@ describe("ST-118 stylized ocean arena", () => {
     expect(cues.surfaceY).toBe(14);
     expect(cues.height).toBe(32);
     expect(cues.midY).toBe(-2);
-    expect(cues.boundaryWarningRadius).toBeLessThan(cues.radius);
+    expect(currentCurtainProximity(cues.radius, { x: 62, z: 0 })).toBe(0);
+    expect(currentCurtainProximity(cues.radius, { x: 72, z: 0 })).toBe(0.5);
     expect(cues.frenzyRadius).toBeCloseTo(cues.radius * 0.3);
     expect(OCEAN).toEqual({ radius: 120, seabedY: -18, surfaceY: 18 });
     expect(createRoom().ocean).toEqual(OCEAN);
@@ -98,6 +101,56 @@ describe("ST-118 stylized ocean arena", () => {
     expect(world).not.toContain("setBoost(");
     expect(worker).not.toContain("@react-three/fiber");
     expect(worker).not.toContain('from "three"');
+  });
+});
+
+describe("ST-295 current curtain", () => {
+  it("brightens only over the final 20 horizontal units, including diagonal approaches", () => {
+    for (const radius of [12, 82, 120, 160]) {
+      expect(currentCurtainProximity(radius)).toBe(0);
+      for (const angle of [0, Math.PI / 4, Math.PI, -Math.PI / 2]) {
+        for (const distance of [0, 1, 10, 19, 20, 21]) {
+          if (distance > radius) continue;
+          const r = radius - distance;
+          expect(currentCurtainProximity(radius, { x: Math.cos(angle) * r, z: Math.sin(angle) * r }))
+            .toBeCloseTo(Math.max(0, 1 - distance / 20));
+        }
+      }
+      expect(currentCurtainProximity(radius, { x: radius + 1, z: 0 })).toBe(1);
+    }
+    expect(currentCurtainProximity(NaN, { x: 1, z: 0 })).toBe(0);
+    expect(currentCurtainProximity(120, { x: Infinity, z: 0 })).toBe(0);
+  });
+
+  it.each(["low", "medium", "high"] as const)("keeps a complete uncapped water-column cylinder at %s quality", quality => {
+    const { curtainSegments, curtainFlowLines } = resolveOceanEnvironmentQuality(quality);
+    expect(curtainSegments).toBe(({ low: 64, medium: 96, high: 128 })[quality]);
+    expect(curtainFlowLines).toBe(curtainSegments / 2);
+    const cues = resolveOceanArenaCues({ arenaRadius: 82, seabedY: -18, surfaceY: 14 });
+    const geometry = new THREE.CylinderGeometry(1, 1, 1, curtainSegments, 1, true);
+    geometry.scale(cues.radius, cues.height, cues.radius);
+    geometry.translate(0, cues.midY, 0);
+    geometry.computeBoundingBox();
+    expect(geometry.boundingBox!.min.y).toBe(cues.seabedY);
+    expect(geometry.boundingBox!.max.y).toBe(cues.surfaceY);
+    expect(geometry.boundingBox!.max.x).toBe(cues.radius);
+    expect(geometry.index!.count / 3).toBe(curtainSegments * 2);
+    expect(geometry.groups).toHaveLength(1);
+    geometry.dispose();
+  });
+
+  it("adds gradient and slow flow to the standard fogged shader without textures or extra passes", () => {
+    const curtain = createCurrentCurtain();
+    const shader = { ...THREE.ShaderLib.basic, uniforms: {} };
+    curtain.material.onBeforeCompile(shader, {} as THREE.WebGLRenderer);
+    expect(shader.vertexShader).toContain("vCurrentUv = uv");
+    expect(shader.fragmentShader).toContain("currentTime * 0.075");
+    expect(shader.fragmentShader).toContain("vec3 verticalTint = mix(");
+    expect(shader.fragmentShader).toContain("currentProximity * (0.12 + line * 0.08)");
+    expect(shader.fragmentShader).toContain("#include <fog_fragment>");
+    expect(shader.uniforms).toMatchObject(curtain.uniforms);
+    expect(curtain.material).toMatchObject({ transparent: true, depthWrite: false, forceSinglePass: true, fog: true, map: null });
+    curtain.material.dispose();
   });
 });
 

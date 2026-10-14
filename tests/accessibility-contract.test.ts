@@ -233,6 +233,10 @@ describe("full-3D accessibility re-proof", () => {
     expect(actorLayer.match(/onBeforeCompile={applySharkSpineShader}/g)).toHaveLength(5);
     expect(fxLayer).toContain("reducedMotion ? 0.35");
     expect(worldEnvironment).toContain("const t = reducedMotion ? 0 : clock.elapsedTime");
+    expect(worldEnvironment).toContain("curtain.uniforms.currentTime.value = t");
+    expect(worldEnvironment).toContain('curtain.uniforms.currentHighContrast.value = settings.a11y.contrast === "high" ? 1 : 0');
+    expect(worldEnvironment).toContain("currentCurtainProximity(cues.radius, local?.position)");
+    expect(worldEnvironment).toContain("<mesh ref={currentCurtainRef} material={curtain.material}");
     expect(worldEnvironment).toContain("kelpSway.value = reducedMotion ? 0 : 0.28");
     expect(worldEnvironment).toContain("transformed.x += kelpSway * kelpTip * kelpTip");
     expect(gameScreen).toContain('settings.a11y.motion === "reduced"');
