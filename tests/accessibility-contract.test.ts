@@ -27,6 +27,8 @@ import {
 } from "../src/game/game/sceneMath.js";
 import { resolveSharkAnimation } from "../src/game/game/sharkPresentation.js";
 import { sharkJawAngle, SHARK_JAW } from "../src/game/game/sharkJaw.js";
+import { FeedingParticles } from "../src/game/game/feedingParticles.js";
+import { decodeState, toNetState } from "../src/protocol/index.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -56,6 +58,30 @@ const fxLayer = read("../src/game/game/FxLayer.tsx");
 const worldEnvironment = read("../src/game/game/WorldEnvironment.tsx");
 
 describe("public accessibility contract", () => {
+  it("ST-293 removes wakes and prey pops immediately in Reduced motion without replay on return", () => {
+    const room = createRoom({ seed: "st-293-reduced" });
+    applyAction(room, { type: "join", playerId: "pilot", name: "Pilot" });
+    const state = decodeState(toNetState(room));
+    state.sharks[0].position = { x: 0, y: 0, z: 0 };
+    state.sharks[0].yaw = 0; state.sharks[0].pitch = 0; state.sharks[0].lungeTicks = 5;
+    state.food = [{ id: "meal", kind: "bait", x: 2, y: 0, z: 0, r: 0.42, value: 1, yaw: 0, pitch: 0 }];
+    const effects = new FeedingParticles();
+    const sample = (snapshot: typeof state, seconds: number, reduced: boolean) => effects.sample(
+      { older: snapshot, newer: snapshot, alpha: 1 }, seconds, 512, reduced, () => {});
+    expect(sample(state, 0, false)).toBeGreaterThan(0);
+    const next = { ...state, tick: state.tick + 2, food: [] };
+    expect(sample(next, 0.1, false)).toBeGreaterThan(8);
+    expect(sample(next, 0.12, true)).toBe(0);
+    expect(sample(next, 0.15, false)).toBe(8);
+    const stopped = { ...next, sharks: [{ ...next.sharks[0], lungeTicks: 0 }] };
+    expect(sample(stopped, 0.2, false)).toBe(0);
+    expect(fxLayer).toContain('settings.a11y.motion === "reduced"');
+    expect(fxLayer).toContain('socket.status !== "open"');
+    expect(fxLayer).toContain("feeding.reset()");
+    expect(fxLayer).toContain("bursts.count = 0");
+    // Existing independent consumption captions and semantic score cues remain available.
+    expect(gameAudio).toContain('cue.current("preyConsume"');
+  });
   it("retires public evidence and operator routes while preserving the game accessibility surface", () => {
     expect(worker).toContain('if (path === "/" || path === "/play") return movedTo(url, "/play/");');
     expect(worker).not.toContain('if (path === "/evidence/")');

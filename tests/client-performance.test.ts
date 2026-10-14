@@ -1,6 +1,8 @@
 import { DEFAULT_SETTINGS } from "../src/game/settings/SettingsContext.js";
 import { resolveQuality } from "../src/game/game/quality.js";
 import { FrameTimeMonitor } from "../src/game/game/performance.js";
+import { FeedingParticles, type FeedingParticle } from "../src/game/game/feedingParticles.js";
+import { resolveSceneQuality } from "../src/game/game/sceneMath.js";
 import { performance } from "node:perf_hooks";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -18,6 +20,7 @@ import {
 } from "../src/engine/index.js";
 import {
   REALTIME_PROTOCOL_VERSION,
+  decodeState,
   STATE_BROADCAST_EVERY,
   toNetState,
   withRealtimeProtocol,
@@ -125,12 +128,15 @@ describe("ST-127 3D client performance contracts", () => {
     expect(viewport).not.toContain("getContext(\"2d\")");
   });
 
-  it("batches repeated environment props and keeps FX limited to burst particles", () => {
+  it("batches repeated environment props and keeps all FX in one particle draw", () => {
     const world = read("../src/game/game/WorldEnvironment.tsx");
     const prey = read("../src/game/game/PreyLayer.tsx");
     const fx = read("../src/game/game/FxLayer.tsx");
     expect(fx.match(/<instancedMesh\b/g)).toHaveLength(1);
     expect(fx).not.toContain("<ringGeometry");
+    expect(fx).toContain("feeding.sample(frame, clock.elapsedTime, quality.burstParticleBudget, reducedMotion");
+    expect(fx).toContain("burstCount < quality.burstParticleBudget");
+    expect(fx).toContain("bursts.setMatrixAt(index, dummy.matrix)");
     expect(world).toContain("frenzyVolumeRef");
     expect(world).toContain("boundaryMarkerRef");
     expect(world).toContain("reefBaseRef");
@@ -217,6 +223,59 @@ describe("ST-127 3D client performance contracts", () => {
     expect(pkg.version).toBe("2.5.0");
     expect(ROOM_SCHEMA_VERSION).toBe(11);
     expect(REALTIME_PROTOCOL_VERSION).toBe(12);
+  });
+});
+
+describe("ST-293 shared particle budget", () => {
+  it.each(["low", "medium", "high"] as const)("bounds a full-room feeding/dash storm at %s quality", quality => {
+    const room = populateRepresentativeRoom();
+    const first = decodeState(toNetState(room));
+    for (const shark of first.sharks) shark.lungeTicks = 5;
+    // Every disappearing prey is near a living mouth, exercising the worst inference load.
+    const head = first.sharks[0].position;
+    first.food = first.food.map(prey => ({ ...prey, ...head }));
+    const next = { ...first, tick: 2, food: [] };
+    const frame = { older: first, newer: next, alpha: 0.5 };
+    const budget = resolveSceneQuality(quality).burstParticleBudget;
+    const effects = new FeedingParticles();
+    effects.sample({ ...frame, newer: first }, 0, budget, false, () => {});
+    const particles: FeedingParticle[] = [];
+    const count = effects.sample(frame, 0.1, budget, false, particle => particles.push({ ...particle }));
+    expect(count).toBe(particles.length);
+    expect(particles.some(particle => particle.kind === "wake")).toBe(true);
+    expect(particles.some(particle => particle.kind === "prey")).toBe(true);
+    expect(count).toBeLessThanOrEqual(2 * Math.floor(budget / 3));
+    expect(budget - count).toBeGreaterThanOrEqual(Math.floor(budget / 3));
+    for (const particle of particles) {
+      expect([particle.x, particle.y, particle.z, particle.radius, particle.stretch].every(Number.isFinite)).toBe(true);
+      expect(particle.radius).toBeGreaterThan(0);
+    }
+    // Switching down quality trims retained pops immediately, rather than only new emissions.
+    const low = resolveSceneQuality("low").burstParticleBudget;
+    expect(effects.sample(frame, 0.15, low, false, () => {})).toBeLessThanOrEqual(2 * Math.floor(low / 3));
+    expect(effects.sample(frame, 0.5, budget, false, particle => expect(particle.kind).toBe("wake"))).toBeGreaterThan(0);
+  });
+
+  it("keeps streaks behind the oriented tail, follows the local rendered pose and stops with the lunge", () => {
+    const state = decodeState(toNetState(populateRepresentativeRoom()));
+    const shark = state.sharks[0];
+    state.sharks = [shark]; state.food = []; shark.lungeTicks = 5;
+    const local = { id: shark.id, position: { x: 10, y: 3, z: 4 }, yaw: Math.PI / 2, pitch: 0.4 };
+    const frame = { older: state, newer: state, alpha: 0.5 };
+    const effects = new FeedingParticles();
+    const particles: FeedingParticle[] = [];
+    effects.sample(frame, 0, 192, false, particle => particles.push({ ...particle }), local);
+    expect(particles).toHaveLength(8);
+    for (const particle of particles) {
+      expect(particle.kind).toBe("wake"); expect(particle.stretch).toBeGreaterThan(1);
+      expect(particle.z).toBeLessThan(local.position.z);
+      expect(particle.y).toBeLessThan(local.position.y);
+      expect(particle.yaw).toBe(local.yaw); expect(particle.pitch).toBe(local.pitch);
+    }
+    shark.lungeTicks = 0;
+    expect(effects.sample(frame, 0.1, 192, false, () => {})).toBe(0);
+    shark.lungeTicks = 5; shark.alive = false;
+    expect(effects.sample(frame, 0.2, 192, false, () => {})).toBe(0);
   });
 });
 
