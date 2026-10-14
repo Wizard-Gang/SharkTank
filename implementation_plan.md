@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-292 — [FEAT] Open the jaws on every bite
-
-**Goal:** Show the attack, not just its result.
-
-**Scope:** A lower jaw gapes for about 150 ms on a local bite press, or when a remote shark's bite cooldown advances.
-
-**Acceptance:** Timing tests pass; reduced motion shows a static open frame.
-
-**Validation:** `npm test -- tests/shark-models.test.ts`.
-
----
-
 ### ST-293 — [FEAT] Trail dash wakes and pop prey at the mouth
 
 **Goal:** Make dashing and eating visible.

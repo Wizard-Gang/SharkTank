@@ -1,7 +1,8 @@
 import type * as THREE from "three";
 import { SHARK_GEOMETRY } from "../../engine/sharkGeometry.js";
+import { applySharkJawShader } from "./sharkJaw.js";
 
-// The head/eyes/mouth stay steady. A quadratic envelope grows smoothly aft,
+// The spine anchors the head/eyes; the bite jaw moves independently. A quadratic envelope grows aft,
 // continuing through the tail blade without a clamped derivative at its root.
 export const SHARK_SPINE = { anchor: 0.9, length: 0.9 - SHARK_GEOMETRY.tail, waveNumber: 4.2 } as const;
 
@@ -22,6 +23,7 @@ vec2 sharkSpineWave(float x) {
  * Vertex/instance colours remain in rest space; no extra material pass is added.
  */
 export function applySharkSpineShader(shader: Pick<THREE.WebGLProgramParametersWithUniforms, "vertexShader">): void {
+  applySharkJawShader(shader);
   shader.vertexShader = shader.vertexShader
     .replace("#include <common>", `#include <common>\n${SPINE_GLSL}`)
     .replace("#include <beginnormal_vertex>", `#include <beginnormal_vertex>

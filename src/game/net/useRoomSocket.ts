@@ -31,6 +31,7 @@ export interface RoomSocket {
   /** performance.now() when the newest snapshot arrived — for prediction reconciliation. */
   newestAtRef: React.MutableRefObject<number>;
   dashPressedAtRef: React.MutableRefObject<number>;
+  bitePressedAtRef: React.MutableRefObject<number>;
   /**
    * Sample the snapshot buffer at (now − delayMs) and return the two snapshots that
    * bracket that render time with an interpolation factor. This is anchored to the
@@ -63,6 +64,7 @@ export function useRoomSocket(
   const stateRef = useRef<ClientState | null>(null);
   const newestAtRef = useRef<number>(0);
   const dashPressedAtRef = useRef(-Infinity);
+  const bitePressedAtRef = useRef(-Infinity);
   // Ring of recent snapshots stamped with client receive time, ordered oldest→newest.
   const bufferRef = useRef<Array<{ t: number; state: ClientState }>>([]);
   const timelineClockRef = useRef(new SnapshotClock());
@@ -132,6 +134,7 @@ export function useRoomSocket(
       orientationSenderRef.current?.reset();
       youIdRef.current = null;
       dashPressedAtRef.current = -Infinity;
+      bitePressedAtRef.current = -Infinity;
       lastBoostRef.current = false;
       wsRef.current = ws;
 
@@ -176,6 +179,7 @@ export function useRoomSocket(
       };
 
       ws.onclose = (event) => {
+        bitePressedAtRef.current = -Infinity;
         orientationSenderRef.current?.reset();
         if (event.code === 1008 && event.reason === "realtime schema mismatch") {
           closedByUs = true;
@@ -220,6 +224,7 @@ export function useRoomSocket(
       wsRef.current?.close();
       wsRef.current = null;
       stateRef.current = null;
+      bitePressedAtRef.current = -Infinity;
       bufferRef.current = [];
       timelineClockRef.current.reset();
     };
@@ -257,13 +262,20 @@ export function useRoomSocket(
     setDeath(null);
     send({ t: "input", action: { type: "respawn" } });
   }, [send]);
-  const bite = useCallback(() => send({ t: "input", action: { type: "bite" } }), [send]);
+  const bite = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN
+      && stateRef.current?.sharks.some(shark => shark.id === youIdRef.current && shark.alive)) {
+      bitePressedAtRef.current = performance.now();
+    }
+    send({ t: "input", action: { type: "bite" } });
+  }, [send]);
   const retry = useCallback(() => retryNowRef.current(), []);
 
   return {
     stateRef,
     newestAtRef,
     dashPressedAtRef,
+    bitePressedAtRef,
     frameAt,
     youId,
     status,

@@ -1,5 +1,6 @@
 import { createSharkBodyGeometry, createSharkFinGeometry, sharkSurfaceRestMatrix } from "./sharkGeometry.js";
 import { applySharkSpineShader } from "./sharkSpine.js";
+import { SharkJawCue, splitSharkJawGeometry } from "./sharkJaw.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "./sharkMaterial.js";
 import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
@@ -126,6 +127,8 @@ export function ActorLayer({
   const composed = useMemo(() => new THREE.Matrix4(), []);
   const position = useMemo(() => new THREE.Vector3(), []);
   const remotePoses = useMemo(() => new Map<string, RemotePose>(), []);
+  const jawCues = useMemo(() => new Map<string, SharkJawCue>(), []);
+  const jawTimeline = useRef({ round: -1, tick: -1 });
   const interpolatedPose = useMemo<OrientedScenePose>(() => ({ x: 0, y: 0, z: 0, yaw: 0, pitch: 0 }), []);
   const projected = useMemo(() => new THREE.Vector3(), []);
   const cameraForward = useMemo(() => new THREE.Vector3(), []);
@@ -141,6 +144,8 @@ export function ActorLayer({
   const highContrast = settings.a11y.contrast === "high";
   const spineParameters = useMemo(() => new THREE.InstancedBufferAttribute(new Float32Array(MAX_SHARKS * 2), 2)
     .setUsage(THREE.DynamicDrawUsage), []);
+  const jawParameters = useMemo(() => new THREE.InstancedBufferAttribute(new Float32Array(MAX_SHARKS), 1)
+    .setUsage(THREE.DynamicDrawUsage), []);
   const geometries = useMemo(() => {
     const anatomy = {
       body: createSharkBodyGeometry(sharkQuality),
@@ -151,11 +156,15 @@ export function ActorLayer({
     };
     for (const surface of Object.keys(anatomy) as (keyof typeof anatomy)[]) {
       countershadeSharkGeometry(anatomy[surface], surface, highContrast);
+      if (surface === "body") anatomy.body = splitSharkJawGeometry(anatomy.body);
+      else anatomy[surface].setAttribute("sharkJawPart", new THREE.Float32BufferAttribute(
+        new Float32Array(anatomy[surface].getAttribute("position").count), 1));
       anatomy[surface].applyMatrix4(sharkSurfaceRestMatrix(surface));
       anatomy[surface].setAttribute("sharkSpine", spineParameters);
+      anatomy[surface].setAttribute("sharkJawAngle", jawParameters);
     }
     return anatomy;
-  }, [sharkQuality, highContrast, spineParameters]);
+  }, [sharkQuality, highContrast, spineParameters, jawParameters]);
   useEffect(() => () => {
     for (const geometry of Object.values(geometries)) geometry.dispose();
   }, [geometries]);
@@ -185,6 +194,7 @@ export function ActorLayer({
     const frame = socket.frameAt(REMOTE_INTERP_DELAY_MS);
     if (!frame) {
       predictor.reset();
+      jawCues.clear();
       followRef.current.active = false;
       ownLabelLifetime.sample(null, false, 0, false, performance.now());
       if (labelsRef) labelsRef.current = [];
@@ -192,12 +202,18 @@ export function ActorLayer({
     }
 
     const state = frame.newer;
+    if (socket.status !== "open" || jawTimeline.current.round !== state.round.number
+      || state.tick < jawTimeline.current.tick) jawCues.clear();
+    jawTimeline.current = { round: state.round.number, tick: state.tick };
     const activeIds = new Set(state.sharks.filter(shark => shark.alive).map(shark => shark.id));
     for (const id of remotePoses.keys()) {
       if (!activeIds.has(id)) remotePoses.delete(id);
     }
     for (const id of motionById.keys()) {
       if (!activeIds.has(id)) motionById.delete(id);
+    }
+    for (const id of jawCues.keys()) {
+      if (!activeIds.has(id)) jawCues.delete(id);
     }
     const previous = frame.older;
     const reducedMotion = settings.a11y.motion === "reduced";
@@ -326,6 +342,11 @@ export function ActorLayer({
       root.updateMatrix();
 
       spineParameters.setXY(sharkCount, animation.phase, animation.amplitude);
+      let jaw = jawCues.get(shark.id);
+      if (!jaw) { jaw = new SharkJawCue(); jawCues.set(shark.id, jaw); }
+      jawParameters.setX(sharkCount, socket.status === "open" && shark.alive
+        ? jaw.sample(shark.biteCooldownTick, nowMs, reducedMotion, isMe ? socket.bitePressedAtRef.current : undefined)
+        : 0);
       for (const mesh of sharkParts) mesh.setMatrixAt(sharkCount, root.matrix);
 
       if (relation) {
@@ -401,6 +422,7 @@ export function ActorLayer({
     if (apexMarker && !apexVisible) apexMarker.visible = false;
 
     spineParameters.needsUpdate = true;
+    jawParameters.needsUpdate = true;
     commitInstances(sharkParts, sharkCount);
     commitInstances([rim], rimCount);
     eyes.count = eyeCount;
