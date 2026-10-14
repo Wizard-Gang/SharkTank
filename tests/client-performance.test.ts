@@ -87,6 +87,19 @@ function populateRepresentativeRoom() {
 }
 
 describe("ST-127 3D client performance contracts", () => {
+  it("ST-289 retains eight anatomy draws and the existing cue/eye/marker inventory", () => {
+    const actor = read("../src/game/game/ActorLayer.tsx");
+    expect(actor.match(/<instancedMesh\b/g)).toHaveLength(11);
+    expect(actor.match(/<mesh\b/g)).toHaveLength(1);
+    expect(actor.match(/<meshStandardMaterial \{\.\.\.SHARK_MATERIAL\}/g)).toHaveLength(8);
+    expect(actor.match(/<meshBasicMaterial\b/g)).toHaveLength(4);
+    expect(actor.match(/countershadeSharkGeometry\(geometry,/g)).toHaveLength(8);
+    expect(actor).toContain('settings.a11y.contrast === "high"');
+    expect(actor).not.toContain("castShadow");
+    expect(actor).not.toContain("receiveShadow");
+    const world = read("../src/game/game/WorldEnvironment.tsx");
+    expect(world.match(/<(?:ambient|hemisphere|directional)Light\b/g)).toHaveLength(3);
+  });
   it("caps DPR and presentation cadence deterministically by quality without a renderer fallback", () => {
     const low = resolveClientPerformanceProfile("low");
     const medium = resolveClientPerformanceProfile("medium");

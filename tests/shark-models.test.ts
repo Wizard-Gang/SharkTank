@@ -1,5 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
+import { SKINS } from "../src/engine/index.js";
+import { countershadeSharkGeometry, SHARK_MATERIAL } from "../src/game/game/sharkMaterial.js";
 import { ROOM_SCHEMA_VERSION } from "../src/engine/room.js";
 import { REALTIME_PROTOCOL_VERSION } from "../src/protocol/index.js";
 import {
@@ -10,6 +13,85 @@ import {
 import { sharkScaleForLength, mouthPoint, bodySegment } from "../src/engine/sharkGeometry.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+
+describe("ST-289 lit shark countershading", () => {
+  it("uses a lit, opaque skin-multiplying material without a second pass", () => {
+    const material = new THREE.MeshStandardMaterial(SHARK_MATERIAL);
+    expect(material.isMeshStandardMaterial).toBe(true);
+    expect(material.vertexColors).toBe(true);
+    expect(material.color.getHex()).toBe(0xffffff);
+    expect(material.metalness).toBe(0);
+    expect(material.roughness).toBe(0.82);
+    expect(material.transparent).toBe(false);
+    expect(material.side).toBe(THREE.FrontSide);
+    // The actual pinned Three shader multiplies vertex AND instance colours.
+    expect(THREE.ShaderChunk.color_vertex).toContain("vColor *= color");
+    expect(THREE.ShaderChunk.color_vertex).toContain("vColor.xyz *= instanceColor.xyz");
+    expect(THREE.ShaderChunk.color_fragment).toContain("diffuseColor.rgb *= vColor");
+    material.dispose();
+  });
+
+  it("keeps every skin's channel ratios while darkening the back and lifting High contrast", () => {
+    for (const segments of [6, 8, 10]) {
+      const geometry = new THREE.SphereGeometry(1, segments, segments);
+      const positions = geometry.getAttribute("position").array.slice();
+      const indices = geometry.index!.array.slice();
+      const shades: number[] = [];
+      for (const highContrast of [false, true]) {
+        countershadeSharkGeometry(geometry, "body", highContrast);
+        const colors = geometry.getAttribute("color");
+        const top = colors.getX(0);
+        const bottom = colors.getX(colors.count - 1);
+        expect(top).toBeCloseTo(highContrast ? 0.72 : 0.58);
+        expect(bottom).toBe(1);
+        expect(bottom).toBeGreaterThan(top);
+        shades.push(top);
+        for (let i = 0; i < colors.count; i++) {
+          const shade = colors.getX(i);
+          expect(shade).toBeGreaterThanOrEqual(highContrast ? 0.71 : 0.57);
+          expect(shade).toBeLessThanOrEqual(1);
+          expect(colors.getY(i)).toBe(shade);
+          expect(colors.getZ(i)).toBe(shade);
+          for (const skin of SKINS) {
+            const base = new THREE.Color(skin.color);
+            const shaded = base.clone().multiply(new THREE.Color(shade, shade, shade));
+            for (const channel of ["r", "g", "b"] as const) {
+              expect(shaded[channel] / base[channel]).toBeCloseTo(shade);
+            }
+          }
+        }
+      }
+      expect(shades[1]).toBeGreaterThan(shades[0]);
+      expect(geometry.getAttribute("position").array).toEqual(positions);
+      expect(geometry.index!.array).toEqual(indices);
+      expect(geometry.groups).toHaveLength(0);
+      geometry.dispose();
+    }
+  });
+
+  it("shades fins in shark rest space, including mirrored rotated pectorals", () => {
+    for (const sign of [-1, 1] as const) {
+      const geometry = new THREE.ConeGeometry(1, 1, 3);
+      countershadeSharkGeometry(geometry, sign === 1 ? "pectoralLeft" : "pectoralRight", false);
+      const rest = new THREE.Object3D();
+      rest.position.set(0.38, -0.2, sign * 0.72);
+      rest.rotation.set(sign * (Math.PI / 2 - 0.14), 0, -sign * 0.22);
+      rest.scale.set(0.36, 0.9, 0.25);
+      rest.updateMatrix();
+      const position = geometry.getAttribute("position");
+      const colors = geometry.getAttribute("color");
+      for (let i = 0; i < position.count; i++) {
+        const height = new THREE.Vector3().fromBufferAttribute(position, i).applyMatrix4(rest.matrix).y;
+        expect(colors.getX(i)).toBeCloseTo(THREE.MathUtils.lerp(1, 0.58, THREE.MathUtils.smoothstep(height, -0.45, 0.45)));
+      }
+      countershadeSharkGeometry(geometry, "dorsal", false);
+      for (let i = 0; i < colors.count; i++) {
+        expect(geometry.getAttribute("color").getX(i)).toBeLessThan(0.61);
+      }
+      geometry.dispose();
+    }
+  });
+});
 
 describe("ST-119 animated shark models", () => {
   it("replaces the single stretched actor primitive with a recognizable composed shark silhouette", () => {
@@ -105,7 +187,7 @@ describe("ST-119 animated shark models", () => {
     expect(low.radialSegments).toBeGreaterThanOrEqual(6);
 
     const actors = read("../src/game/game/ActorLayer.tsx");
-    expect(actors).toContain("<coneGeometry args={[1, 1, 3]} />");
+    expect(actors.match(/<coneGeometry\b[^>]*args=\{\[1, 1, 3\]\}/g)).toHaveLength(4);
     expect(actors).toContain("resolveSharkPresentationQuality(settings.graphics.quality)");
   });
 
