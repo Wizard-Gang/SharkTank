@@ -1,7 +1,7 @@
 import { resolveQuality } from "./quality.js";
 import { resolveSceneQuality, type SceneQuality } from "./sceneMath.js";
 
-export interface ClientPerformanceProfile {
+interface ClientPerformanceProfile {
   preyUpdateHz: number;
   environmentUpdateHz: number;
   effectUpdateHz: number;

@@ -1,6 +1,6 @@
 import { resolveQuality } from "./quality.js";
 import { TICKS_PER_SECOND } from "../../engine/index.js";
-export type SharkPresentationQuality = import("./quality.js").QualityChoice;
+type SharkPresentationQuality = import("./quality.js").QualityChoice;
 
 export interface SharkPresentationProfile {
   radialSegments: number;
@@ -20,7 +20,7 @@ export function resolveSharkPresentationQuality(
   return QUALITY[resolveQuality(quality)];
 }
 
-export interface SharkAnimationInput {
+interface SharkAnimationInput {
   seconds: number;
   actorId: string;
   speed: number;
@@ -29,7 +29,7 @@ export interface SharkAnimationInput {
   reducedMotion: boolean;
 }
 
-export interface SharkAnimationPose {
+interface SharkAnimationPose {
   phase: number;
   amplitude: number;
 }

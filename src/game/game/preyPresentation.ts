@@ -46,14 +46,14 @@ export const SCHOOL_LOOKS: Record<SchoolSpecies, SchoolLook> = {
 type PremiumKind = Extract<PreyKind, "tuna" | "squid" | "ray" | "golden">;
 
 /** Silhouettes remain stable across quality presets, using protocol-12 species codes 12–15. */
-export const PREMIUM_LOOKS: Record<PremiumKind, SchoolLook> = {
+const PREMIUM_LOOKS: Record<PremiumKind, SchoolLook> = {
   tuna: { bodyLength: 1.48, bodyHeight: 0.25, bodyWidth: 0.27, headScale: 0.27, tailScale: 0.46, bodyColor: "#769cb4", headColor: "#bfd9e2", tailColor: "#315d7f", stripeColor: "#d7e8ee", stripeCount: 0 },
   squid: { bodyLength: 0.96, bodyHeight: 0.34, bodyWidth: 0.32, headScale: 0.22, tailScale: 0.64, bodyColor: "#d9cee4", headColor: "#f5e6ed", tailColor: "#aa81b7", stripeColor: "#fcf1ef", stripeCount: 0 },
   ray: { bodyLength: 0.72, bodyHeight: 0.12, bodyWidth: 1.18, headScale: 0.22, tailScale: 0.76, bodyColor: "#487c8c", headColor: "#9fb9ab", tailColor: "#365968", stripeColor: "#b6d5cc", stripeCount: 0 },
   golden: { bodyLength: 0.92, bodyHeight: 0.32, bodyWidth: 0.34, headScale: 0.29, tailScale: 0.44, bodyColor: "#ffd342", headColor: "#fff2a3", tailColor: "#f6a51d", stripeColor: "#fff5bc", stripeCount: 0 },
 };
 
-export interface PreyVisualProfile {
+interface PreyVisualProfile {
   shape: "school" | PremiumKind | "drop";
   mode: "fish" | "drop";
   bodyLength: number;

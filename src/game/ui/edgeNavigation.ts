@@ -2,8 +2,8 @@
 import type { ClientState } from "../net/clientState.js";
 import { edibilityFor } from "./edibility.js";
 
-export type EdgeKind = "threat" | "apex" | "frenzy" | "golden";
-export interface EdgeTarget {
+type EdgeKind = "threat" | "apex" | "frenzy" | "golden";
+interface EdgeTarget {
   id: string;
   kind: EdgeKind;
   label: string;
@@ -16,7 +16,7 @@ export interface EdgeCue extends EdgeTarget {
   angle: number;
   behind: boolean;
 }
-export interface ClipPoint { x: number; y: number; z: number; w: number }
+interface ClipPoint { x: number; y: number; z: number; w: number }
 export interface EdgeViewport { width: number; height: number }
 export const EDGE_GLYPHS: Record<EdgeKind, string> = { threat: "▲", apex: "◆", frenzy: "◎", golden: "✦" };
 const order: Record<EdgeKind, number> = { threat: 0, apex: 1, frenzy: 2, golden: 3 };

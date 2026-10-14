@@ -10,7 +10,7 @@ export function sharkScaleForLength(length: number): number {
   return Math.min(2.5, 0.32 + Math.sqrt(safeLength) * 0.2);
 }
 
-export interface SharkGeometryPose {
+interface SharkGeometryPose {
   position: Vec3;
   yaw: number;
   pitch: number;

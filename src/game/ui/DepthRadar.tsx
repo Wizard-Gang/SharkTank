@@ -12,7 +12,7 @@ import {
   type Edibility,
 } from "./edibility.js";
 
-export type RelativeBearing =
+type RelativeBearing =
   | "ahead"
   | "ahead-right"
   | "right"
@@ -22,18 +22,18 @@ export type RelativeBearing =
   | "left"
   | "ahead-left"
   | "centered";
-export type VerticalBand = "above" | "level" | "below";
-export type ProximityBand = "close" | "near" | "far";
-export type DepthCueKind = "apex" | "rival" | "prey" | "frenzy";
+type VerticalBand = "above" | "level" | "below";
+type ProximityBand = "close" | "near" | "far";
+type DepthCueKind = "apex" | "rival" | "prey" | "frenzy";
 
-export interface RelativeTargetDescription {
+interface RelativeTargetDescription {
   bearing: RelativeBearing;
   vertical: VerticalBand;
   proximity: ProximityBand;
   distance: number;
 }
 
-export interface DepthCue extends RelativeTargetDescription {
+interface DepthCue extends RelativeTargetDescription {
   id: string;
   kind: DepthCueKind;
   label: string;
@@ -41,7 +41,7 @@ export interface DepthCue extends RelativeTargetDescription {
   edibility?: Edibility;
 }
 
-export interface DepthNavigationState {
+interface DepthNavigationState {
   depth: number;
   apexSelf: boolean;
   cues: DepthCue[];
@@ -125,7 +125,7 @@ const edibilityPriority: Record<Edibility, number> = {
   prey: 2,
 };
 
-export function edibilityText(edibility: Edibility): string {
+function edibilityText(edibility: Edibility): string {
   const presentation = EDIBILITY_PRESENTATION[edibility];
   return `${presentation.glyph} ${presentation.label}`;
 }

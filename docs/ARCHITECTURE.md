@@ -45,6 +45,8 @@ Premium protocol-12 prey now render as four distinct silhouettes: long silver-bl
 
 The browser-only game lives in `src/game/`. One strict root TypeScript program covers the Worker, engine, protocol and client through relative imports.
 
+Internal helpers and types stay module-local unless a runtime consumer or test imports them. The Worker handler and Room export remain platform entry points. Theme selectors include runtime-generated flight, touch, edibility, depth, edge and podium variants; settings readers include input/audio aliases and root theme attributes.
+
 React Three Fiber / Three.js is the only gameplay renderer. The world is full X/Y/Z with authoritative yaw + pitch; banking is presentation-only. The local shark uses local prediction followed by server reconciliation. Remote sharks and prey use remote interpolation.
 
 `WorldEnvironment` owns the arena boundary and Feeding Frenzy volume cues. `FxLayer` shares one instanced particle draw between impact bursts, lunge wakes and inferred prey pops.

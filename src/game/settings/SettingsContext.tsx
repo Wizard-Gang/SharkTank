@@ -131,7 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
 const STORAGE_KEY = "sharktank.player.v1";
 const LEGACY_SETTINGS_KEY = "snakeio.settings.v1";
 
-export interface DevicePlayer {
+interface DevicePlayer {
   name: string;
   skin: string;
   best: number;

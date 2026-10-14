@@ -9,7 +9,7 @@ export interface SceneVec3 {
   z: number;
 }
 
-export interface ChaseCameraPose {
+interface ChaseCameraPose {
   position: SceneVec3;
   lookAt: SceneVec3;
 }
@@ -19,12 +19,12 @@ export interface OrientedScenePose extends SceneVec3 {
   pitch: number;
 }
 
-export interface SwimSteeringRates {
+interface SwimSteeringRates {
   turnRate: number;
   pitchRate: number;
 }
 
-export const SWIM_STEERING: SwimSteeringRates = {
+const SWIM_STEERING: SwimSteeringRates = {
   turnRate: 3.2,
   pitchRate: 2.4,
 };
@@ -41,7 +41,7 @@ export function clampCameraLookOffsets(yaw: number, pitch: number): { yaw: numbe
   };
 }
 
-export interface ChaseCameraOptions {
+interface ChaseCameraOptions {
   sharkScale?: number;
   speed?: number;
   baseSpeed?: number;

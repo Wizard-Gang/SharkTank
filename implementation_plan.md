@@ -106,18 +106,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-296 — [REFACTOR] Sweep the last dead code, styles and copy
-
-**Goal:** Leave nothing unused behind after the wave.
-
-**Scope:** Re-run the dead-export scan and delete anything unused. Remove unreferenced selectors from `theme.css`, unused settings fields, and stale Help and announcement copy left by replaced UI.
-
-**Acceptance:** The scan finds nothing unused, every `theme.css` selector is referenced by a component, and every setting has a reader.
-
-**Validation:** `npm run typecheck`; `npm test`; `npm run build`.
-
----
-
 ### ST-297 — [OPS] Release the polish update as v2.6.0
 
 **Goal:** Ship ST-282 through ST-296.

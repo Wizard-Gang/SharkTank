@@ -1,8 +1,8 @@
 import { shortestYawDelta } from "../../engine/index.js";
 
-export interface Orientation { yaw: number; pitch: number }
-export const ORIENTATION_INTERVAL_MS = 50;
-export const ORIENTATION_SETTLE_MS = 50;
+interface Orientation { yaw: number; pitch: number }
+const ORIENTATION_INTERVAL_MS = 50;
+const ORIENTATION_SETTLE_MS = 50;
 
 /** Pure send decision; settling bypasses deadbands, never the rate limit. */
 export function shouldSendOrientation(

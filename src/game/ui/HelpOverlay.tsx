@@ -33,7 +33,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <Control icon="steer" label="Fly"><span>{stick} flight stick</span><small>Start anywhere in the flight half. Up/down pitches to climb or dive; left/right yaws while the shark keeps swimming forward.</small></Control>
             {settings.controls.touchScheme === "dual" ? <Control icon="steer" label="Look"><span>{look} look stick</span><small>Offsets the chase camera in four directions; release to recenter behind the shark.</small></Control> : <Control icon="steer" label="Camera"><span>Automatic recenter</span><small>Simple steering keeps the camera behind your shark. Choose Advanced dual-stick in Controls for independent look.</small></Control>}
             <Control icon="dash" label="Dash"><span>{pads} pad</span><small>2s cooldown · half that during a frenzy</small></Control>
-            <Control icon="bite" label="Bite"><span>{pads} pad</span><small>Directional close-range attack · aim with the shark</small></Control>
+            <Control icon="bite" label="Bite"><span>{pads} pad</span><small>Aim with the shark. Devour sharks at most two-thirds your length; other bites deal damage.</small></Control>
             <Control icon="menu" label="Tools"><span>Gear button</span><small>Exit, audio, display, and full settings</small></Control>
           </div>
         ) : (
@@ -41,13 +41,13 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
             <Control icon="steer" label="Fly"><Key>{keyLabel(k.pitchUp)}</Key><Key>{keyLabel(k.pitchDown)}</Key><Key>{keyLabel(k.yawLeft)}</Key><Key>{keyLabel(k.yawRight)}</Key><small>W/S pitch · A/D yaw by default</small></Control>
             <Control icon="steer" label="Look"><Key>{keyLabel(k.lookUp)}</Key><Key>{keyLabel(k.lookDown)}</Key><Key>{keyLabel(k.lookLeft)}</Key><Key>{keyLabel(k.lookRight)}</Key><span>Mouse optional</span><small>Camera only; shark direction is unchanged</small></Control>
             <Control icon="dash" label="Burst"><Key>{keyLabel(k.boost)}</Key><small>2s cooldown · half that during a frenzy</small></Control>
-            <Control icon="bite" label="Bite"><Key>{keyLabel(k.bite)}</Key><small>Directional close-range attack · size and burst give modest bonuses</small></Control>
-            <Control icon="menu" label="Tools"><Key>{keyLabel(k.pause)}</Key><Key>?</Key><small>Pause, help, exit and settings</small></Control>
+            <Control icon="bite" label="Bite"><Key>{keyLabel(k.bite)}</Key><small>Aim with the shark. Devour sharks at most two-thirds your length; other bites deal damage.</small></Control>
+            <Control icon="menu" label="Tools"><Key>{keyLabel(k.pause)}</Key>{settings.controls.singleKeyShortcuts && <Key>?</Key>}<small>Pause, help, exit and settings</small></Control>
           </div>
         )}
-        <p className="help-note">
+        {!touch && <p className="help-note">
           Keyboard steering eases in and out. Auto-level returns idle pitch to level; turn it off in Controls settings to hold your pitch.
-        </p>
+        </p>}
         <p className="help-note">
           Every 75 seconds a <strong>Feeding Frenzy</strong> drops chum in the middle of the tank:
           everyone swims faster and dashes twice as often for twenty seconds.

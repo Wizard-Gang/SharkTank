@@ -177,7 +177,7 @@ export const COMBAT = {
 } as const;
 
 /** Cosmetic catalog. Colorblind-safe, high-contrast hues; shared by server + client. */
-export interface Skin {
+interface Skin {
   id: string;
   name: string;
   /** Body color (hex). Head is rendered brighter client-side. */

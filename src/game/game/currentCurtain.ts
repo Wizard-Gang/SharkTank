@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const CURRENT_WARNING_DISTANCE = 20;
+const CURRENT_WARNING_DISTANCE = 20;
 
 /** Presentation only: the Room still owns the returning current and wall clamp. */
 export function currentCurtainProximity(radius: number, position?: { x: number; z: number }): number {

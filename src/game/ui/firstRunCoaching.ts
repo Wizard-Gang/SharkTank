@@ -5,7 +5,7 @@ export const HINT_WINDOW_MS = 30_000;
 export const HINTS = ["Drag to swim", "Eat fish to grow", "Bite smaller sharks ▼"] as const;
 export interface HintProgress { step: number; startedAt: number | null }
 export const NEW_HINT_PROGRESS: HintProgress = { step: 0, startedAt: null };
-export type HintEvent = { type: "start" | "tick" | "skip"; now: number }
+type HintEvent = { type: "start" | "tick" | "skip"; now: number }
   | { type: "success"; step: number; now: number };
 
 export function normalizeHintProgress(value: unknown): HintProgress {

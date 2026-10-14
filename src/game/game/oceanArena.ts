@@ -4,13 +4,13 @@ import type { ReefSite } from "../../engine/reefs.js";
 import type { SceneQuality } from "./sceneMath.js";
 import { OCEAN_CUES } from "./sceneMath.js";
 
-export interface AuthoritativeOceanCueInput {
+interface AuthoritativeOceanCueInput {
   arenaRadius?: number;
   seabedY?: number;
   surfaceY?: number;
 }
 
-export interface OceanArenaCues {
+interface OceanArenaCues {
   radius: number;
   seabedY: number;
   surfaceY: number;
@@ -19,7 +19,7 @@ export interface OceanArenaCues {
   frenzyRadius: number;
 }
 
-export interface OceanEnvironmentQuality {
+interface OceanEnvironmentQuality {
   particulateBudget: number;
   bubbleBudget: number;
   lightShaftCount: number;
@@ -31,16 +31,16 @@ export interface OceanEnvironmentQuality {
   curtainFlowLines: number;
 }
 
-export type EnvironmentLandmarkKind = "reef" | "wreck" | "frenzy";
+type EnvironmentLandmarkKind = "reef" | "wreck" | "frenzy";
 
-export interface EnvironmentLandmark {
+interface EnvironmentLandmark {
   id: string;
   kind: EnvironmentLandmarkKind;
   angle: number;
   radialShare: number;
 }
 
-export interface EnvironmentSeed {
+interface EnvironmentSeed {
   angle: number;
   radialShare: number;
   depthShare: number;
@@ -128,7 +128,7 @@ function hash01(index: number, salt: number): number {
 
 /** Five instanced coral silhouettes; per-site counts are bounded by the quality preset. */
 export const CORAL_KINDS = ["brain", "branching", "plate", "fan", "tube"] as const;
-export type CoralKind = (typeof CORAL_KINDS)[number];
+type CoralKind = (typeof CORAL_KINDS)[number];
 
 export const CORAL_PALETTE = [
   "#fa799e", // pink
@@ -139,7 +139,7 @@ export const CORAL_PALETTE = [
   "#eb5b5a", // red
 ] as const;
 
-export interface CoralPlacement {
+interface CoralPlacement {
   kind: CoralKind;
   siteId: string;
   position: { x: number; y: number; z: number };
@@ -149,7 +149,7 @@ export interface CoralPlacement {
   depthTint: number;
 }
 
-export interface KelpPlacement {
+interface KelpPlacement {
   position: { x: number; y: number; z: number };
   rotationY: number;
   width: number;

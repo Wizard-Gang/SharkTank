@@ -1,14 +1,14 @@
 import type { Sfx } from "./AudioManager.js";
 
 /** First-party, peak-limited SFX recipes; no recorded assets or oscillator buzz waves. */
-export interface NoiseRecipe {
+interface NoiseRecipe {
   type: "lowpass" | "bandpass" | "highpass";
   fromHz: number;
   toHz: number;
   peak: number;
 }
 
-export interface SfxRecipe {
+interface SfxRecipe {
   wave: "sine" | "triangle";
   startHz: number;
   endHz: number;

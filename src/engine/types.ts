@@ -17,7 +17,7 @@ export interface OceanVolume {
 
 export type DeathAction = "bite" | "retire";
 
-export interface DeathRecord {
+interface DeathRecord {
   killerId: string | null;
   victimId: string;
   action: DeathAction;
@@ -78,9 +78,9 @@ export interface Explosion {
   kind: "shark" | "bite" | "frenzy";
 }
 
-export type RoundPhase = "active" | "apex" | "result";
+type RoundPhase = "active" | "apex" | "result";
 
-export interface RoundResult {
+interface RoundResult {
   roundNumber: number;
   winner: ScoreEntry | null;
   endedTick: number;

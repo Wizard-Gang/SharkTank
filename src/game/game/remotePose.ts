@@ -1,6 +1,6 @@
 import type { SceneVec3, OrientedScenePose } from "./sceneMath.js";
 
-export const REMOTE_EXTRAPOLATION_MS = 120;
+const REMOTE_EXTRAPOLATION_MS = 120;
 
 /** Per-actor presentation correction; authoritative snapshots are never modified. */
 export class RemotePose {

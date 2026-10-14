@@ -34,17 +34,11 @@
   --accent-contrast: #0b0a14; /* text ON accent buttons; ≥4.5:1 vs --accent */
   --focus-ring: #ffd54a;      /* high-contrast focus, distinct from accent */
 
-  /* Status — text and fills on the *themed* page surfaces (--surface-1..3).
-     These follow the theme; the light block below redefines all four. */
+  /* Status text on themed page surfaces (--surface-1..3). */
   --danger: #ff6b6b;         /* ≥5:1 on surfaces 1–3 */
-  --danger-contrast: #1a0606; /* text ON a --danger fill */
-  --success: #4ade80;
   --warning: #ffcf5c;
 
-  /* Status — chrome painted over the game canvas, which stays dark in every theme.
-     Never redefined: a light-theme value here would put dark-on-dark in the connection banner. */
-  --danger-on-dark: #ff6b6b;
-  --success-on-dark: #4ade80;
+  /* Connection warnings stay bright over the dark game canvas in every theme. */
   --warning-on-dark: #ffcf5c;
 
   /* Borders / lines */
@@ -81,12 +75,10 @@
        edge on the strictest surface failed 1.4.11 outright. #8a82b4 is not enough either
        — it reaches 2.74:1 on --surface-3. */
     --border-strong: #7f77a8;  /* 4.11:1 on #ffffff, 3.19:1 on --surface-3 */
-    /* The dark-surface reds, greens and yellows measure 1.4–2.8:1 on these surfaces.
+    /* The dark-surface reds and yellows measure below 4.5:1 on these surfaces.
        Each value below clears 4.5:1 against --surface-1, --surface-2 *and* --surface-3
        (--surface-3 is the strict one). */
     --danger: #b3261e;         /* 6.5 / 5.7 / 5.1 */
-    --danger-contrast: #ffffff; /* text ON a --danger fill — 6.5:1 */
-    --success: #12693a;        /* 6.8 / 5.9 / 5.2 */
     --warning: #7a4f00;        /* 7.1 / 6.2 / 5.5 */
     color-scheme: light;
   }
@@ -102,14 +94,14 @@
 @media (prefers-contrast: more) {
   :root {
     --text-faint: var(--text-muted); --border: var(--border-strong);
-    --danger: #ff8f8f; --success: #6ff0a3; --warning: #ffe08a;
-    --danger-on-dark: #ff8f8f; --success-on-dark: #6ff0a3; --warning-on-dark: #ffe08a;
+    --danger: #ff8f8f; --warning: #ffe08a;
+    --warning-on-dark: #ffe08a;
   }
 }
 /* Matched specificity, placed after the light block so it actually wins there. */
 @media (prefers-contrast: more) and (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --danger: #8f1410; --success: #0b4f2b; --warning: #5c3b00;
+    --danger: #8f1410; --warning: #5c3b00;
     /* The two the specificity mismatch was dropping. --border-strong is 4.11:1 on white
        and 3.19:1 on --surface-3; --text-muted is the AA body value. */
     --text-faint: var(--text-muted); --border: var(--border-strong);
@@ -124,10 +116,7 @@
   --accent: #b7a6ff;
   --focus-ring: #ffe066;
   --danger: #ff8f8f;
-  --success: #6ff0a3;
   --warning: #ffe08a;
-  --danger-on-dark: #ff8f8f;
-  --success-on-dark: #6ff0a3;
   --warning-on-dark: #ffe08a;
 }
 
@@ -192,7 +181,6 @@ body {
 .btn--primary { background: var(--accent); color: var(--accent-contrast); border-color: transparent; }
 .btn--primary:hover { background: var(--accent-strong); }
 .btn--ghost { background: transparent; }
-.btn--danger { background: var(--danger); color: var(--danger-contrast); border-color: transparent; }
 .btn--lg { min-height: 56px; font-size: 1.125rem; padding: 0 28px; }
 .btn--block { width: 100%; }
 .icon-button { width:52px;height:52px;display:inline-grid;place-items:center;padding:0;border:1px solid var(--border-strong);border-radius:14px;background:rgba(22,20,42,.92);color:var(--text);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.25);backdrop-filter:blur(12px); }
@@ -204,7 +192,7 @@ body {
 /* ── Form controls ── */
 .field { display: grid; gap: 6px; }
 .field > label { font-weight: 600; color: var(--text-muted); }
-.input, .select {
+.input {
   min-height: var(--tap-min); width: 100%;
   padding: 10px 12px; font: inherit; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border-strong);
@@ -221,7 +209,7 @@ body {
   border-radius: var(--radius); padding: 20px;
 }
 
-/* Shared Shark Arena identity also used by Docs, Status, Incidents, and Audit. */
+/* Main menu identity. */
 .shark-menu { color:var(--text); position: relative; gap: clamp(12px, 2.2vmin, 22px); --text:#f6f4ff; --text-muted:#d8d3ed; --text-faint:#bdb6d8; --surface-2:#242039; --surface-3:#342e50; --border:#686080; --border-strong:#8e84af; --focus-ring:#ffe066; }
 .shark-menu::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -243,9 +231,7 @@ body {
 .shark-menu__panel { padding:clamp(20px,3.5vmin,32px);border-color:#514a81;background:linear-gradient(145deg,rgba(32,29,59,.96),rgba(15,14,29,.97));box-shadow:0 22px 70px rgba(0,0,0,.3); }
 .shark-menu__panel .btn--lg{min-height:clamp(64px,9vmin,78px);font-size:clamp(1.15rem,2.6vmin,1.45rem);font-weight:900}
 .shark-menu__panel .btn{min-height:54px}
-.shark-menu__nav { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; font-size: .8rem; }
-.shark-menu__nav a { min-height: 38px; display: inline-flex; align-items: center; padding: 6px 11px; border: 1px solid var(--border); border-radius: 999px; background: rgba(22,20,42,.72); color: var(--text-muted); font-weight: 800; text-decoration: none; }
-.shark-menu__nav a:hover { border-color: var(--border-strong); background: var(--surface-2); color: var(--text); }
+
 @media (prefers-reduced-motion: reduce){.shark-menu::after{animation:none}}
 @media (max-height:650px){.wizardgang-menu-mark{width:2rem;height:2rem;margin-right:1.2rem;box-shadow:1.54rem -1.54rem 0 #a489ff}.shark-menu__brand h1{font-size:2.75rem}.shark-menu{gap:10px}.shark-menu__panel{padding:16px}.shark-menu__panel .btn--lg{min-height:56px}}
 
@@ -266,32 +252,14 @@ body {
 .connection-gate__card { width: min(440px, 100%); text-align: center; }
 .connection-gate__card h2, .connection-gate__card p { margin: 0; }
 
-/* ── Data table (tank / leaderboard) ── */
-.table { width: 100%; border-collapse: collapse; }
-.table caption { text-align: left; color: var(--text-muted); padding-bottom: 8px; }
-.table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-.table th { color: var(--text-muted); font-weight: 700; }
-.table tbody tr:hover { background: var(--surface-2); }
-.table tbody tr:focus-within { background: var(--surface-2); }
-
 /* ── Layout helpers ── */
 .stack { display: grid; gap: 16px; }
 .row { display: flex; gap: 12px; align-items: center; }
 .spread { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 .center-screen { min-height: 100%; display: grid; place-items: center; padding: 24px; }
 
-/* Reflow: content must not require horizontal scroll at 320px (1.4.10). On narrow
-   screens hide ONLY the low-priority "Leader" column (4th). Never hide the action
-   column — the Join button must always remain reachable. */
 @media (max-width: 520px) {
   .row { flex-wrap: wrap; }
-  .table th:nth-child(4), .table td:nth-child(4) { display: none; }
-  /* Tighten the remaining columns so the action column still fits without a
-     horizontal scroll — a Join button you have to scroll sideways to find is the
-     same bug as a hidden one. */
-  .table th, .table td { padding: 9px 6px; }
-  .table th { font-size: .8rem; }
-  .table .btn { min-height: 44px; padding: 0 12px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -453,7 +421,6 @@ body {
 .help-note{margin:0;padding:11px 13px;border:1px solid #6a5a2e;border-radius:12px;background:rgba(255,213,74,.09);color:var(--text-muted);font-size:.86rem}.help-note strong{color:var(--warning)}
 .control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.control-card{display:grid;grid-template-columns:48px 1fr;align-items:center;gap:8px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);min-width:0}.control-card__icon{grid-row:1/3;width:42px;height:42px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.control-card>strong{min-width:0;text-align:left;overflow-wrap:anywhere}.control-card>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;color:var(--text-muted)}.control-card small{width:100%;text-align:left;overflow-wrap:anywhere}
 
-
 @media (max-width: 560px) {
   .hud-bar { gap:4px; padding:5px 6px; }
   .hud-metric__label { font-size:.6rem; }
@@ -504,7 +471,6 @@ body {
 }
 @media (pointer:coarse){.icon-button{width:56px;height:56px}.game-tools>.icon-button,.game-tools>.gearbox>.icon-button{width:52px;height:52px}.btn{min-height:52px}}
 
-
 /* ST-059: CSP-safe game presentation. React components select external classes and SVG
    presentation attributes; they never need DOM style attributes. */
 :root[data-font-scale="9"]{--font-scale:.9}
@@ -526,16 +492,15 @@ body {
 .menu-shark{margin:0;min-width:0}.menu-shark__image{display:block;width:100%;max-width:260px;height:auto;margin:auto}
 .menu-shark figcaption{font-size:.85rem;color:var(--text-muted)}
 @media(max-width:560px){.shark-menu__identity{grid-template-columns:minmax(0,1fr);gap:16px}.menu-shark__image{max-width:190px}.shark-menu .field{min-width:0}}
-.row--center{justify-content:center}.row--end{justify-content:flex-end}
+
 .menu-player-summary{margin:0;color:var(--text-muted);font-size:.9rem}
 
 .screen-title,.dialog-title{margin:0}.screen-title{font-size:1.6rem}
-.lobby-panel,.settings-panel{width:min(720px,100%)}.help-panel{width:min(560px,100%)}
+.settings-panel{width:min(720px,100%)}.help-panel{width:min(560px,100%)}
 .settings-panel{overflow:auto}.settings-panel--overlay,.help-panel{max-height:86vh}
 .pause-panel{max-width:380px;width:100%}
 .dialog-note,.settings-note{margin:0;color:var(--text-muted);font-size:.9rem}
-.lobby-table-scroll{overflow-x:auto}.text-muted{color:var(--text-muted)}.font-strong{font-weight:700}.tabular-nums{font-variant-numeric:tabular-nums}.text-right{text-align:right}
-.lobby-live-count{display:block;color:var(--text-muted);font-size:.76rem;white-space:nowrap}
+.text-muted{color:var(--text-muted)}
 .field-error{color:var(--danger,#ff7b7b)}
 .skin-fieldset{border:0;padding:0;margin:0}.skin-legend{font-weight:600;margin-bottom:8px}
 .skin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}

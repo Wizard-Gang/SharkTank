@@ -11,7 +11,7 @@ import { CAMERA_PROJECTION, resolveSceneQuality } from "./sceneMath.js";
 import type { TwinStickState } from "./mobileControls.js";
 import { useLocalInput, type LocalInput } from "./useLocalInput.js";
 
-export interface GameViewportProps {
+interface GameViewportProps {
   socket: RoomSocket;
   settings: Settings;
   inputEnabled: boolean;

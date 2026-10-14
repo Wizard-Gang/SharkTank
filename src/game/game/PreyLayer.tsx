@@ -3,7 +3,7 @@ import { REMOTE_INTERP_DELAY_MS } from "../net/snapshotTimeline.js";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { PREY_BUDGET, TICKS_PER_SECOND, type PreyKind } from "../../engine/index.js";
+import { PREY_BUDGET, TICKS_PER_SECOND } from "../../engine/index.js";
 import type { NetPrey } from "../../protocol/index.js";
 import type { RoomSocket } from "../net/useRoomSocket.js";
 import type { Settings } from "../settings/SettingsContext.js";
