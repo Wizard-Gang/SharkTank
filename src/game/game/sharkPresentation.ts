@@ -4,12 +4,14 @@ export type SharkPresentationQuality = import("./quality.js").QualityChoice;
 
 export interface SharkPresentationProfile {
   radialSegments: number;
+  lengthSegments: number;
+  finSegments: number;
 }
 
 const QUALITY: Record<import("./quality.js").ResolvedQuality, SharkPresentationProfile> = {
-  low: { radialSegments: 6 },
-  medium: { radialSegments: 8 },
-  high: { radialSegments: 10 },
+  low: { radialSegments: 8, lengthSegments: 12, finSegments: 2 },
+  medium: { radialSegments: 12, lengthSegments: 20, finSegments: 3 },
+  high: { radialSegments: 16, lengthSegments: 32, finSegments: 4 },
 };
 
 export function resolveSharkPresentationQuality(

@@ -1,9 +1,10 @@
+import { createSharkBodyGeometry, createSharkFinGeometry } from "./sharkGeometry.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "./sharkMaterial.js";
 import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
 import { REMOTE_INTERP_DELAY_MS } from "../net/snapshotTimeline.js";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
   forwardFromYawPitch,
@@ -111,9 +112,6 @@ export function ActorLayer({
 }) {
   const { camera, size } = useThree();
   const bodyMesh = useRef<THREE.InstancedMesh>(null);
-  const headMesh = useRef<THREE.InstancedMesh>(null);
-  const snoutMesh = useRef<THREE.InstancedMesh>(null);
-  const peduncleMesh = useRef<THREE.InstancedMesh>(null);
   const tailFinMesh = useRef<THREE.InstancedMesh>(null);
   const dorsalFinMesh = useRef<THREE.InstancedMesh>(null);
   const pectoralLeftMesh = useRef<THREE.InstancedMesh>(null);
@@ -139,12 +137,27 @@ export function ActorLayer({
   const lastLabelPassAt = useRef(-Infinity);
   const ownLabelLifetime = useMemo(() => new OwnLabelLifetime(), []);
   const performanceProfile = resolveClientPerformanceProfile(settings.graphics.quality);
+  const sharkQuality = resolveSharkPresentationQuality(settings.graphics.quality);
+  const highContrast = settings.a11y.contrast === "high";
+  const geometries = useMemo(() => {
+    const anatomy = {
+      body: createSharkBodyGeometry(sharkQuality),
+      tail: createSharkFinGeometry(true, sharkQuality.finSegments),
+      dorsal: createSharkFinGeometry(false, sharkQuality.finSegments),
+      pectoralLeft: createSharkFinGeometry(false, sharkQuality.finSegments),
+      pectoralRight: createSharkFinGeometry(false, sharkQuality.finSegments),
+    };
+    for (const surface of Object.keys(anatomy) as (keyof typeof anatomy)[]) {
+      countershadeSharkGeometry(anatomy[surface], surface, highContrast);
+    }
+    return anatomy;
+  }, [sharkQuality, highContrast]);
+  useEffect(() => () => {
+    for (const geometry of Object.values(geometries)) geometry.dispose();
+  }, [geometries]);
 
   useFrame(({ clock }, dt) => {
     const body = bodyMesh.current;
-    const head = headMesh.current;
-    const snout = snoutMesh.current;
-    const peduncle = peduncleMesh.current;
     const tailFin = tailFinMesh.current;
     const dorsalFin = dorsalFinMesh.current;
     const pectoralLeft = pectoralLeftMesh.current;
@@ -153,15 +166,12 @@ export function ActorLayer({
     const eyes = eyeMesh.current;
     const pupils = pupilMesh.current;
     if (
-      !body || !head || !snout || !peduncle || !tailFin || !dorsalFin
+      !body || !tailFin || !dorsalFin
       || !pectoralLeft || !pectoralRight || !rim || !eyes || !pupils
     ) return;
 
     const sharkParts = [
       body,
-      head,
-      snout,
-      peduncle,
       tailFin,
       dorsalFin,
       pectoralLeft,
@@ -317,49 +327,31 @@ export function ActorLayer({
         body, sharkCount, root.matrix, part, composed,
         0, 0, 0,
         0, animation.bodyYaw, 0,
-        1.72, 0.58, 0.66,
-      );
-      setPartMatrix(
-        head, sharkCount, root.matrix, part, composed,
-        1.42, 0.03, 0,
-        0, -animation.bodyYaw * 0.35, 0,
-        0.82, 0.59, 0.64,
-      );
-      setPartMatrix(
-        snout, sharkCount, root.matrix, part, composed,
-        SHARK_GEOMETRY.snoutTip - SHARK_GEOMETRY.snoutRadius, -0.04, 0,
-        0, -animation.bodyYaw * 0.22, 0,
-        SHARK_GEOMETRY.snoutRadius, 0.42, 0.52,
-      );
-      setPartMatrix(
-        peduncle, sharkCount, root.matrix, part, composed,
-        -1.72, 0, animation.peduncleYaw * 0.18,
-        0, animation.peduncleYaw, 0,
-        0.76, 0.25, 0.3,
+        1, 1, 1,
       );
       setPartMatrix(
         tailFin, sharkCount, root.matrix, part, composed,
         SHARK_GEOMETRY.tail, 0, animation.tailYaw * 0.24,
         0, animation.tailYaw, 0,
-        0.23, 0.98, 0.68,
+        0.5, 0.98, 1,
       );
       setPartMatrix(
         dorsalFin, sharkCount, root.matrix, part, composed,
         -0.18, 0.78, 0,
         0, animation.bodyYaw * 0.45, 0,
-        0.46, 0.92, 0.25,
+        0.65, 0.92, 1,
       );
       setPartMatrix(
         pectoralLeft, sharkCount, root.matrix, part, composed,
         0.38, -0.2, 0.72,
         Math.PI / 2 - 0.14, 0, -0.22 + animation.pectoralSweep,
-        0.36, 0.9, 0.25,
+        0.7, 1.5, 1,
       );
       setPartMatrix(
         pectoralRight, sharkCount, root.matrix, part, composed,
         0.38, -0.2, -0.72,
         -Math.PI / 2 + 0.14, 0, 0.22 - animation.pectoralSweep,
-        0.36, 0.9, 0.25,
+        0.7, 1.5, 1,
       );
 
       if (relation) {
@@ -506,49 +498,21 @@ export function ActorLayer({
     }
   });
 
-  const sharkQuality = resolveSharkPresentationQuality(settings.graphics.quality);
-  const highContrast = settings.a11y.contrast === "high";
-
   return (
     <>
-      <instancedMesh ref={bodyMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "body", highContrast)} />
+      <instancedMesh ref={bodyMesh} geometry={geometries.body} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
-      <instancedMesh ref={headMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "head", highContrast)} />
+      <instancedMesh ref={tailFinMesh} geometry={geometries.tail} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
-      <instancedMesh ref={snoutMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "snout", highContrast)} />
+      <instancedMesh ref={dorsalFinMesh} geometry={geometries.dorsal} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
-      <instancedMesh ref={peduncleMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "peduncle", highContrast)} />
+      <instancedMesh ref={pectoralLeftMesh} geometry={geometries.pectoralLeft} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
-      <instancedMesh ref={tailFinMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "tail", highContrast)} />
-        <meshStandardMaterial {...SHARK_MATERIAL} />
-      </instancedMesh>
-      <instancedMesh ref={dorsalFinMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "dorsal", highContrast)} />
-        <meshStandardMaterial {...SHARK_MATERIAL} />
-      </instancedMesh>
-      <instancedMesh ref={pectoralLeftMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "pectoralLeft", highContrast)} />
-        <meshStandardMaterial {...SHARK_MATERIAL} />
-      </instancedMesh>
-      <instancedMesh ref={pectoralRightMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
-          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "pectoralRight", highContrast)} />
+      <instancedMesh ref={pectoralRightMesh} geometry={geometries.pectoralRight} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={rimMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>

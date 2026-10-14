@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-290 — [FEAT] Replace sphere-and-cone sharks with a smooth body and blade fins
-
-**Goal:** Remove the chunky sphere-and-cone look.
-
-**Scope:** One tapered profile body replaces the body, head and snout spheres, and thin blade fins replace the cones. Segment counts scale with quality.
-
-**Acceptance:** Fewer draws; shark model tests are updated.
-
-**Validation:** `npm test -- tests/shark-models.test.ts tests/client-performance.test.ts`.
-
----
-
 ### ST-291 — [FEAT] Bend the shark body with a continuous spine wave
 
 **Goal:** Smooth swimming instead of rigid parts.

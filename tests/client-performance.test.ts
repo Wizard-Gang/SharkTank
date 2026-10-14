@@ -87,13 +87,14 @@ function populateRepresentativeRoom() {
 }
 
 describe("ST-127 3D client performance contracts", () => {
-  it("ST-289 retains eight anatomy draws and the existing cue/eye/marker inventory", () => {
+  it("ST-290 reduces anatomy draws from eight to five while retaining cues, eyes and markers", () => {
     const actor = read("../src/game/game/ActorLayer.tsx");
-    expect(actor.match(/<instancedMesh\b/g)).toHaveLength(11);
+    expect(actor.match(/<instancedMesh\b/g)).toHaveLength(8);
     expect(actor.match(/<mesh\b/g)).toHaveLength(1);
-    expect(actor.match(/<meshStandardMaterial \{\.\.\.SHARK_MATERIAL\}/g)).toHaveLength(8);
+    expect(actor.match(/<meshStandardMaterial \{\.\.\.SHARK_MATERIAL\}/g)).toHaveLength(5);
     expect(actor.match(/<meshBasicMaterial\b/g)).toHaveLength(4);
-    expect(actor.match(/countershadeSharkGeometry\(geometry,/g)).toHaveLength(8);
+    expect(actor).toContain("countershadeSharkGeometry(anatomy[surface], surface, highContrast)");
+    expect(actor).toContain("geometry.dispose()");
     expect(actor).toContain('settings.a11y.contrast === "high"');
     expect(actor).not.toContain("castShadow");
     expect(actor).not.toContain("receiveShadow");

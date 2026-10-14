@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
+import { createSharkBodyGeometry, createSharkFinGeometry } from "../src/game/game/sharkGeometry.js";
 import { SKINS } from "../src/engine/index.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "../src/game/game/sharkMaterial.js";
 import { ROOM_SCHEMA_VERSION } from "../src/engine/room.js";
@@ -32,16 +33,16 @@ describe("ST-289 lit shark countershading", () => {
   });
 
   it("keeps every skin's channel ratios while darkening the back and lifting High contrast", () => {
-    for (const segments of [6, 8, 10]) {
-      const geometry = new THREE.SphereGeometry(1, segments, segments);
+    for (const quality of ["low", "medium", "high"] as const) {
+      const geometry = createSharkBodyGeometry(resolveSharkPresentationQuality(quality));
       const positions = geometry.getAttribute("position").array.slice();
       const indices = geometry.index!.array.slice();
       const shades: number[] = [];
       for (const highContrast of [false, true]) {
         countershadeSharkGeometry(geometry, "body", highContrast);
         const colors = geometry.getAttribute("color");
-        const top = colors.getX(0);
-        const bottom = colors.getX(colors.count - 1);
+        const top = Math.min(...Array.from(colors.array));
+        const bottom = Math.max(...Array.from(colors.array));
         expect(top).toBeCloseTo(highContrast ? 0.72 : 0.58);
         expect(bottom).toBe(1);
         expect(bottom).toBeGreaterThan(top);
@@ -71,12 +72,12 @@ describe("ST-289 lit shark countershading", () => {
 
   it("shades fins in shark rest space, including mirrored rotated pectorals", () => {
     for (const sign of [-1, 1] as const) {
-      const geometry = new THREE.ConeGeometry(1, 1, 3);
+      const geometry = createSharkFinGeometry(false, 3);
       countershadeSharkGeometry(geometry, sign === 1 ? "pectoralLeft" : "pectoralRight", false);
       const rest = new THREE.Object3D();
       rest.position.set(0.38, -0.2, sign * 0.72);
       rest.rotation.set(sign * (Math.PI / 2 - 0.14), 0, -sign * 0.22);
-      rest.scale.set(0.36, 0.9, 0.25);
+      rest.scale.set(0.7, 1.5, 1);
       rest.updateMatrix();
       const position = geometry.getAttribute("position");
       const colors = geometry.getAttribute("color");
@@ -98,9 +99,6 @@ describe("ST-119 animated shark models", () => {
     const actors = read("../src/game/game/ActorLayer.tsx");
     for (const refName of [
       "bodyMesh",
-      "headMesh",
-      "snoutMesh",
-      "peduncleMesh",
       "tailFinMesh",
       "dorsalFinMesh",
       "pectoralLeftMesh",
@@ -109,6 +107,9 @@ describe("ST-119 animated shark models", () => {
       expect(actors).toContain(`const ${refName} = useRef<THREE.InstancedMesh>(null);`);
       expect(actors).toContain(`ref={${refName}}`);
     }
+    for (const removed of ["headMesh", "snoutMesh", "peduncleMesh"]) expect(actors).not.toContain(removed);
+    expect(actors).toContain("geometry={geometries.body}");
+    expect(actors).not.toContain("<coneGeometry");
     expect(actors).not.toContain("const sharkMesh =");
     expect(actors).not.toContain("dummy.scale.set(sharkScale * 1.75");
   });
@@ -187,7 +188,10 @@ describe("ST-119 animated shark models", () => {
     expect(low.radialSegments).toBeGreaterThanOrEqual(6);
 
     const actors = read("../src/game/game/ActorLayer.tsx");
-    expect(actors.match(/<coneGeometry\b[^>]*args=\{\[1, 1, 3\]\}/g)).toHaveLength(4);
+    expect(low.lengthSegments).toBeLessThan(medium.lengthSegments);
+    expect(medium.lengthSegments).toBeLessThan(high.lengthSegments);
+    expect(low.finSegments).toBeLessThan(high.finSegments);
+    expect(actors).toContain("createSharkBodyGeometry(sharkQuality)");
     expect(actors).toContain("resolveSharkPresentationQuality(settings.graphics.quality)");
   });
 
@@ -214,7 +218,9 @@ describe("shared shark geometry", () => {
     const geometry = read("../src/engine/sharkGeometry.ts");
     expect(geometry).not.toMatch(/three|document|window|react|src\/game/);
     const actors = read("../src/game/game/ActorLayer.tsx");
-    expect(actors).toContain("SHARK_GEOMETRY.snoutTip - SHARK_GEOMETRY.snoutRadius");
+    const model = read("../src/game/game/sharkGeometry.ts");
+    expect(model).toContain("SHARK_GEOMETRY.snoutTip");
+    expect(model).toContain("SHARK_GEOMETRY.tail");
     expect(actors).toContain("SHARK_GEOMETRY.tail");
     expect(read("../src/game/game/sceneMath.ts")).toContain("SHARK_GEOMETRY.mouth * size");
   });
@@ -237,6 +243,67 @@ describe("shared shark geometry", () => {
           expect(point.z).toBeCloseTo(-3 + Math.sin(yaw) * Math.cos(pitch) * offset * scale);
         }
         expect(shark).toEqual(before);
+      }
+    }
+  });
+});
+
+
+describe("ST-290 tapered body and blade geometry", () => {
+  it("keeps one continuous, outward-lit body with tapered ends at shared landmarks", () => {
+    let previousVertices = 0;
+    for (const quality of ["low", "medium", "high"] as const) {
+      const detail = resolveSharkPresentationQuality(quality);
+      const body = createSharkBodyGeometry(detail);
+      body.computeBoundingBox();
+      expect(body.boundingBox!.min.x).toBeCloseTo(-2.45);
+      expect(body.boundingBox!.max.x).toBeCloseTo(2.56);
+      const position = body.getAttribute("position");
+      const normal = body.getAttribute("normal");
+      expect(position.count).toBeGreaterThan(previousVertices);
+      previousVertices = position.count;
+      expect(body.groups).toHaveLength(0);
+      for (let ring = 0; ring <= detail.lengthSegments; ring++) {
+        const radii = Array.from({ length: detail.radialSegments + 1 }, (_, segment) => {
+          const i = segment * (detail.lengthSegments + 1) + ring;
+          const y = position.getY(i), z = position.getZ(i);
+          expect(Number.isFinite(normal.getX(i) + normal.getY(i) + normal.getZ(i))).toBe(true);
+          expect(Math.hypot(normal.getX(i), normal.getY(i), normal.getZ(i))).toBeCloseTo(1);
+          // Side normals face away from the axis, keeping the opaque surface visible.
+          expect(y * normal.getY(i) + z * normal.getZ(i)).toBeGreaterThanOrEqual(-0.00001);
+          return Math.hypot(y / 0.9, z);
+        });
+        expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(0.00001);
+        if (ring === 0 || ring === detail.lengthSegments) expect(Math.max(...radii)).toBeLessThan(0.00001);
+      }
+      // Broad shoulder, narrow tail and snout; no overlapping head/body seams.
+      const radii = Array.from({ length: detail.lengthSegments + 1 }, (_, i) => Math.abs(position.getZ(i)));
+      expect(Math.max(...radii)).toBeGreaterThan(0.64);
+      expect(radii[1]).toBeLessThan(0.25);
+      expect(radii.at(-2)).toBeLessThan(0.3);
+      expect(Array.from(body.index!.array).every(i => i < position.count)).toBe(true);
+      body.dispose();
+    }
+  });
+
+  it("uses thin, closed fin blades with finite normals and one material draw", () => {
+    for (const tail of [false, true]) {
+      let previousVertices = 0;
+      for (const quality of ["low", "medium", "high"] as const) {
+        const fin = createSharkFinGeometry(tail, resolveSharkPresentationQuality(quality).finSegments);
+        fin.computeBoundingBox();
+        const bounds = fin.boundingBox!;
+        expect(bounds.max.z - bounds.min.z).toBeCloseTo(0.06);
+        expect(bounds.max.x - bounds.min.x).toBeGreaterThan(1);
+        expect(bounds.max.y - bounds.min.y).toBeGreaterThan(1);
+        expect(fin.groups).toHaveLength(0);
+        expect(fin.getAttribute("position").count).toBeGreaterThan(previousVertices);
+        previousVertices = fin.getAttribute("position").count;
+        expect(Array.from(fin.getAttribute("normal").array).every(Number.isFinite)).toBe(true);
+        const normals = fin.getAttribute("normal");
+        expect(Array.from({ length: normals.count }, (_, i) => normals.getZ(i))).toContain(1);
+        expect(Array.from({ length: normals.count }, (_, i) => normals.getZ(i))).toContain(-1);
+        fin.dispose();
       }
     }
   });
