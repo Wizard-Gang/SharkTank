@@ -16,7 +16,6 @@ export interface OceanArenaCues {
   surfaceY: number;
   height: number;
   midY: number;
-  boundaryWarningRadius: number;
   frenzyRadius: number;
 }
 
@@ -28,6 +27,8 @@ export interface OceanEnvironmentQuality {
   frenzyRingCount: number;
   coralPerKindPerSite: number;
   kelpPerGap: number;
+  curtainSegments: number;
+  curtainFlowLines: number;
 }
 
 export type EnvironmentLandmarkKind = "reef" | "wreck" | "frenzy";
@@ -67,6 +68,8 @@ const ENVIRONMENT_QUALITY: Record<import("./quality.js").ResolvedQuality, OceanE
     frenzyRingCount: 1,
     coralPerKindPerSite: 1,
     kelpPerGap: 2,
+    curtainSegments: 64,
+    curtainFlowLines: 32,
   },
   medium: {
     particulateBudget: 78,
@@ -76,6 +79,8 @@ const ENVIRONMENT_QUALITY: Record<import("./quality.js").ResolvedQuality, OceanE
     frenzyRingCount: 2,
     coralPerKindPerSite: 2,
     kelpPerGap: 4,
+    curtainSegments: 96,
+    curtainFlowLines: 48,
   },
   high: {
     particulateBudget: 132,
@@ -85,6 +90,8 @@ const ENVIRONMENT_QUALITY: Record<import("./quality.js").ResolvedQuality, OceanE
     frenzyRingCount: 3,
     coralPerKindPerSite: 4,
     kelpPerGap: 6,
+    curtainSegments: 128,
+    curtainFlowLines: 64,
   },
 };
 
@@ -104,7 +111,6 @@ export function resolveOceanArenaCues(input: AuthoritativeOceanCueInput = {}): O
     surfaceY,
     height,
     midY: seabedY + height / 2,
-    boundaryWarningRadius: radius * 0.91,
     frenzyRadius: radius * FRENZY_RULES.volumeRadiusShare,
   };
 }

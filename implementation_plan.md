@@ -106,18 +106,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-295 — [FEAT] Draw a visible current curtain at the arena edge
-
-**Goal:** The soft wall should be visible before you reach it.
-
-**Scope:** A translucent cylindrical current wall with a vertical gradient and slow flow lines, which brightens within 20 units. It replaces the thin boundary rings.
-
-**Acceptance:** Environment tests and the draw inventory are updated.
-
-**Validation:** `npm test -- tests/ocean-arena.test.ts tests/client-performance.test.ts`.
-
----
-
 ### ST-296 — [REFACTOR] Sweep the last dead code, styles and copy
 
 **Goal:** Leave nothing unused behind after the wave.

@@ -67,7 +67,8 @@ describe("R3F-only gameplay renderer", () => {
     expect(fx).toContain("burst.y");
     const world = read("../src/game/game/WorldEnvironment.tsx");
     expect(world).toContain("frenzyUntilTick");
-    expect(world).toContain("state.arenaRadius");
+    expect(world).toContain("state?.arenaRadius");
+    expect(world).toContain("currentCurtainRef.current.scale.set(cues.radius, cues.height, cues.radius)");
     expect(fx).not.toContain("<ringGeometry");
     expect(actors).toContain("colorblindLabels");
     expect(actors).toContain("frameAt(REMOTE_INTERP_DELAY_MS)");

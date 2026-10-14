@@ -1,5 +1,5 @@
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { RoomSocket } from "../net/useRoomSocket.js";
 import type { Settings } from "../settings/SettingsContext.js";
@@ -15,6 +15,7 @@ import {
 } from "./oceanArena.js";
 import { cadenceDue, resolveClientPerformanceProfile } from "./performance.js";
 import { OCEAN_CUES, resolveSceneQuality } from "./sceneMath.js";
+import { createCurrentCurtain, currentCurtainProximity } from "./currentCurtain.js";
 
 const BACKGROUND = "#042737";
 const FOG = "#0b4a5a";
@@ -22,8 +23,6 @@ const SEABED = "#174b4f";
 const SEABED_ACCENT = "#2d7b72";
 const SURFACE = "#7ee6ee";
 const SURFACE_ACCENT = "#c2fbf7";
-const BOUNDARY = "#45e7e0";
-const BOUNDARY_DANGER = "#ff8d66";
 const PARTICULATE = "#9ee7dd";
 const BUBBLE = "#c8fbff";
 const KELP = "#66bc96";
@@ -32,7 +31,6 @@ const WRECK_ACCENT = "#c07c57";
 const FRENZY = "#ffb347";
 const FRENZY_ACTIVE = "#ffe46b";
 
-const BOUNDARY_MARKER_COUNT = 12;
 const LIGHT_SHAFT_LAYOUT = [
   { angle: -0.9, radialShare: 0.35, scale: 1.1 },
   { angle: 1.75, radialShare: 0.48, scale: 0.88 },
@@ -98,11 +96,9 @@ export function WorldEnvironment({ socket, settings }: { socket: RoomSocket; set
   const seabedRef = useRef<THREE.Mesh>(null);
   const seabedCuesRef = useRef<THREE.Group>(null);
   const surfaceBandsRef = useRef<THREE.Group>(null);
-  const lowerBoundaryRef = useRef<THREE.Mesh>(null);
-  const middleBoundaryRef = useRef<THREE.Mesh>(null);
-  const upperBoundaryRef = useRef<THREE.Mesh>(null);
-  const boundaryMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const boundaryMarkerRef = useRef<THREE.InstancedMesh>(null);
+  const currentCurtainRef = useRef<THREE.Mesh>(null);
+  const curtain = useMemo(createCurrentCurtain, []);
+  useEffect(() => () => curtain.material.dispose(), [curtain]);
   const reefBaseRef = useRef<THREE.InstancedMesh>(null);
   const reefSpireRef = useRef<THREE.InstancedMesh>(null);
   const reefRockRef = useRef<THREE.InstancedMesh>(null);
@@ -117,7 +113,6 @@ export function WorldEnvironment({ socket, settings }: { socket: RoomSocket; set
   const particulateRef = useRef<THREE.InstancedMesh>(null);
   const bubbleRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
-  const boundaryColor = useMemo(() => new THREE.Color(), []);
   const coralColor = useMemo(() => new THREE.Color(), []);
   const deepWaterColor = useMemo(() => new THREE.Color(FOG), []);
   const kelpTime = useMemo(() => ({ value: 0 }), []);
@@ -142,8 +137,6 @@ transformed.x += kelpSway * kelpTip * kelpTip * sin(kelpTime * 1.1 + kelpPhase);
     material.customProgramCacheKey = () => "sharktank-kelp-sway-v1";
     return material;
   }, [kelpTime, kelpSway]);
-  const boundarySafeColor = useMemo(() => new THREE.Color(BOUNDARY), []);
-  const boundaryDangerColor = useMemo(() => new THREE.Color(BOUNDARY_DANGER), []);
   const particulates = useMemo(
     () => makeEnvironmentSeeds(environmentQuality.particulateBudget, 118),
     [environmentQuality.particulateBudget],
@@ -196,6 +189,9 @@ transformed.x += kelpSway * kelpTip * kelpTip * sin(kelpTime * 1.1 + kelpPhase);
     const nowMs = clock.elapsedTime * 1000;
     kelpTime.value = t;
     kelpSway.value = reducedMotion ? 0 : 0.28;
+    curtain.uniforms.currentTime.value = t;
+    curtain.uniforms.currentLines.value = environmentQuality.curtainFlowLines;
+    curtain.uniforms.currentHighContrast.value = settings.a11y.contrast === "high" ? 1 : 0;
     const updateEnvironment = layoutChanged
       || cadenceDue(lastEnvironmentPassAt.current, nowMs, performanceProfile.environmentUpdateMs);
 
@@ -217,33 +213,9 @@ transformed.x += kelpSway * kelpTip * kelpTip * sin(kelpTime * 1.1 + kelpPhase);
         seabedCuesRef.current.scale.set(cues.radius, cues.radius, 1);
       }
 
-      const boundaryMeshes = [
-        [lowerBoundaryRef.current, cues.seabedY + cues.height * 0.17],
-        [middleBoundaryRef.current, cues.midY],
-        [upperBoundaryRef.current, cues.surfaceY - cues.height * 0.17],
-      ] as const;
-      for (const [mesh, y] of boundaryMeshes) {
-        if (!mesh) continue;
-        mesh.position.y = y;
-        mesh.scale.set(cues.radius, cues.radius, 1);
-      }
-
-      const boundaryMarkers = boundaryMarkerRef.current;
-      if (boundaryMarkers) {
-        for (let index = 0; index < BOUNDARY_MARKER_COUNT; index += 1) {
-          const angle = (index / BOUNDARY_MARKER_COUNT) * Math.PI * 2;
-          dummy.position.set(
-            Math.cos(angle) * 0.91 * cues.radius,
-            cues.midY,
-            Math.sin(angle) * 0.91 * cues.radius,
-          );
-          dummy.rotation.set(0, 0, 0);
-          dummy.scale.set(1, cues.height * 0.32, 1);
-          dummy.updateMatrix();
-          boundaryMarkers.setMatrixAt(index, dummy.matrix);
-        }
-        boundaryMarkers.count = BOUNDARY_MARKER_COUNT;
-        boundaryMarkers.instanceMatrix.needsUpdate = true;
+      if (currentCurtainRef.current) {
+        currentCurtainRef.current.position.y = cues.midY;
+        currentCurtainRef.current.scale.set(cues.radius, cues.height, cues.radius);
       }
 
       const coralMeshes = [
@@ -378,16 +350,8 @@ transformed.x += kelpSway * kelpTip * kelpTip * sin(kelpTime * 1.1 + kelpPhase);
         : 0.13;
     }
 
-    const local = state?.sharks.find((shark) => shark.id === socket.youId)?.position;
-    const boundaryDanger = local && state
-      ? Math.max(0, Math.min(1, 1 - (state.arenaRadius - Math.hypot(local.x, local.z)) / 14))
-      : 0;
-    if (boundaryMaterialRef.current) {
-      boundaryMaterialRef.current.color.copy(
-        boundaryColor.copy(boundarySafeColor).lerp(boundaryDangerColor, boundaryDanger),
-      );
-      boundaryMaterialRef.current.opacity = 0.2 + boundaryDanger * 0.3;
-    }
+    const local = state?.sharks.find((shark) => shark.id === socket.youId && shark.alive);
+    curtain.uniforms.currentProximity.value = currentCurtainProximity(cues.radius, local?.position);
   });
 
   const seabedCueOpacity = settings.graphics.showGrid ? 0.2 : 0.11;
@@ -449,27 +413,10 @@ transformed.x += kelpSway * kelpTip * kelpTip * sin(kelpTime * 1.1 + kelpPhase);
         ))}
       </group>
 
-      <mesh ref={lowerBoundaryRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.985, 1, sceneQuality.ringSegments]} />
-        <meshBasicMaterial ref={boundaryMaterialRef} color={BOUNDARY} transparent opacity={0.2} depthWrite={false} side={THREE.DoubleSide} />
+      <mesh ref={currentCurtainRef} material={curtain.material}
+        position={[0, fallback.midY, 0]} scale={[fallback.radius, fallback.height, fallback.radius]}>
+        <cylinderGeometry args={[1, 1, 1, environmentQuality.curtainSegments, 1, true]} />
       </mesh>
-      <mesh ref={middleBoundaryRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.985, 1, sceneQuality.ringSegments]} />
-        <meshBasicMaterial color={BOUNDARY} transparent opacity={0.22} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh ref={upperBoundaryRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.985, 1, sceneQuality.ringSegments]} />
-        <meshBasicMaterial color={BOUNDARY} transparent opacity={0.2} depthWrite={false} side={THREE.DoubleSide} />
-      </mesh>
-
-      <instancedMesh
-        ref={boundaryMarkerRef}
-        args={[undefined, undefined, BOUNDARY_MARKER_COUNT]}
-        frustumCulled={false}
-      >
-        <cylinderGeometry args={[0.08, 0.08, 1, 6]} />
-        <meshBasicMaterial color={BOUNDARY} transparent opacity={0.34} />
-      </instancedMesh>
 
       <instancedMesh ref={reefBaseRef} args={[undefined, undefined, maxCoralPerKind]} frustumCulled={false}>
         <dodecahedronGeometry args={[1.55, 1]} />
