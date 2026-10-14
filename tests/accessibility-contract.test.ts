@@ -26,6 +26,7 @@ import {
   smoothChaseCameraPose,
 } from "../src/game/game/sceneMath.js";
 import { resolveSharkAnimation } from "../src/game/game/sharkPresentation.js";
+import { sharkJawAngle, SHARK_JAW } from "../src/game/game/sharkJaw.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -160,6 +161,9 @@ describe("full-3D accessibility re-proof", () => {
     expect(cameraRig).toContain("smoothChaseCameraPose(current, goal, dt, reducedMotion");
     expect(actorLayer).toContain("const alpha = reducedMotion ? 1 : frame.alpha");
     expect(actorLayer).toContain("spineParameters.setXY(sharkCount, animation.phase, animation.amplitude)");
+    for (const age of [0, 50, 100, 149]) expect(sharkJawAngle(1000 + age, 1000, true)).toBe(SHARK_JAW.angle);
+    expect(sharkJawAngle(1150, 1000, true)).toBe(0);
+    expect(actorLayer).toContain("jaw.sample(shark.biteCooldownTick, nowMs, reducedMotion");
     expect(actorLayer.match(/onBeforeCompile={applySharkSpineShader}/g)).toHaveLength(5);
     expect(fxLayer).toContain("reducedMotion ? 0.35");
     expect(worldEnvironment).toContain("const t = reducedMotion ? 0 : clock.elapsedTime");

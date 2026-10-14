@@ -396,6 +396,7 @@ function BiteButton({ socket, compact, keyName, touchInputRef, enabled }: Abilit
   const cooldown = useAbilityCooldown(socket, "biteCooldownTick");
   const buffer = useRef(new BiteBuffer());
   const press = () => {
+    socket.bitePressedAtRef.current = performance.now();
     if (buffer.current.press(performance.now(), abilityRemaining(socket, "biteCooldownTick") * 1000)) socket.bite();
   };
   useEffect(() => {

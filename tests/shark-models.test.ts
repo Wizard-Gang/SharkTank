@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 import { createSharkBodyGeometry, createSharkFinGeometry, sharkSurfaceRestMatrix } from "../src/game/game/sharkGeometry.js";
 import { applySharkSpineShader, SHARK_SPINE } from "../src/game/game/sharkSpine.js";
+import { SharkJawCue, SHARK_JAW, sharkJawAngle, splitSharkJawGeometry } from "../src/game/game/sharkJaw.js";
 import { SKINS } from "../src/engine/index.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "../src/game/game/sharkMaterial.js";
 import { ROOM_SCHEMA_VERSION } from "../src/engine/room.js";
@@ -15,6 +16,100 @@ import {
 import { sharkScaleForLength, mouthPoint, bodySegment } from "../src/engine/sharkGeometry.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+
+describe("ST-292 bite jaws", () => {
+  it("opens immediately on a local press, closes by 150 ms and ignores server confirmation", () => {
+    const cue = new SharkJawCue();
+    expect(cue.sample(0, 999, false, 1000)).toBe(0);
+    expect(cue.sample(0, 1000, false, 1000)).toBe(SHARK_JAW.angle);
+    expect(cue.sample(30, 1045, false, 1000)).toBe(SHARK_JAW.angle);
+    expect(cue.sample(30, 1100, false, 1000)).toBeGreaterThan(0);
+    expect(cue.sample(30, 1100, false, 1000)).toBeLessThan(SHARK_JAW.angle);
+    expect(cue.sample(30, 1149, false, 1000)).toBeGreaterThan(0);
+    expect(cue.sample(30, 1150, false, 1000)).toBe(0);
+    expect(cue.sample(30, 1160, false, 1160)).toBe(SHARK_JAW.angle);
+    for (const startedAt of [-Infinity, NaN, Infinity]) expect(sharkJawAngle(1000, startedAt, false)).toBe(0);
+  });
+
+  it("baselines remote cooldowns, triggers advances once and resets regressed cooldowns", () => {
+    const cue = new SharkJawCue();
+    expect(cue.sample(30, 1000, false)).toBe(0);
+    expect(cue.sample(30, 1100, false)).toBe(0);
+    expect(cue.sample(44, 1200, false)).toBe(SHARK_JAW.angle);
+    expect(cue.sample(44, 1349, false)).toBeGreaterThan(0);
+    expect(cue.sample(44, 1350, false)).toBe(0);
+    expect(cue.sample(58, 1400, false)).toBe(SHARK_JAW.angle);
+    expect(cue.sample(0, 1410, false)).toBe(0);
+    expect(new SharkJawCue().sample(72, 1420, false)).toBe(0);
+  });
+
+  it("keeps the full bite window static in Reduced motion for local and remote cues", () => {
+    const remote = new SharkJawCue();
+    remote.sample(0, 999, true);
+    for (const age of [0, 16, 45, 75, 100, 149]) {
+      expect(sharkJawAngle(1000 + age, 1000, true)).toBe(SHARK_JAW.angle);
+      expect(remote.sample(14, 1000 + age, true)).toBe(SHARK_JAW.angle);
+    }
+    expect(remote.sample(14, 1150, true)).toBe(0);
+  });
+
+  it("splits only lower anatomy, preserves shaded rest positions and adds opaque mouth interiors in one batch", () => {
+    let previousCount = 0;
+    for (const quality of ["low", "medium", "high"] as const) {
+      for (const highContrast of [false, true]) {
+        const body = createSharkBodyGeometry(resolveSharkPresentationQuality(quality));
+        countershadeSharkGeometry(body, "body", highContrast);
+        const jaw = splitSharkJawGeometry(body);
+        jaw.computeBoundingBox();
+        expect(jaw.boundingBox!.min.x).toBeCloseTo(-2.45);
+        expect(jaw.boundingBox!.max.x).toBeCloseTo(2.56);
+        expect(jaw.groups).toHaveLength(0);
+        const positions = jaw.getAttribute("position"), normals = jaw.getAttribute("normal");
+        const parts = jaw.getAttribute("sharkJawPart"), colors = jaw.getAttribute("color");
+        let lowerSnout = 0, upperSnout = 0, interiors = 0;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i), y = positions.getY(i), part = parts.getX(i);
+          expect(part).toBe(y > 1e-6 ? 0 : y < -1e-6 ? 1 : part);
+          expect(Number.isFinite(x + y + positions.getZ(i))).toBe(true);
+          expect(Math.hypot(normals.getX(i), normals.getY(i), normals.getZ(i))).toBeCloseTo(1);
+          expect(colors.getX(i)).toBe(colors.getY(i));
+          expect(colors.getX(i)).toBe(colors.getZ(i));
+          if (x > SHARK_JAW.blendEnd && y < -0.01 && part === 1) lowerSnout++;
+          if (x > SHARK_JAW.blendEnd && y > 0.01 && part === 0) upperSnout++;
+          if (colors.getX(i) < 0.2) {
+            interiors++;
+            expect(y).toBe(0);
+            expect(x).toBeGreaterThanOrEqual(SHARK_JAW.hinge - 1e-6);
+            expect(normals.getY(i)).toBe(part ? 1 : -1);
+          }
+        }
+        expect(lowerSnout).toBeGreaterThan(0);
+        expect(upperSnout).toBeGreaterThan(0);
+        expect(interiors).toBeGreaterThan(0);
+        if (!highContrast) { expect(positions.count).toBeGreaterThan(previousCount); previousCount = positions.count; }
+        jaw.dispose();
+      }
+    }
+  });
+
+  it("wires keyboard and touch presses and keeps jaw deformation in the five existing lit anatomy batches", () => {
+    const socket = read("../src/game/net/useRoomSocket.ts"), ui = read("../src/game/ui/GameScreen.tsx");
+    expect(socket).toContain("bitePressedAtRef.current = performance.now()");
+    expect(socket.match(/bitePressedAtRef.current = -Infinity/g)!.length).toBeGreaterThanOrEqual(3);
+    expect(ui).toContain("socket.bitePressedAtRef.current = performance.now()");
+    const actors = read("../src/game/game/ActorLayer.tsx");
+    expect(actors).toContain("jaw.sample(shark.biteCooldownTick, nowMs, reducedMotion, isMe ? socket.bitePressedAtRef.current : undefined)");
+    expect(actors).toContain("if (!activeIds.has(id)) jawCues.delete(id)");
+    expect(actors).toContain("state.tick < jawTimeline.current.tick");
+    expect(actors.match(/onBeforeCompile={applySharkSpineShader}/g)).toHaveLength(5);
+    const shader = { vertexShader: THREE.ShaderLib.standard.vertexShader };
+    applySharkSpineShader(shader);
+    expect(shader.vertexShader).toContain("attribute float sharkJawPart");
+    expect(shader.vertexShader).toContain("objectNormal.xy = sharkJawRotation() * objectNormal.xy");
+    expect(shader.vertexShader).toContain("transformed.xy = sharkJawRotation()");
+    expect(shader.vertexShader).toContain("transformed.z += sharkSpineWave(position.x).x");
+  });
+});
 
 describe("ST-289 lit shark countershading", () => {
   it("uses a lit, opaque skin-multiplying material without a second pass", () => {
