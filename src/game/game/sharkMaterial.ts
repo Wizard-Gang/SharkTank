@@ -7,14 +7,11 @@ const sx = Math.sin(Math.PI / 2 - 0.14);
 const cz = Math.cos(0.22);
 const sz = Math.sin(0.22);
 const HEIGHT = {
-  body: [0, 0.58, 0, 0],
-  head: [0, 0.59, 0, 0.03],
-  snout: [0, 0.42, 0, -0.04],
-  peduncle: [0, 0.25, 0, 0],
+  body: [0, 1, 0, 0],
   tail: [0, 0.98, 0, 0],
   dorsal: [0, 0.92, 0, 0.78],
-  pectoralLeft: [-cx * sz * 0.36, cx * cz * 0.9, -sx * 0.25, -0.2],
-  pectoralRight: [cx * sz * 0.36, cx * cz * 0.9, sx * 0.25, -0.2],
+  pectoralLeft: [-cx * sz * 0.7, cx * cz * 1.5, -sx, -0.2],
+  pectoralRight: [cx * sz * 0.7, cx * cz * 1.5, sx, -0.2],
 } as const;
 
 export type SharkSurface = keyof typeof HEIGHT;
