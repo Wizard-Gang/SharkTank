@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-289 — [FEAT] Light and countershade the sharks
-
-**Goal:** Unlit sharks read as flat blobs.
-
-**Scope:** Use a lit material with dark-dorsal, light-ventral countershading multiplied by the skin colour. Keep high contrast and skin recognition.
-
-**Acceptance:** Material tests pass; draw calls are unchanged.
-
-**Validation:** `npm test -- tests/shark-models.test.ts tests/client-performance.test.ts`.
-
----
-
 ### ST-290 — [FEAT] Replace sphere-and-cone sharks with a smooth body and blade fins
 
 **Goal:** Remove the chunky sphere-and-cone look.

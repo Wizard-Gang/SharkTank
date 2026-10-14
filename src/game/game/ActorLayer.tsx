@@ -1,3 +1,4 @@
+import { countershadeSharkGeometry, SHARK_MATERIAL } from "./sharkMaterial.js";
 import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
 import { REMOTE_INTERP_DELAY_MS } from "../net/snapshotTimeline.js";
@@ -506,40 +507,49 @@ export function ActorLayer({
   });
 
   const sharkQuality = resolveSharkPresentationQuality(settings.graphics.quality);
+  const highContrast = settings.a11y.contrast === "high";
 
   return (
     <>
       <instancedMesh ref={bodyMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />
-        <meshBasicMaterial toneMapped={false} />
+        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "body", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={headMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />
-        <meshBasicMaterial toneMapped={false} />
+        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "head", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={snoutMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />
-        <meshBasicMaterial toneMapped={false} />
+        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "snout", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={peduncleMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />
-        <meshBasicMaterial toneMapped={false} />
+        <sphereGeometry key={String(highContrast)} args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "peduncle", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={tailFinMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 3]} />
-        <meshBasicMaterial toneMapped={false} />
+        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "tail", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={dorsalFinMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 3]} />
-        <meshBasicMaterial toneMapped={false} />
+        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "dorsal", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={pectoralLeftMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 3]} />
-        <meshBasicMaterial toneMapped={false} />
+        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "pectoralLeft", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={pectoralRightMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <coneGeometry args={[1, 1, 3]} />
-        <meshBasicMaterial toneMapped={false} />
+        <coneGeometry key={String(highContrast)} args={[1, 1, 3]}
+          onUpdate={(geometry) => countershadeSharkGeometry(geometry, "pectoralRight", highContrast)} />
+        <meshStandardMaterial {...SHARK_MATERIAL} />
       </instancedMesh>
       <instancedMesh ref={rimMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />
