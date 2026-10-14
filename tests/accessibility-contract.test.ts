@@ -28,6 +28,7 @@ import {
 import { resolveSharkAnimation } from "../src/game/game/sharkPresentation.js";
 import { sharkJawAngle, SHARK_JAW } from "../src/game/game/sharkJaw.js";
 import { FeedingParticles } from "../src/game/game/feedingParticles.js";
+import { ImpactFeedback } from "../src/game/game/impactFeedback.js";
 import { decodeState, toNetState } from "../src/protocol/index.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -58,6 +59,45 @@ const fxLayer = read("../src/game/game/FxLayer.tsx");
 const worldEnvironment = read("../src/game/game/WorldEnvironment.tsx");
 
 describe("public accessibility contract", () => {
+  it("ST-294 clears every impact cue with Camera motion off or Reduced motion, without replay", () => {
+    const room = createRoom({ seed: "st-294-accessibility" });
+    applyAction(room, { type: "join", playerId: "pilot", name: "Pilot" });
+    const before = decodeState(toNetState(room));
+    const after = structuredClone(before); after.tick += 2; after.sharks[0].health = 50;
+    for (const [cameraMotion, reducedMotion] of [[false, false], [true, true]]) {
+      const effects = new ImpactFeedback();
+      effects.sample(before, "pilot", 0, true, false);
+      effects.sample(after, "pilot", 100, true, false);
+      expect(effects.shake(100, true, false).x).toBeGreaterThan(0);
+      expect(effects.flash("pilot", 100)).toBeGreaterThan(0);
+      expect(effects.vignette(100)).toBeGreaterThan(0);
+      effects.sample(after, "pilot", 110, cameraMotion, reducedMotion);
+      expect(effects.shake(110, cameraMotion, reducedMotion)).toEqual({ x: 0, y: 0, z: 0 });
+      expect(effects.flash("pilot", 110)).toBe(0);
+      expect(effects.vignette(110)).toBe(0);
+      effects.sample(after, "pilot", 120, true, false);
+      expect(effects.shake(120, true, false).x).toBe(0);
+      expect(effects.flash("pilot", 120)).toBe(0);
+      expect(effects.vignette(120)).toBe(0);
+      const next = structuredClone(after); next.tick += 2; next.sharks[0].health = 25;
+      effects.sample(next, "pilot", 200, cameraMotion, reducedMotion);
+      effects.sample(next, "pilot", 210, true, false);
+      expect(effects.shake(210, true, false).x).toBe(0);
+      expect(effects.flash("pilot", 210)).toBe(0);
+      expect(effects.vignette(210)).toBe(0);
+    }
+    const scene = read("../src/game/game/Scene.tsx");
+    expect(scene).toContain('impacts.sample(state, socket.youId, now, settings.graphics.cameraShake, settings.a11y.motion === "reduced")');
+    expect(scene).toContain('document.visibilityState !== "hidden"');
+    expect(actorLayer).toContain("impacts?.flash(shark.id, nowMs)");
+    expect(gameViewport).toContain('className="game-damage-vignette" aria-hidden="true"');
+    expect(theme).toMatch(/\.game-damage-vignette\{[^}]*pointer-events:none/);
+    expect(theme).toContain(':root[data-motion="reduced"] .game-damage-vignette{display:none}');
+    expect(settings).toContain("Impact shake, bitten-shark flashes and damage edges.");
+    // Health, edibility and captions remain independent of decorative feedback.
+    expect(gameScreen).toContain('<Hud socket={socket} reducedMotion={settings.a11y.motion === "reduced"} />');
+    expect(gameAudio).toContain('cue.current("biteImpact"');
+  });
   it("ST-293 removes wakes and prey pops immediately in Reduced motion without replay on return", () => {
     const room = createRoom({ seed: "st-293-reduced" });
     applyAction(room, { type: "join", playerId: "pilot", name: "Pilot" });

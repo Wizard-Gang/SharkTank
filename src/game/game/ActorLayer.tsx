@@ -1,6 +1,7 @@
 import { createSharkBodyGeometry, createSharkFinGeometry, sharkSurfaceRestMatrix } from "./sharkGeometry.js";
 import { applySharkSpineShader } from "./sharkSpine.js";
 import { SharkJawCue, splitSharkJawGeometry } from "./sharkJaw.js";
+import type { ImpactFeedback } from "./impactFeedback.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "./sharkMaterial.js";
 import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
@@ -104,12 +105,14 @@ export function ActorLayer({
   labelsRef,
   inputRef,
   followRef,
+  impacts,
 }: {
   socket: RoomSocket;
   settings: Settings;
   labelsRef?: React.MutableRefObject<SharkLabel[]>;
   inputRef?: React.MutableRefObject<LocalInput>;
   followRef: React.MutableRefObject<CameraFollowTarget>;
+  impacts?: ImpactFeedback;
 }) {
   const { camera, size } = useThree();
   const bodyMesh = useRef<THREE.InstancedMesh>(null);
@@ -361,7 +364,8 @@ export function ActorLayer({
       }
 
       const activityGlow = isMe ? 0.18 : 0;
-      const glow = Math.max(activityGlow, shark.id === apexId ? 0.42 : 0);
+      const baseGlow = Math.max(activityGlow, shark.id === apexId ? 0.42 : 0);
+      const glow = baseGlow + (1 - baseGlow) * (impacts?.flash(shark.id, nowMs) ?? 0);
       const renderColor = glow ? tempColor.copy(bodyColor).lerp(WHITE, glow) : bodyColor;
       setPartColor(sharkParts, sharkCount, renderColor);
       sharkCount += 1;

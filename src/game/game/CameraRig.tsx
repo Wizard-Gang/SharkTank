@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { audio } from "../audio/AudioManager.js";
+import type { ImpactFeedback } from "./impactFeedback.js";
 import type { LocalInput } from "./useLocalInput.js";
 import {
   CAMERA_PROJECTION,
@@ -48,14 +49,19 @@ export function CameraRig({
   followRef,
   reducedMotion,
   inputRef,
+  cameraMotion,
+  impacts,
 }: {
   followRef: React.MutableRefObject<CameraFollowTarget>;
   reducedMotion: boolean;
+  cameraMotion: boolean;
+  impacts?: ImpactFeedback;
   inputRef?: React.MutableRefObject<LocalInput>;
 }) {
   const { camera } = useThree();
   const goal = useMemo(() => makeChaseCameraPose(), []);
   const current = useMemo(() => makeChaseCameraPose(), []);
+  const shake = useMemo(() => new THREE.Vector3(), []);
 
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
@@ -92,6 +98,11 @@ export function CameraRig({
     smoothChaseCameraPose(current, goal, dt, reducedMotion, current);
     camera.position.set(current.position.x, current.position.y, current.position.z);
     camera.lookAt(current.lookAt.x, current.lookAt.y, current.lookAt.z);
+    if (impacts) {
+      impacts.shake(performance.now(), cameraMotion, reducedMotion, shake);
+      shake.applyQuaternion(camera.quaternion);
+      camera.position.add(shake);
+    }
 
     const fx = current.lookAt.x - current.position.x;
     const fy = current.lookAt.y - current.position.y;

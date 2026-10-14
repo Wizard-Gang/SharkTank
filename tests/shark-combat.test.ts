@@ -1,6 +1,8 @@
 import { performance } from "node:perf_hooks";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { decodeState, toNetState } from "../src/protocol/index.js";
+import { IMPACT_FX, ImpactFeedback } from "../src/game/game/impactFeedback.js";
 import {
   COMBAT,
   PREY_BUDGET,
@@ -44,6 +46,117 @@ function farFood(count: number): Prey[] {
     school: -1,
   }));
 }
+
+describe("ST-294 authoritative impact feedback", () => {
+  function fixture(devour = false, miss = false) {
+    const room = createRoom({ seed: "impact-feedback" });
+    const attacker = join(room, "pilot-with-hyphens");
+    const victim = join(room, "victim-with-hyphens");
+    place(attacker, 0, 0, 0); place(victim, miss ? 30 : 3, 0, 0);
+    ready(attacker); ready(victim);
+    if (devour) attacker.length = victim.length * 1.5;
+    room.tick = 99;
+    const before = decodeState(toNetState(room));
+    room.tick = 100;
+    applyAction(room, { type: "bite", playerId: attacker.id });
+    return { before, after: decodeState(toNetState(room)), attacker, victim };
+  }
+
+  it("shakes only a confirmed landing, flashes the victim for 120 ms and vignettes only local damage", () => {
+    const { before, after, attacker, victim } = fixture();
+    const landing = new ImpactFeedback(); const bitten = new ImpactFeedback();
+    landing.sample(before, attacker.id, 0, true, false);
+    bitten.sample(before, victim.id, 0, true, false);
+    const unchanged = structuredClone(after);
+    landing.sample(after, attacker.id, 100, true, false);
+    bitten.sample(after, victim.id, 100, true, false);
+    expect(landing.shake(100, true, false).x).toBe(IMPACT_FX.biteStrength);
+    expect(bitten.shake(100, true, false).x).toBe(IMPACT_FX.bittenStrength);
+    expect(landing.flash(victim.id, 100)).toBe(0.65);
+    expect(landing.flash(victim.id, 160)).toBeCloseTo(0.65 / 4);
+    expect(landing.flash(victim.id, 220)).toBe(0);
+    expect(landing.flash(attacker.id, 100)).toBe(0);
+    expect(landing.vignette(100)).toBe(0);
+    expect(bitten.vignette(100)).toBe(0.48);
+    expect(bitten.vignette(240)).toBeCloseTo(0.12);
+    expect(bitten.vignette(380)).toBe(0);
+    landing.sample(after, attacker.id, 150, true, false);
+    expect(landing.shake(280, true, false)).toEqual({ x: 0, y: 0, z: 0 });
+    expect(after).toEqual(unchanged);
+    const missed = fixture(false, true); const noHit = new ImpactFeedback();
+    noHit.sample(missed.before, missed.attacker.id, 0, true, false);
+    noHit.sample(missed.after, missed.attacker.id, 100, true, false);
+    expect(noHit.shake(100, true, false).x).toBe(0);
+  });
+
+  it("uses a stronger bounded devour impulse and still signals a fatal incoming bite", () => {
+    const { before, after, attacker, victim } = fixture(true);
+    for (const [id, expected] of [[attacker.id, IMPACT_FX.devourStrength], [victim.id, IMPACT_FX.bittenStrength]] as const) {
+      const effects = new ImpactFeedback();
+      effects.sample(before, id, 0, true, false);
+      effects.sample(after, id, 100, true, false);
+      expect(effects.shake(100, true, false).x).toBe(expected);
+    }
+    expect(after.sharks.find(shark => shark.id === victim.id)?.alive).toBe(false);
+  });
+
+  it("bounds flashes and damage edges to at most one onset per 400 ms during repeated hits", () => {
+    const { before, after, victim } = fixture();
+    const effects = new ImpactFeedback();
+    effects.sample(before, victim.id, 0, true, false);
+    effects.sample(after, victim.id, 100, true, false);
+    const repeated = structuredClone(after); repeated.tick += 2;
+    repeated.sharks.find(shark => shark.id === victim.id)!.health -= 10;
+    effects.sample(repeated, victim.id, 200, true, false);
+    expect(effects.flash(victim.id, 220)).toBe(0);
+    expect(effects.vignette(380)).toBe(0);
+    effects.sample(repeated, victim.id, 400, true, false);
+    const later = structuredClone(repeated); later.tick += 2;
+    later.sharks.find(shark => shark.id === victim.id)!.health -= 10;
+    effects.sample(later, victim.id, 500, true, false);
+    expect(effects.flash(victim.id, 500)).toBe(0.65);
+    expect(effects.vignette(500)).toBe(0.48);
+  });
+
+  it("establishes fresh baselines for reconnect, round, result, time regression, stale gaps and respawn", () => {
+    const { before, after, victim } = fixture();
+    const variants = [
+      { ...after, tick: before.tick - 1 },
+      { ...after, tick: before.tick + 7 },
+      { ...after, round: { ...after.round, number: after.round.number + 1 } },
+      { ...after, round: { ...after.round, startTick: after.round.startTick + 1 } },
+      { ...after, round: { ...after.round, phase: "result" as const } },
+    ];
+    for (const state of variants) {
+      const effects = new ImpactFeedback();
+      effects.sample(before, victim.id, 0, true, false);
+      effects.sample(state, victim.id, 100, true, false);
+      expect(effects.shake(100, true, false).x).toBe(0);
+      expect(effects.flash(victim.id, 100)).toBe(0);
+      expect(effects.vignette(100)).toBe(0);
+    }
+    for (const now of [-1, 301]) {
+      const effects = new ImpactFeedback();
+      effects.sample(before, victim.id, 0, true, false);
+      effects.sample(after, victim.id, now, true, false);
+      expect(effects.shake(now, true, false).x).toBe(0);
+    }
+    const effects = new ImpactFeedback();
+    effects.sample(before, victim.id, 0, true, false);
+    effects.sample(after, victim.id, 100, true, false);
+    effects.sample(null, victim.id, 110, true, false);
+    effects.sample(after, victim.id, 120, true, false);
+    expect(effects.vignette(120)).toBe(0);
+    expect(effects.flash(victim.id, 120)).toBe(0);
+    const dead = structuredClone(after); dead.tick += 2;
+    dead.sharks.find(shark => shark.id === victim.id)!.alive = false;
+    effects.sample(dead, victim.id, 150, true, false);
+    effects.sample({ ...after, tick: dead.tick + 2 }, victim.id, 200, true, false);
+    expect(effects.shake(200, true, false).x).toBe(0);
+    effects.sample(after, "new-player", 210, true, false);
+    expect(effects.flash(victim.id, 210)).toBe(0);
+  });
+});
 
 describe("ST-122 directional shark combat", () => {
   it("uses explicit bounded combat constants", () => {

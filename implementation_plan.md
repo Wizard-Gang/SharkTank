@@ -14,8 +14,6 @@ The queue comes from two code deep dives plus live production measurements taken
 
 ### What the deep dives found
 
-- **Dead code remains outside the active game path.**
-  - The Camera motion setting is read by nothing.
 - **Remote motion freezes most of the time.** Snapshots arrive at 10.1 Hz (median gap 99.4 ms) but the interpolation delay is 45 ms. Replaying measured arrivals through the client's rule leaves remote sharks and fish frozen on about 72% of 60 Hz frames, and the clock drifts (+0.7 ms/s) with no correction. Swim animation follows the same stalled clock.
 - **The wire is heavy for phones.** About 30 KB of JSON per snapshot carries every prey in the tank: about 295 KB/s, roughly 1 GB per hour.
 - **Controls fight the player.**
@@ -107,18 +105,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 
 ## Open tasks
 
-
-### ST-294 — [FEAT] Shake the camera and flash bitten sharks on impact
-
-**Goal:** Hits should be felt and seen. The Camera motion toggle currently does nothing.
-
-**Scope:** Add a short decaying shake on landing a bite, being bitten and devouring, a flash of about 120 ms on bitten sharks, and a red edge vignette when your health drops. All of it obeys the toggle and reduced motion.
-
-**Acceptance:** Envelope tests pass; with the toggle off there is no shake.
-
-**Validation:** `npm test -- tests/swimming-camera.test.ts tests/shark-combat.test.ts tests/accessibility-contract.test.ts`.
-
----
 
 ### ST-295 — [FEAT] Draw a visible current curtain at the arena edge
 
