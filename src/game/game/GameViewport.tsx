@@ -42,6 +42,7 @@ export function GameViewport({
   schoolCueRef,
 }: GameViewportProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const vignetteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<LocalInput>({
     targetYaw: 0,
     targetPitch: 0,
@@ -98,8 +99,9 @@ export function GameViewport({
         gl={{ alpha: false, antialias: quality.antialias }}
       >
         <AdaptiveResolution cap={renderDpr} />
-        <Scene socket={socket} settings={settings} labelsRef={labelsRef} cuesRef={cuesRef} schoolCueRef={schoolCueRef} inputRef={inputRef} />
+        <Scene socket={socket} settings={settings} labelsRef={labelsRef} cuesRef={cuesRef} schoolCueRef={schoolCueRef} inputRef={inputRef} vignetteRef={vignetteRef} />
       </Canvas>
+      <div ref={vignetteRef} className="game-damage-vignette" aria-hidden="true" />
     </div>
   );
 }

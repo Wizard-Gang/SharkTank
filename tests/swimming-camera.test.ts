@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PerspectiveCamera, Vector3 } from "three";
+import { IMPACT_FX, impactEnvelope, impactShake } from "../src/game/game/impactFeedback.js";
 import {
   MAX_PITCH,
   MOVE,
@@ -211,5 +212,36 @@ describe("ST-115 shark swimming and chase camera", () => {
 
   it("keeps separate authoritative turn/pitch rates visible to prediction", () => {
     expect(MOVE.TURN_RATE * TICKS_PER_SECOND).toBeGreaterThan(MOVE.PITCH_RATE * TICKS_PER_SECOND);
+  });
+});
+
+describe("ST-294 impact camera envelope", () => {
+  it("decays to zero in 180 ms and never accumulates displacement", () => {
+    expect(IMPACT_FX.shakeMs).toBe(180);
+    expect(impactEnvelope(100, 100, 180)).toBe(1);
+    expect(impactEnvelope(190, 100, 180)).toBeCloseTo(0.25);
+    for (const now of [99, 280, 400, Infinity, NaN]) expect(impactEnvelope(now, 100, 180)).toBe(0);
+    const out = { x: 99, y: 99, z: 99 };
+    for (let age = 0; age <= 200; age++) {
+      expect(impactShake(100 + age, 100, 10, true, false, out)).toBe(out);
+      const bound = IMPACT_FX.devourStrength * impactEnvelope(100 + age, 100, 180);
+      expect(Math.abs(out.x)).toBeLessThanOrEqual(bound);
+      expect(Math.abs(out.y)).toBeLessThanOrEqual(bound * 0.6);
+      expect(out.z).toBe(0);
+    }
+    expect(out).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  it("makes the Camera motion off switch and Reduced motion exactly motion-free at every age", () => {
+    for (let age = 0; age < 180; age++) {
+      expect(impactShake(age, 0, 0.36, false, false)).toEqual({ x: 0, y: 0, z: 0 });
+      expect(impactShake(age, 0, 0.36, true, true)).toEqual({ x: 0, y: 0, z: 0 });
+    }
+    expect(impactShake(0, 0, 0.22, true, false).x).toBeGreaterThan(0);
+    const rig = readFileSync(new URL("../src/game/game/CameraRig.tsx", import.meta.url), "utf8");
+    const scene = readFileSync(new URL("../src/game/game/Scene.tsx", import.meta.url), "utf8");
+    expect(scene).toContain("cameraMotion={settings.graphics.cameraShake}");
+    expect(rig).toContain("impacts.shake(performance.now(), cameraMotion, reducedMotion, shake)");
+    expect(rig.indexOf("camera.position.set(current.position.x")).toBeLessThan(rig.indexOf("camera.position.add(shake)"));
   });
 });
