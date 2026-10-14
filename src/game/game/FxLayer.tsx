@@ -7,6 +7,8 @@ import type { RoomSocket } from "../net/useRoomSocket.js";
 import type { Settings } from "../settings/SettingsContext.js";
 import { cadenceDue, resolveClientPerformanceProfile } from "./performance.js";
 import { resolveSceneQuality } from "./sceneMath.js";
+import { FeedingParticles } from "./feedingParticles.js";
+import type { CameraFollowTarget } from "./CameraRig.js";
 
 const MAX_BURST_PARTICLES = 512;
 
@@ -30,13 +32,17 @@ function hash(value: string): number {
 export function FxLayer({
   socket,
   settings,
+  followRef,
 }: {
   socket: RoomSocket;
   settings: Settings;
+  followRef?: React.MutableRefObject<CameraFollowTarget>;
 }) {
   const burstMesh = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const seedCache = useMemo(() => new Map<string, number>(), []);
+  const feeding = useMemo(() => new FeedingParticles(), []);
+  const particleColor = useMemo(() => new THREE.Color(), []);
   const quality = resolveSceneQuality(settings.graphics.quality);
   const performanceProfile = resolveClientPerformanceProfile(settings.graphics.quality);
   const lastBurstPassAt = useRef(-Infinity);
@@ -46,7 +52,12 @@ export function FxLayer({
     if (!bursts) return;
 
     const frame = socket.frameAt(REMOTE_INTERP_DELAY_MS);
-    if (!frame) return;
+    if (!frame || socket.status !== "open") {
+      feeding.reset();
+      bursts.count = 0;
+      lastBurstPassAt.current = -Infinity;
+      return;
+    }
     const state = frame.newer;
     const reducedMotion = settings.a11y.motion === "reduced";
     const alpha = reducedMotion ? 1 : frame.alpha;
@@ -54,7 +65,18 @@ export function FxLayer({
     const nowMs = clock.elapsedTime * 1000;
     if (cadenceDue(lastBurstPassAt.current, nowMs, performanceProfile.effectUpdateMs)) {
       lastBurstPassAt.current = nowMs;
-      let burstCount = 0;
+      const follow = followRef?.current;
+      const local = follow?.active && socket.youId
+        ? { id: socket.youId, position: follow.position, yaw: follow.yaw, pitch: follow.pitch } : undefined;
+      let burstCount = feeding.sample(frame, clock.elapsedTime, quality.burstParticleBudget, reducedMotion,
+        (particle, index) => {
+          dummy.position.set(particle.x, particle.y, particle.z);
+          dummy.rotation.set(0, -particle.yaw, particle.pitch);
+          dummy.scale.set(particle.radius * particle.stretch, particle.radius, particle.radius);
+          dummy.updateMatrix();
+          bursts.setMatrixAt(index, dummy.matrix);
+          bursts.setColorAt(index, particleColor.set(particle.color));
+        }, local);
       const renderTick = state.tick + alpha;
       for (const burst of state.explosions ?? []) {
         const life = Math.max(0, Math.min(1, (renderTick - burst.tick) / EXPLOSION_RENDER_TICKS));

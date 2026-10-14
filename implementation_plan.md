@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-293 — [FEAT] Trail dash wakes and pop prey at the mouth
-
-**Goal:** Make dashing and eating visible.
-
-**Scope:** Draw instanced bubble streaks behind sharks while they lunge, and a small burst in the prey colour where a prey vanished within 12 units of a shark mouth. Both are bounded by the quality particle budget, and reduced motion removes them.
-
-**Acceptance:** Budget and inference tests pass.
-
-**Validation:** `npm test -- tests/client-performance.test.ts tests/prey-schools.test.ts tests/accessibility-contract.test.ts`.
-
----
-
 ### ST-294 — [FEAT] Shake the camera and flash bitten sharks on impact
 
 **Goal:** Hits should be felt and seen. The Camera motion toggle currently does nothing.

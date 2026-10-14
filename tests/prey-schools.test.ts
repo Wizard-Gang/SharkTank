@@ -26,6 +26,7 @@ import {
 } from "../src/game/game/preyPresentation.js";
 
 import { bodySegment, mouthPoint, sharkScaleForLength } from "../src/engine/sharkGeometry.js";
+import { FeedingParticles, nearLivingMouth, type FeedingParticle } from "../src/game/game/feedingParticles.js";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -715,4 +716,88 @@ describe("ST-271 human food availability", () => {
     expect(nearCount / baitCount).toBeGreaterThan(0.2);
     expect(nearCount / baitCount).toBeLessThan(0.53);
   });
+});
+
+function feedingFixture() {
+  const room = createRoom({ seed: "st-293-feeding" });
+  const shark = join(room, "eater");
+  place(shark, 0, 0, 0);
+  shark.yaw = 0; shark.pitch = 0;
+  room.food = [];
+  const state = decodeState(toNetState(room));
+  const mouth = mouthPoint(state.sharks[0]);
+  state.food = [decodePrey(["meal", 0, mouth.x, mouth.y, mouth.z, 0, 0])];
+  return state;
+}
+
+describe("ST-293 prey disappearance presentation", () => {
+  it("uses the exact inclusive 12-unit mouth distance in 3D at every shark size and orientation", () => {
+    const state = feedingFixture();
+    const shark = state.sharks[0];
+    for (const length of [1, 10, 112]) for (const yaw of [0, Math.PI / 2, Math.PI]) for (const pitch of [-0.7, 0, 0.7]) {
+      Object.assign(shark, { length, yaw, pitch });
+      const mouth = mouthPoint(shark);
+      const food = { ...state.food[0], ...mouth, y: mouth.y + 12 };
+      expect(nearLivingMouth(food, [shark])).toBe(true);
+      expect(nearLivingMouth({ ...food, y: food.y + 0.001 }, [shark])).toBe(false);
+      expect(nearLivingMouth(food, [{ ...shark, alive: false }])).toBe(false);
+    }
+    shark.yaw = 0; shark.pitch = 0;
+    expect(nearLivingMouth({ ...state.food[0], x: -12, y: 0, z: 0 }, [shark])).toBe(false);
+    expect(nearLivingMouth(state.food[0], [])).toBe(false);
+  });
+
+  it("pops once at the vanished position in every protocol-12 prey colour, then expires", () => {
+    const first = feedingFixture();
+    const mouth = mouthPoint(first.sharks[0]);
+    first.food = PREY_SPECIES.map((_, code) => decodePrey([code.toString(36), code, mouth.x, mouth.y, mouth.z, 0, 0]));
+    const next = { ...first, tick: first.tick + 2, food: [] };
+    const effects = new FeedingParticles();
+    const collect = (state: typeof first, seconds: number) => {
+      const particles: FeedingParticle[] = [];
+      effects.sample({ older: first, newer: state, alpha: 1 }, seconds, 512, false,
+        particle => particles.push({ ...particle }));
+      return particles;
+    };
+    expect(collect(first, 0)).toHaveLength(0);
+    const pops = collect(next, 0.1);
+    expect(pops).toHaveLength(16 * 6);
+    first.food.forEach((food, index) => {
+      const pop = pops[index * 6];
+      expect(pop).toMatchObject({ kind: "prey", ...mouth,
+        color: preyVisualFor(food.kind, food.value, food.r, food.species).bodyColor });
+    });
+    expect(collect(next, 0.2)).toHaveLength(pops.length);
+    expect(collect(next, 0.3)[0].x).toBeGreaterThan(pops[0].x);
+    expect(collect(next, 0.421)).toHaveLength(0);
+    expect(collect({ ...next, tick: next.tick + 2 }, 0.5)).toHaveLength(0);
+  });
+
+  it("rejects retained prey and far interest-boundary disappearances", () => {
+    const first = feedingFixture();
+    first.food.push({ ...first.food[0], id: "far", x: 72 });
+    const effects = new FeedingParticles();
+    const sample = (state: typeof first, seconds: number) => effects.sample(
+      { older: first, newer: state, alpha: 1 }, seconds, 512, false, () => {});
+    sample(first, 0);
+    expect(sample({ ...first, tick: first.tick + 2, food: [first.food[0]] }, 0.1)).toBe(0);
+  });
+
+  it.each(["round", "timeline", "gap", "suspension", "frenzy", "result", "reconnect"] as const)(
+    "establishes a fresh baseline on %s without invented consumption", reason => {
+      const first = feedingFixture();
+      let next = { ...first, tick: first.tick + 2, food: [] };
+      const effects = new FeedingParticles();
+      const sample = (state: typeof first, seconds: number) => effects.sample(
+        { older: first, newer: state, alpha: 1 }, seconds, 512, false, () => {});
+      sample(first, 0);
+      if (reason === "round") next = { ...next, round: { ...next.round, number: next.round.number + 1 } };
+      if (reason === "timeline") next.tick = first.tick - 1;
+      if (reason === "gap") next.tick = first.tick + 7;
+      if (reason === "frenzy") next.frenzyUntilTick += 100;
+      if (reason === "result") next = { ...next, round: { ...next.round, phase: "result" } };
+      if (reason === "reconnect") effects.reset();
+      expect(sample(next, reason === "suspension" ? 1 : 0.1)).toBe(0);
+      expect(sample({ ...next, tick: next.tick + 2 }, reason === "suspension" ? 1.1 : 0.2)).toBe(0);
+    });
 });

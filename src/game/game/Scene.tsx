@@ -44,7 +44,7 @@ export function Scene({
         followRef={followRef}
       />
       <PreyLayer socket={socket} settings={settings} />
-      <FxLayer socket={socket} settings={settings} />
+      <FxLayer socket={socket} settings={settings} followRef={followRef} />
       <CameraRig followRef={followRef} reducedMotion={settings.a11y.motion === "reduced"} inputRef={inputRef} />
       <EdgeNavigation socket={socket} cuesRef={cuesRef} schoolCueRef={schoolCueRef} />
     </>
