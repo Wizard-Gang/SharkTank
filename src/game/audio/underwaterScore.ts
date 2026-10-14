@@ -30,7 +30,7 @@ export const SCORE_LEAD_MOTIF: readonly (readonly (number | null)[])[] = [
   [null, null, null, 79, null, null, null, 76],
 ];
 
-export interface ScoreEvent {
+interface ScoreEvent {
   barIndex: number;
   chordName: string;
   padMidi: readonly number[] | null;

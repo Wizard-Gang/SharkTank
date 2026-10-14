@@ -14,7 +14,7 @@ const HEIGHT = {
   pectoralRight: [cx * sz * 0.7, cx * cz * 1.5, sx, -0.2],
 } as const;
 
-export type SharkSurface = keyof typeof HEIGHT;
+type SharkSurface = keyof typeof HEIGHT;
 
 /** Neutral linear-space vertex colours multiply the existing per-instance skin.
  * Runs only when geometry or contrast changes; topology and draw count stay fixed.

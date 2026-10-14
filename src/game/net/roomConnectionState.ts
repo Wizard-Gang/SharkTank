@@ -9,7 +9,7 @@ export type ConnectionStatus =
   | "unreachable"
   | "incompatible";
 
-export interface ConnectionTransition {
+interface ConnectionTransition {
   status: ConnectionStatus;
   failedAttempts: number;
   retryInMs: number | null;

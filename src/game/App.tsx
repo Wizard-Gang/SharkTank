@@ -14,12 +14,7 @@ type Screen = "menu" | "settings" | "game";
 const GameScreen = lazy(() => import("./ui/GameScreen.js").then((module) => ({ default: module.GameScreen })));
 const SHARKTANK_ROOM = { id: "room-1", name: "SharkTank" } as const;
 
-export interface AppProps {
-  /** Base URL for the server API. Defaults to same origin. */
-  baseUrl?: string;
-}
-
-export function App(_props: AppProps = {}) {
+export function App() {
   return (
     <SettingsProvider>
       <AnnouncerProvider>

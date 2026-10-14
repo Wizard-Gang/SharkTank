@@ -2,7 +2,7 @@ export type TouchStickKind = "flight" | "look";
 export type TouchScheme = "simple" | "dual";
 export type TouchSide = "left" | "right";
 
-export interface TouchStickState {
+interface TouchStickState {
   pointerId: number | null;
   x: number;
   y: number;
@@ -13,14 +13,14 @@ export interface TwinStickState {
   look: TouchStickState;
 }
 
-export interface TouchAxes {
+interface TouchAxes {
   yaw: number;
   pitch: number;
   lookYaw: number;
   lookPitch: number;
 }
 
-export interface TouchLayout {
+interface TouchLayout {
   flight: TouchSide;
   look: TouchSide;
   actions: TouchSide;

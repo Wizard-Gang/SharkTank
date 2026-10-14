@@ -76,7 +76,7 @@ export function useTouchPortraitLayout(active: boolean): boolean {
   return portrait;
 }
 
-export interface TouchControlsProps {
+interface TouchControlsProps {
   inputRef: React.MutableRefObject<TwinStickState>;
   flightSide: TouchSide;
   scheme: TouchScheme;

@@ -28,7 +28,7 @@ export interface HudStats {
 const SPAWN_LENGTH = 10; // engine START_LENGTH; the baseline a size multiplier is read against
 
 /** Sample the live snapshot ~5×/s for HUD display without per-frame re-renders. */
-export function useHudStats(socket: RoomSocket): HudStats {
+function useHudStats(socket: RoomSocket): HudStats {
   const [stats, setStats] = useState<HudStats>({
     points: 0,
     size: 1,

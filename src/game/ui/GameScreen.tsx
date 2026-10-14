@@ -39,7 +39,7 @@ import { SharkLabels } from "./SharkLabels.js";
 import { Captions, GoldenFishCaption } from "./Captions.js";
 import { TouchControls, useTouchControls, useTouchPortraitLayout } from "./TouchControls.js";
 
-export interface GameScreenProps {
+interface GameScreenProps {
   room: { id: string; name: string };
   identity: { name: string; skin: string };
   onAuthoritativeResult?: (score: number) => void;
@@ -266,7 +266,7 @@ function useRoundPresentation(
     announcedKey.current = key;
 
     if (round.phase === "active") {
-      announce(`Round ${round.number} started. Five minutes on the authoritative round clock.`);
+      announce(`Round ${round.number} active. ${round.secondsLeft} seconds until Apex.`);
     } else if (round.phase === "apex") {
       announce(
         `Apex climax. ${round.apexName ?? "The current leader"} is marked as the Apex. ${round.secondsLeft} seconds remain.`,
@@ -462,7 +462,7 @@ function abilityRemaining(socket: ReturnType<typeof useRoomSocket>, field: "dash
   return state && shark ? Math.max(0, (shark[field] - state.tick) / TICKS_PER_SECOND) : Infinity;
 }
 
-export function CooldownRing({ remaining, total }: { remaining: number; total: number }) {
+function CooldownRing({ remaining, total }: { remaining: number; total: number }) {
   const progress = Math.max(0, Math.min(1, remaining / total));
   return <svg className="cooldown-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" pathLength="1" /><circle cx="50" cy="50" r="46" pathLength="1" strokeDasharray={`${progress} 1`} /></svg>;
 }

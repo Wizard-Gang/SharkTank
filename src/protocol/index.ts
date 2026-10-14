@@ -2,7 +2,7 @@
 // travel over the WebSocket (realtime play) into the Room Durable Object.
 
 import { clampPitch, normalizeYaw } from "../engine/geometry3d.js";
-import type { Action, DeathAction, Explosion, OceanVolume, Prey, RoomState, RoundState, ScoreEntry, Shark, Vec3 } from "../engine/types.js";
+import type { Action, DeathAction, Explosion, Prey, RoomState, RoundState, ScoreEntry, Shark, Vec3 } from "../engine/types.js";
 export { isFamilyFriendlyName, sanitizeDisplayName } from "./name-policy.js";
 
 // ── WebSocket: realtime play (client ⇄ Room DO) ───────────────────────────────
@@ -50,8 +50,8 @@ export const PREY_SPECIES = [
   "sardine", "anchovy", "silverside", "clownfish", "blue-tang", "yellow-tang", "angelfish", "parrotfish",
   "chum", "bonus-chum", "carcass", "bonus-carcass", "tuna", "squid", "ray", "golden-fish",
 ] as const;
-export type PreyTuple = [id: string, species: number, x: number, y: number, z: number, yaw: number, pitch: number];
-export type WireState = Omit<NetState, "food"> & { food: PreyTuple[] };
+type PreyTuple = [id: string, species: number, x: number, y: number, z: number, yaw: number, pitch: number];
+type WireState = Omit<NetState, "food"> & { food: PreyTuple[] };
 
 /** Stable 32-bit FNV-1a identity, encoded in base 36 (at most seven characters). */
 export function preyWireId(id: string): string {
@@ -59,7 +59,7 @@ export function preyWireId(id: string): string {
   for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619);
   return (hash >>> 0).toString(36);
 }
-export function preySpeciesCode(prey: Prey): number {
+function preySpeciesCode(prey: Prey): number {
   if (prey.kind === "chum") return prey.value > 3 ? 9 : 8;
   if (prey.kind === "carcass") return prey.value > 1 ? 11 : 10;
   if (prey.kind === "tuna") return 12;
@@ -284,7 +284,7 @@ function round(value: number, places = 2): number {
 }
 
 /** Session visibility never changes the authoritative prey population. */
-export const PREY_SNAPSHOT_RADIUS = 72;
+const PREY_SNAPSHOT_RADIUS = 72;
 
 /** Omit viewerId only for full-room tooling and protocol fixtures. */
 export function toNetState(state: RoomState, viewerId?: string): WireState {
@@ -336,4 +336,4 @@ export function toNetState(state: RoomState, viewerId?: string): WireState {
   };
 }
 
-export type { Action, DeathAction, Explosion, OceanVolume, Prey, PreyKind, RoomState, RoundPhase, RoundResult, RoundState, ScoreEntry, Shark, Vec3 } from "../engine/types.js";
+export type { Action, DeathAction, Explosion, OceanVolume, Prey, PreyKind, RoomState, RoundState, ScoreEntry, Shark, Vec3 } from "../engine/types.js";

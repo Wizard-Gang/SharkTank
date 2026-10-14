@@ -1,7 +1,7 @@
 /** Security policy for the Vite-built game document and its first-party assets. */
 export const assetCsp = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' wss:; media-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'";
 
-export const SECURITY_HEADERS: Record<string, string> = {
+const SECURITY_HEADERS: Record<string, string> = {
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",

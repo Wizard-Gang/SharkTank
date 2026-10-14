@@ -30,13 +30,13 @@ const TELEPORT_ERROR = 8;
 const MAX_VISUAL_ERROR = 12;
 const VISUAL_HALF_LIFE = 0.12;
 
-export interface PredictionResult {
+interface PredictionResult {
   position: Vec3;
   yaw: number;
   pitch: number;
 }
 
-export interface PredictionWorld {
+interface PredictionWorld {
   arenaRadius?: number;
   seabedY: number;
   surfaceY: number;

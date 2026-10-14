@@ -1,7 +1,7 @@
 import type { Keybinds } from "../settings/SettingsContext.js";
 import { CAMERA_LOOK_LIMITS, clampCameraLookOffsets } from "./sceneMath.js";
 
-export interface DesktopAxes {
+interface DesktopAxes {
   yaw: number;
   pitch: number;
   lookYaw: number;
@@ -13,7 +13,7 @@ export interface CameraLook {
   pitch: number;
 }
 
-export const CAMERA_LOOK_RATES = {
+const CAMERA_LOOK_RATES = {
   yaw: 1.9,
   pitch: 1.45,
   recenter: 5.5,

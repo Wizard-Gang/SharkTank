@@ -4,7 +4,7 @@ import type { InterpFrame } from "../net/snapshotTimeline.js";
 import { preyVisualFor } from "./preyPresentation.js";
 import { forwardFromYawPitch, interpolateOrientedPose } from "./sceneMath.js";
 
-export const FEEDING_FX = { popSeconds: 0.32, popParticles: 6, maxSnapshotGap: 6 } as const;
+const FEEDING_FX = { popSeconds: 0.32, popParticles: 6, maxSnapshotGap: 6 } as const;
 
 export interface FeedingParticle {
   kind: "wake" | "prey";

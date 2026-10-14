@@ -21,7 +21,7 @@ export interface SpatialMix {
   vertical: number;
 }
 
-export interface SpatialEmitter {
+interface SpatialEmitter {
   id: string;
   position: AudioPoint;
   priority: number;

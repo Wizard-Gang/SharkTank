@@ -1,6 +1,6 @@
 export type Edibility = "prey" | "even" | "threat";
 
-export interface EdibilityPresentation {
+interface EdibilityPresentation {
   color: string;
   glyph: "▼" | "■" | "▲";
   label: "eat" | "even" | "danger";
