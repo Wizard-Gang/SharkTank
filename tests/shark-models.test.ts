@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { createSharkBodyGeometry, createSharkFinGeometry } from "../src/game/game/sharkGeometry.js";
+import { createSharkBodyGeometry, createSharkFinGeometry, sharkSurfaceRestMatrix } from "../src/game/game/sharkGeometry.js";
+import { applySharkSpineShader, SHARK_SPINE } from "../src/game/game/sharkSpine.js";
 import { SKINS } from "../src/engine/index.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "../src/game/game/sharkMaterial.js";
 import { ROOM_SCHEMA_VERSION } from "../src/engine/room.js";
@@ -124,15 +125,13 @@ describe("ST-119 animated shark models", () => {
     expect(sharkScaleForLength(64)).toBeCloseTo(Math.min(2.5, 0.32 + Math.sqrt(64) * 0.2));
   });
 
-  it("derives deterministic swim animation from continuous seconds, speed, boost and pitch state", () => {
+  it("derives deterministic per-instance wave parameters from continuous seconds and speed", () => {
     const base = {
       seconds: 42 / 20,
       actorId: "shark-alpha",
       speed: 11,
       baseSpeed: 11,
       boostSpeed: 28,
-      boosting: false,
-      pitch: 0.3,
       reducedMotion: false,
     };
     const cruise = resolveSharkAnimation(base);
@@ -140,7 +139,6 @@ describe("ST-119 animated shark models", () => {
     const boosted = resolveSharkAnimation({
       ...base,
       speed: 28,
-      boosting: true,
     });
     expect(cruiseAgain).toEqual(cruise);
     let last = cruise;
@@ -150,9 +148,23 @@ describe("ST-119 animated shark models", () => {
       last = next;
     }
     expect(read("../src/game/game/ActorLayer.tsx")).toContain("seconds: clock.elapsedTime");
-    expect(boosted.intensity).toBeGreaterThan(cruise.intensity);
-    expect(Math.abs(boosted.tailYaw)).toBeLessThanOrEqual(0.5);
-    expect(Math.abs(boosted.pectoralSweep)).toBeLessThanOrEqual(0.22);
+    expect(boosted.amplitude).toBeGreaterThan(cruise.amplitude);
+    expect(boosted.amplitude).toBeCloseTo(0.4);
+    expect(boosted.phase).toBe(cruise.phase);
+    expect(resolveSharkAnimation({ ...base, actorId: "shark-beta" }).phase).not.toBe(cruise.phase);
+    expect(resolveSharkAnimation({ ...base, seconds: base.seconds + 1 / 60 }).phase - cruise.phase).toBeCloseTo(0.1);
+    let lastAmplitude = 0;
+    for (const speed of [0, 11, 16, 20, 28, 1000]) {
+      const pose = resolveSharkAnimation({ ...base, speed });
+      expect(pose.amplitude).toBeGreaterThanOrEqual(lastAmplitude);
+      expect(pose.amplitude).toBeLessThanOrEqual(0.4);
+      lastAmplitude = pose.amplitude;
+    }
+    for (const value of [NaN, Infinity, -Infinity]) {
+      const pose = resolveSharkAnimation({ ...base, seconds: value, speed: value, baseSpeed: value, boostSpeed: value });
+      expect(Number.isFinite(pose.phase)).toBe(true);
+      expect(Number.isFinite(pose.amplitude)).toBe(true);
+    }
   });
 
   it("keeps reduced motion playable by suppressing decorative flex while bank remains an orientation cue", () => {
@@ -162,17 +174,9 @@ describe("ST-119 animated shark models", () => {
       speed: 28,
       baseSpeed: 11,
       boostSpeed: 28,
-      boosting: true,
-      pitch: 0.5,
       reducedMotion: true,
     });
-    expect(reduced).toEqual({
-      bodyYaw: 0,
-      peduncleYaw: 0,
-      tailYaw: 0,
-      pectoralSweep: 0,
-      intensity: 0,
-    });
+    expect(reduced).toEqual({ phase: 0, amplitude: 0 });
 
     const sceneMath = read("../src/game/game/sceneMath.ts");
     expect(sceneMath).toContain("const maxBank = reducedMotion ? 0.24 : 0.42");
@@ -221,7 +225,7 @@ describe("shared shark geometry", () => {
     const model = read("../src/game/game/sharkGeometry.ts");
     expect(model).toContain("SHARK_GEOMETRY.snoutTip");
     expect(model).toContain("SHARK_GEOMETRY.tail");
-    expect(actors).toContain("SHARK_GEOMETRY.tail");
+    expect(actors).toContain("sharkSurfaceRestMatrix(surface)");
     expect(read("../src/game/game/sceneMath.ts")).toContain("SHARK_GEOMETRY.mouth * size");
   });
   it("preserves the full size curve including invalid lengths and the cap", () => {
@@ -305,6 +309,50 @@ describe("ST-290 tapered body and blade geometry", () => {
         expect(Array.from({ length: normals.count }, (_, i) => normals.getZ(i))).toContain(-1);
         fin.dispose();
       }
+    }
+  });
+});
+
+describe("ST-291 continuous spine wave", () => {
+  it("bends positions and lit normals in rest space before Three applies instance transforms", () => {
+    const shader = { vertexShader: THREE.ShaderLib.standard.vertexShader };
+    applySharkSpineShader(shader);
+    expect(shader.vertexShader).toContain("attribute vec2 sharkSpine;");
+    expect(shader.vertexShader).toContain("if (sharkSpine.y == 0.0) return vec2(0.0)");
+    expect(shader.vertexShader).toContain("aft * aft * sin(angle)");
+    expect(shader.vertexShader).toContain("objectNormal.x -= sharkSpineWave(position.x).y * objectNormal.z");
+    expect(shader.vertexShader).toContain("transformed.z += sharkSpineWave(position.x).x");
+    expect(shader.vertexShader.indexOf("objectNormal.x -=")).toBeLessThan(shader.vertexShader.indexOf("#include <defaultnormal_vertex>"));
+    expect(shader.vertexShader.indexOf("transformed.z +=")).toBeLessThan(shader.vertexShader.indexOf("#include <project_vertex>"));
+    expect(shader.vertexShader).toContain("#include <color_vertex>");
+    expect(SHARK_SPINE.anchor).toBeLessThan(1.74); // eyes and mouth are ahead of the bend
+    expect(SHARK_SPINE.length).toBeCloseTo(SHARK_SPINE.anchor + 2.45);
+
+    const actors = read("../src/game/game/ActorLayer.tsx");
+    expect(actors.match(/onBeforeCompile={applySharkSpineShader}/g)).toHaveLength(5);
+    expect(actors).toContain('setAttribute("sharkSpine", spineParameters)');
+    expect(actors).toContain("for (const mesh of sharkParts) mesh.setMatrixAt(sharkCount, root.matrix)");
+    expect(actors).toContain("spineParameters.needsUpdate = true");
+    expect(actors).not.toMatch(/animation\.(bodyYaw|tailYaw|pectoralSweep)/);
+  });
+
+  it("places all fins on the shared spine without moving rest-space countershading or adding draws", () => {
+    for (const quality of ["low", "medium", "high"] as const) {
+      const detail = resolveSharkPresentationQuality(quality);
+      const attachments = { tail: [-2.45, 0, 0], dorsal: [-0.18, 0.78, 0], pectoralLeft: [0.38, -0.2, 0.72], pectoralRight: [0.38, -0.2, -0.72] } as const;
+      for (const surface of Object.keys(attachments) as (keyof typeof attachments)[]) {
+        const geometry = createSharkFinGeometry(surface === "tail", detail.finSegments);
+        countershadeSharkGeometry(geometry, surface, true);
+        const colors = geometry.getAttribute("color").array.slice();
+        const matrix = sharkSurfaceRestMatrix(surface);
+        expect(new THREE.Vector3().applyMatrix4(matrix).toArray()).toEqual(attachments[surface]);
+        geometry.applyMatrix4(matrix);
+        expect(geometry.getAttribute("color").array).toEqual(colors);
+        expect(Array.from(geometry.getAttribute("normal").array).every(Number.isFinite)).toBe(true);
+        expect(geometry.groups).toHaveLength(0);
+        geometry.dispose();
+      }
+      expect(sharkSurfaceRestMatrix("body").equals(new THREE.Matrix4())).toBe(true);
     }
   });
 });

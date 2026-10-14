@@ -154,13 +154,13 @@ describe("full-3D accessibility re-proof", () => {
       speed: 28,
       baseSpeed: 11,
       boostSpeed: 28,
-      boosting: true,
-      pitch: 0.3,
       reducedMotion: true,
-    })).toEqual({ bodyYaw: 0, peduncleYaw: 0, tailYaw: 0, pectoralSweep: 0, intensity: 0 });
+    })).toEqual({ phase: 0, amplitude: 0 });
 
     expect(cameraRig).toContain("smoothChaseCameraPose(current, goal, dt, reducedMotion");
     expect(actorLayer).toContain("const alpha = reducedMotion ? 1 : frame.alpha");
+    expect(actorLayer).toContain("spineParameters.setXY(sharkCount, animation.phase, animation.amplitude)");
+    expect(actorLayer.match(/onBeforeCompile={applySharkSpineShader}/g)).toHaveLength(5);
     expect(fxLayer).toContain("reducedMotion ? 0.35");
     expect(worldEnvironment).toContain("const t = reducedMotion ? 0 : clock.elapsedTime");
     expect(worldEnvironment).toContain("kelpSway.value = reducedMotion ? 0 : 0.28");

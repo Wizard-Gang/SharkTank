@@ -108,18 +108,6 @@ Tasks follow these defaults unless the owner changes them before the task starts
 ## Open tasks
 
 
-### ST-291 — [FEAT] Bend the shark body with a continuous spine wave
-
-**Goal:** Smooth swimming instead of rigid parts.
-
-**Scope:** A vertex-shader spine wave uses per-instance phase and amplitude, which rises with speed. Reduced motion sets it to zero, and Low quality may disable it.
-
-**Acceptance:** Animation-parameter tests pass.
-
-**Validation:** `npm test -- tests/shark-models.test.ts tests/accessibility-contract.test.ts`.
-
----
-
 ### ST-292 — [FEAT] Open the jaws on every bite
 
 **Goal:** Show the attack, not just its result.
