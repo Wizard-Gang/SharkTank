@@ -1,4 +1,5 @@
-import { createSharkBodyGeometry, createSharkFinGeometry } from "./sharkGeometry.js";
+import { createSharkBodyGeometry, createSharkFinGeometry, sharkSurfaceRestMatrix } from "./sharkGeometry.js";
+import { applySharkSpineShader } from "./sharkSpine.js";
 import { countershadeSharkGeometry, SHARK_MATERIAL } from "./sharkMaterial.js";
 import { OwnLabelLifetime, selectSharkLabels, type SharkLabel } from "../ui/sharkLabelSelection.js";
 import { RemotePose } from "./remotePose.js";
@@ -9,7 +10,6 @@ import * as THREE from "three";
 import {
   forwardFromYawPitch,
   sharkScaleForLength,
-  SHARK_GEOMETRY,
   MOVE,
   SKINS,
   TICKS_PER_SECOND,
@@ -139,6 +139,8 @@ export function ActorLayer({
   const performanceProfile = resolveClientPerformanceProfile(settings.graphics.quality);
   const sharkQuality = resolveSharkPresentationQuality(settings.graphics.quality);
   const highContrast = settings.a11y.contrast === "high";
+  const spineParameters = useMemo(() => new THREE.InstancedBufferAttribute(new Float32Array(MAX_SHARKS * 2), 2)
+    .setUsage(THREE.DynamicDrawUsage), []);
   const geometries = useMemo(() => {
     const anatomy = {
       body: createSharkBodyGeometry(sharkQuality),
@@ -149,9 +151,11 @@ export function ActorLayer({
     };
     for (const surface of Object.keys(anatomy) as (keyof typeof anatomy)[]) {
       countershadeSharkGeometry(anatomy[surface], surface, highContrast);
+      anatomy[surface].applyMatrix4(sharkSurfaceRestMatrix(surface));
+      anatomy[surface].setAttribute("sharkSpine", spineParameters);
     }
     return anatomy;
-  }, [sharkQuality, highContrast]);
+  }, [sharkQuality, highContrast, spineParameters]);
   useEffect(() => () => {
     for (const geometry of Object.values(geometries)) geometry.dispose();
   }, [geometries]);
@@ -313,8 +317,6 @@ export function ActorLayer({
         speed,
         baseSpeed,
         boostSpeed,
-        boosting: shark.lungeTicks > 0,
-        pitch,
         reducedMotion,
       });
 
@@ -323,42 +325,14 @@ export function ActorLayer({
       root.scale.setScalar(sharkScale);
       root.updateMatrix();
 
-      setPartMatrix(
-        body, sharkCount, root.matrix, part, composed,
-        0, 0, 0,
-        0, animation.bodyYaw, 0,
-        1, 1, 1,
-      );
-      setPartMatrix(
-        tailFin, sharkCount, root.matrix, part, composed,
-        SHARK_GEOMETRY.tail, 0, animation.tailYaw * 0.24,
-        0, animation.tailYaw, 0,
-        0.5, 0.98, 1,
-      );
-      setPartMatrix(
-        dorsalFin, sharkCount, root.matrix, part, composed,
-        -0.18, 0.78, 0,
-        0, animation.bodyYaw * 0.45, 0,
-        0.65, 0.92, 1,
-      );
-      setPartMatrix(
-        pectoralLeft, sharkCount, root.matrix, part, composed,
-        0.38, -0.2, 0.72,
-        Math.PI / 2 - 0.14, 0, -0.22 + animation.pectoralSweep,
-        0.7, 1.5, 1,
-      );
-      setPartMatrix(
-        pectoralRight, sharkCount, root.matrix, part, composed,
-        0.38, -0.2, -0.72,
-        -Math.PI / 2 + 0.14, 0, 0.22 - animation.pectoralSweep,
-        0.7, 1.5, 1,
-      );
+      spineParameters.setXY(sharkCount, animation.phase, animation.amplitude);
+      for (const mesh of sharkParts) mesh.setMatrixAt(sharkCount, root.matrix);
 
       if (relation) {
         setPartMatrix(
           rim, rimCount, root.matrix, part, composed,
           0, 0, 0,
-          0, animation.bodyYaw, 0,
+          0, 0, 0,
           1.82, 0.66, 0.74,
         );
         rim.setColorAt(rimCount, edibilityColors[relation]);
@@ -426,6 +400,7 @@ export function ActorLayer({
 
     if (apexMarker && !apexVisible) apexMarker.visible = false;
 
+    spineParameters.needsUpdate = true;
     commitInstances(sharkParts, sharkCount);
     commitInstances([rim], rimCount);
     eyes.count = eyeCount;
@@ -501,19 +476,19 @@ export function ActorLayer({
   return (
     <>
       <instancedMesh ref={bodyMesh} geometry={geometries.body} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <meshStandardMaterial {...SHARK_MATERIAL} />
+        <meshStandardMaterial {...SHARK_MATERIAL} onBeforeCompile={applySharkSpineShader} />
       </instancedMesh>
       <instancedMesh ref={tailFinMesh} geometry={geometries.tail} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <meshStandardMaterial {...SHARK_MATERIAL} />
+        <meshStandardMaterial {...SHARK_MATERIAL} onBeforeCompile={applySharkSpineShader} />
       </instancedMesh>
       <instancedMesh ref={dorsalFinMesh} geometry={geometries.dorsal} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <meshStandardMaterial {...SHARK_MATERIAL} />
+        <meshStandardMaterial {...SHARK_MATERIAL} onBeforeCompile={applySharkSpineShader} />
       </instancedMesh>
       <instancedMesh ref={pectoralLeftMesh} geometry={geometries.pectoralLeft} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <meshStandardMaterial {...SHARK_MATERIAL} />
+        <meshStandardMaterial {...SHARK_MATERIAL} onBeforeCompile={applySharkSpineShader} />
       </instancedMesh>
       <instancedMesh ref={pectoralRightMesh} geometry={geometries.pectoralRight} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
-        <meshStandardMaterial {...SHARK_MATERIAL} />
+        <meshStandardMaterial {...SHARK_MATERIAL} onBeforeCompile={applySharkSpineShader} />
       </instancedMesh>
       <instancedMesh ref={rimMesh} args={[undefined, undefined, MAX_SHARKS]} frustumCulled={false}>
         <sphereGeometry args={[1, sharkQuality.radialSegments, sharkQuality.radialSegments]} />

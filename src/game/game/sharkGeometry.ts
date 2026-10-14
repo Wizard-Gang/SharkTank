@@ -2,6 +2,27 @@ import * as THREE from "three";
 import { SHARK_GEOMETRY } from "../../engine/sharkGeometry.js";
 import type { SharkPresentationProfile } from "./sharkPresentation.js";
 
+/** Bake the original part placement into shark rest space so every surface
+ * samples the same spine, before the shared instance heading/scale is applied.
+ */
+export function sharkSurfaceRestMatrix(surface: "body" | "tail" | "dorsal" | "pectoralLeft" | "pectoralRight"): THREE.Matrix4 {
+  const part = new THREE.Object3D();
+  if (surface === "tail") {
+    part.position.set(SHARK_GEOMETRY.tail, 0, 0);
+    part.scale.set(0.5, 0.98, 1);
+  } else if (surface === "dorsal") {
+    part.position.set(-0.18, 0.78, 0);
+    part.scale.set(0.65, 0.92, 1);
+  } else if (surface === "pectoralLeft" || surface === "pectoralRight") {
+    const sign = surface === "pectoralLeft" ? 1 : -1;
+    part.position.set(0.38, -0.2, sign * 0.72);
+    part.rotation.set(sign * (Math.PI / 2 - 0.14), 0, -sign * 0.22);
+    part.scale.set(0.7, 1.5, 1);
+  }
+  part.updateMatrix();
+  return part.matrix;
+}
+
 // Tail -> shoulder -> pointed snout. A single smooth surface includes the
 // peduncle and head; these are presentation coordinates, not collision volumes.
 const PROFILE = new THREE.CatmullRomCurve3([

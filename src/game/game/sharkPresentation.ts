@@ -26,17 +26,12 @@ export interface SharkAnimationInput {
   speed: number;
   baseSpeed: number;
   boostSpeed: number;
-  boosting: boolean;
-  pitch: number;
   reducedMotion: boolean;
 }
 
 export interface SharkAnimationPose {
-  bodyYaw: number;
-  peduncleYaw: number;
-  tailYaw: number;
-  pectoralSweep: number;
-  intensity: number;
+  phase: number;
+  amplitude: number;
 }
 
 function clamp01(value: number): number {
@@ -54,13 +49,7 @@ function actorPhase(actorId: string): number {
 
 export function resolveSharkAnimation(input: SharkAnimationInput): SharkAnimationPose {
   if (input.reducedMotion) {
-    return {
-      bodyYaw: 0,
-      peduncleYaw: 0,
-      tailYaw: 0,
-      pectoralSweep: 0,
-      intensity: 0,
-    };
+    return { phase: 0, amplitude: 0 };
   }
 
   const baseSpeed = Math.max(0.001, Number.isFinite(input.baseSpeed) ? input.baseSpeed : 0.001);
@@ -70,19 +59,10 @@ export function resolveSharkAnimation(input: SharkAnimationInput): SharkAnimatio
   );
   const speed = Number.isFinite(input.speed) ? input.speed : baseSpeed;
   const speedRatio = clamp01((speed - baseSpeed) / (boostSpeed - baseSpeed));
-  const intensity = clamp01(0.28 + speedRatio * 0.58 + (input.boosting ? 0.16 : 0));
   const seconds = Number.isFinite(input.seconds) ? input.seconds : 0;
-  const phase = seconds * TICKS_PER_SECOND * (0.3 + speedRatio * 0.09) + actorPhase(input.actorId);
-  const pitch = Number.isFinite(input.pitch) ? input.pitch : 0;
-
+  // Speed changes amplitude, never the clock: burst transitions cannot jump phase.
   return {
-    bodyYaw: Math.sin(phase + 0.55) * (0.018 + intensity * 0.028),
-    peduncleYaw: Math.sin(phase - 0.38) * (0.08 + intensity * 0.17),
-    tailYaw: Math.sin(phase - 0.85) * (0.16 + intensity * 0.34),
-    pectoralSweep: Math.max(
-      -0.22,
-      Math.min(0.22, -pitch * 0.28 + Math.sin(phase * 0.5) * 0.035 * intensity),
-    ),
-    intensity,
+    phase: seconds * TICKS_PER_SECOND * 0.3 + actorPhase(input.actorId),
+    amplitude: 0.12 + speedRatio * 0.28,
   };
 }
